@@ -105,6 +105,8 @@ struct CartoucheHomeView: View {
 
     enum Item: Hashable {
         case game(CartoucheEntry)
+        /// An app that is not a game (decision 77).
+        case app(CartoucheEntry)
         case importGame
         case allGames
         case dock(Dock)
@@ -127,11 +129,12 @@ struct CartoucheHomeView: View {
     private static let shelfRow = 0
     private static let dockRow = 1
 
-    /// The player's games, installed or in their games folder, then the
-    /// covers that import one and open every game. The games nxnative plays
-    /// on the iPhone are in All games, under their filter.
+    /// The player's games, installed or in their games folder, then their
+    /// apps that are not games (decision 77), then the covers that import
+    /// one and open every game. The games nxnative plays on the iPhone are
+    /// in All games, under their filter.
     private var libraryShelf: [Item] {
-        entries.owned.map(Item.game) + [.importGame, .allGames]
+        entries.owned.map(Item.game) + entries.apps.map(Item.app) + [.importGame, .allGames]
     }
 
     private var rows: [[Item]] {
@@ -210,8 +213,10 @@ struct CartoucheHomeView: View {
         // Resume under A.
         .onChange(of: actions.running?.isInFront) { _, inFront in
             guard inFront == false, let column = libraryShelf.firstIndex(where: { item in
-                if case .game(let entry) = item { return actions.isRunning(entry.app) }
-                return false
+                switch item {
+                case .game(let entry), .app(let entry): return actions.isRunning(entry.app)
+                default: return false
+                }
             }) else { return }
             focus(row: Self.shelfRow, column: column)
         }
@@ -224,8 +229,10 @@ struct CartoucheHomeView: View {
     }
 
     private var heroKey: String? {
-        if case .game(let entry) = hero { return entry.tileKey }
-        return nil
+        switch hero {
+        case .game(let entry), .app(let entry): return entry.tileKey
+        default: return nil
+        }
     }
 
     private var heroBackdrop: CartoucheArt? {
@@ -389,6 +396,12 @@ struct CartoucheHomeView: View {
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction(named: Text(CartoucheText.details)) { onSheet(entry) }
                 .contextMenu { gameMenu(entry) }
+        case .app(let entry):
+            CartoucheAppCartridge(entry: entry, width: width, isFocused: isFocused, isPaused: actions.isRunning(entry.app))
+                .cartoucheZoomSource(entry.id, in: zoom)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction(named: Text(CartoucheText.details)) { onSheet(entry) }
+                .contextMenu { appMenu(entry) }
         case .importGame:
             CartoucheImportCartridge(width: width, isFocused: isFocused)
         case .allGames:
@@ -422,6 +435,22 @@ struct CartoucheHomeView: View {
         }
     }
 
+    /// A long press on an app that is not a game: what its sheet offers.
+    @ViewBuilder
+    private func appMenu(_ entry: CartoucheEntry) -> some View {
+        if let app = entry.app, actions.isRunning(app) {
+            Button { onPlay(app) } label: { Label(CartoucheText.resume, systemImage: "play.fill") }
+            Button(role: .destructive) { actions.askToQuit() } label: { Label(CartoucheText.quit, systemImage: "stop.circle") }
+        } else if let app = entry.app {
+            Button { onPlay(app) } label: { Label(CartoucheText.open, systemImage: "arrow.up.forward.app") }
+        }
+        Button { onSheet(entry) } label: { Label(CartoucheText.details, systemImage: "info.circle") }
+        if let app = entry.app, !actions.isRunning(app) {
+            Divider()
+            Button(role: .destructive) { onUninstall(app) } label: { Label(CartoucheText.uninstall, systemImage: "trash") }
+        }
+    }
+
     // MARK: The game in focus
 
     /// The game in focus, at the same height whatever it is, so that the
@@ -432,6 +461,8 @@ struct CartoucheHomeView: View {
             switch hero {
             case .game(let entry):
                 gameHero(entry, metrics: metrics)
+            case .app(let entry):
+                appHero(entry, metrics: metrics)
             case .importGame:
                 heroText(CartoucheText.importTile, CartoucheText.emptyMessage, metrics: metrics)
                 actionButton(CartoucheText.importCopy, systemImage: "square.and.arrow.down", primary: true,
@@ -487,6 +518,54 @@ struct CartoucheHomeView: View {
                 gameActions(entry, compact: 1)
                 gameActions(entry, compact: 2)
             }
+        }
+    }
+
+    /// An app that is not a game, in focus: its name, what it says of
+    /// itself, and Open, or Resume and Quit while it is paused behind the
+    /// console, and Details (decision 77).
+    private func appHero(_ entry: CartoucheEntry, metrics: Metrics) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                heroTitle(entry.name, metrics: metrics)
+                if let app = entry.app {
+                    Text(Self.appLine(of: app, paused: actions.isRunning(app)))
+                        .font(.subheadline)
+                        .foregroundStyle(CartoucheTheme.secondaryText)
+                        .lineLimit(metrics.detailLines)
+                }
+            }
+            ViewThatFits(in: .horizontal) {
+                appActions(entry, compact: 0)
+                appActions(entry, compact: 1)
+                appActions(entry, compact: 2)
+            }
+        }
+    }
+
+    /// "com.example.app · 1.2", with Paused first while the app is paused
+    /// behind the console.
+    static func appLine(of app: LCAppModel, paused: Bool) -> String {
+        var parts: [String] = []
+        if paused { parts.append(CartouchePlayStatus.paused.short) }
+        if let bundleId = app.appInfo.bundleIdentifier(), !bundleId.isEmpty { parts.append(bundleId) }
+        if let version = app.appInfo.version(), !version.isEmpty { parts.append(version) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The buttons of the app in focus, as gameActions: Open, or Resume and
+    /// Quit, then Details.
+    private func appActions(_ entry: CartoucheEntry, compact: Int) -> some View {
+        HStack(spacing: 10) {
+            if let app = entry.app, actions.isRunning(app) {
+                actionButton(CartoucheText.resume, systemImage: "play.fill", primary: true, input: .a) { onPlay(app) }
+                actionButton(CartoucheText.quit, systemImage: "stop.circle", primary: false,
+                             iconOnly: compact >= 2) { actions.askToQuit() }
+            } else if let app = entry.app {
+                actionButton(CartoucheText.open, systemImage: "arrow.up.forward.app", primary: true, input: .a) { onPlay(app) }
+            }
+            actionButton(CartoucheText.details, systemImage: "info.circle", primary: false,
+                         iconOnly: compact >= 1, input: .x) { onSheet(entry) }
         }
     }
 
@@ -691,7 +770,7 @@ struct CartoucheHomeView: View {
 
     private func tapped(_ item: Item, row tappedRow: Int, column: Int) {
         switch item {
-        case .game(let entry):
+        case .game(let entry), .app(let entry):
             if row == tappedRow && columns[tappedRow] == column {
                 onSheet(entry)
             } else {
@@ -720,6 +799,8 @@ struct CartoucheHomeView: View {
             } else {
                 onImport()
             }
+        case .app(let entry):
+            if let app = entry.app { onPlay(app) }
         case .importGame, .dock(.importGame):
             onImport()
         case .allGames, .dock(.allGames):
@@ -745,7 +826,10 @@ struct CartoucheHomeView: View {
         case .a:
             if let focused { activate(focused) }
         case .x:
-            if case .game(let entry) = focused { onSheet(entry) }
+            switch focused {
+            case .game(let entry), .app(let entry): onSheet(entry)
+            default: break
+            }
         case .y:
             onLibrary()
         case .menu:

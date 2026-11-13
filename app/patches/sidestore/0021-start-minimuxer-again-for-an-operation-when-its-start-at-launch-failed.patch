@@ -1,0 +1,107 @@
+From defee4c4c4ad0bd2611e27975f6d840f4fd2c47a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 20:31:18 -0500
+Subject: [PATCH] Start minimuxer again for an operation when its start at
+ launch failed
+
+SideStore starts minimuxer once, as it launches, with the pairing file.
+When that start did not go through, the iPhone being out of reach then,
+LocalDevVPN off, nothing started it again: every install and refresh
+stopped at "Pairing Required: No valid pairing file has been loaded"
+until SideStore was opened again, the pairing file being the right one
+all along. Before an operation, the readiness check now starts minimuxer
+again with the pairing file in place, once no start is under way, and
+when that start fails without LocalDevVPN's tunnel it says so (noVPN)
+instead of blaming the pairing file.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ SideStore/AppBootManager.swift                | 10 +++++
+ .../Core/DeviceApi/MinimuxerWrapper.swift     | 38 ++++++++++++++++++-
+ 2 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/SideStore/AppBootManager.swift b/SideStore/AppBootManager.swift
+index fd230a4..f0d0692 100644
+--- a/SideStore/AppBootManager.swift
++++ b/SideStore/AppBootManager.swift
+@@ -26,6 +26,14 @@ public final class AppBootManager {
+         get { lock.withLock { cachedNeedsSideJITPrompt } }
+         set { lock.withLock { cachedNeedsSideJITPrompt = newValue } }
+     }
++
++    // Cartouche: whether startMinimuxer is under way, for an operation to
++    // start minimuxer again only once it is not (ensureMinimuxerReady).
++    private var cachedIsStarting = false
++    public var isStarting: Bool {
++        get { lock.withLock { cachedIsStarting } }
++        set { lock.withLock { cachedIsStarting = newValue } }
++    }
+     
+     private init() {}
+     
+@@ -33,6 +41,8 @@ public final class AppBootManager {
+     public nonisolated func startMinimuxer(pairingFile: String) async throws {
+         debugLog("[AppBootManager] startMinimuxer() entered")
+         defer { debugLog("[AppBootManager] startMinimuxer() exited") }
++        self.isStarting = true
++        defer { self.isStarting = false }
+         
+         if UserDefaults.standard.enableEMPforWireguard {
+             debugLog("[AppBootManager] Starting EMProxy before minimuxer...")
+diff --git a/SideStore/Core/DeviceApi/MinimuxerWrapper.swift b/SideStore/Core/DeviceApi/MinimuxerWrapper.swift
+index 9dfb2c5..af22b0a 100644
+--- a/SideStore/Core/DeviceApi/MinimuxerWrapper.swift
++++ b/SideStore/Core/DeviceApi/MinimuxerWrapper.swift
+@@ -213,12 +213,48 @@ public func ensureMinimuxerReady() async throws {
+     if !CellularRefreshManager.shared.isEnabled {
+         try await withRemotePairingRetry {
+             if case .failure(let error) = await isMinimuxerReady() {
+-                throw error.asOperationError
++                // Cartouche: minimuxer starts once, as SideStore launches
++                // (AppBootManager). A start that did not go through, the
++                // iPhone being out of reach then, LocalDevVPN off, left every
++                // operation with "No valid pairing file has been loaded"
++                // until SideStore was opened again. Start it again with the
++                // pairing file in place, once no start is under way, and say
++                // so when LocalDevVPN is what is missing.
++                try await startMinimuxerAgain(after: error)
+             }
+         }
+     }
+ }
+ 
++/// Cartouche: see ensureMinimuxerReady. Returns once minimuxer is ready
++/// after a new start; throws the error that keeps it from starting.
++private func startMinimuxerAgain(after error: MinimuxerError) async throws {
++    switch error {
++    case .notStarted, .pairingNotLoaded: break
++    default: throw error.asOperationError
++    }
++    guard !AppBootManager.shared.isStarting,
++          let pairingFile = PairingFileManager.shared.fetchPairingFile()
++    else { throw error.asOperationError }
++    debugLog("[SideStore] ensureMinimuxerReady: minimuxer not started, starting it again")
++    do {
++        try await AppBootManager.shared.startMinimuxer(pairingFile: pairingFile)
++    } catch {
++        // The tunnel LocalDevVPN gives, utun<n> in 10.7.0.0/16, as the
++        // onboarding's LocalDevVPN step reads it (OnboardingView).
++        let hasTunnel = Minimuxer.shared.network.activeInterfaces.contains { info in
++            info.name.lowercased().hasPrefix("utun") && info.ip.hasPrefix("10.7.")
++        }
++        if !hasTunnel {
++            throw OperationError.noVPN(reason: "LocalDevVPN is not connected, so minimuxer could not start with the pairing file.")
++        }
++        throw (error as? MinimuxerError)?.asOperationError ?? error
++    }
++    if case .failure(let still) = await isMinimuxerReady() {
++        throw still.asOperationError
++    }
++}
++
+ extension MinimuxerError {
+     var asOperationError: OperationError {
+         switch self {
+-- 
+2.54.0
+

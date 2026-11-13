@@ -86,9 +86,13 @@ enum Words {
     static let save = "Save"                                // gameInfo.save
     static let backToCartouchesInfo = "Back to Cartouche’s info" // gameInfo.reset
     static let resume = "Resume"                            // action.resume
+    static let open = "Open"                                // action.open
+    static let appSettings = "App settings"                 // app.settings.title
+    static let uninstall = "Uninstall"                      // action.uninstall
     static let quit = "Quit"                                // action.quit
     static let quitQuestion = "Quit %@?"                    // running.quit.question
     static let quitGame = "Quit the game"                   // running.quit.confirm
+    static let quitApp = "Quit the app"                     // running.quit.confirm.app
     static let paused = "Paused behind Cartouche"           // running.paused
     static let installing = "Installing %@"                 // work.install.title
     static let unpacking = "Unpacking the IPA."             // work.install.unpacking
@@ -139,6 +143,9 @@ struct Launch {
     var pairingOnly = false
     /// The player's games, installed: none for a player new to Cartouche.
     var owned = Games.owned
+    /// The player's apps that are not games, installed in Cartouche, as
+    /// "Name:bundle.identifier" (-GalleryApps, GalleryApp.swift).
+    var apps: [String] = []
     /// What goes on as the gallery opens (-GalleryWork, GalleryApp.swift):
     /// "update", a new version of Cartouche on offer; "paused", the first
     /// game paused behind the console; "installing" or "install-failed",
@@ -163,6 +170,7 @@ struct Launch {
                          "-GalleryScreen", "root", "-GalleryTest", "1",
                          "-GallerySetup", setupDone ? "1" : "0"]
         if !owned.isEmpty { arguments += ["-GalleryOwned", owned.joined(separator: ",")] }
+        if !apps.isEmpty { arguments += ["-GalleryApps", apps.joined(separator: ",")] }
         if pairingOnly { arguments += ["-GalleryPairing", "1"] }
         if let work { arguments += ["-GalleryWork", work] }
         if let sheet { arguments += ["-GallerySheet", sheet] }

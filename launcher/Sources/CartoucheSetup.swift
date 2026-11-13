@@ -247,6 +247,36 @@ enum CartouchePairing {
         try FileManager.default.createDirectory(at: storeDocuments, withIntermediateDirectories: true)
         try data.write(to: storeDocuments.appendingPathComponent(importName), options: .atomic)
     }
+
+    /// The names SideStore saves a pairing file under when one is imported
+    /// on its own pages (PairingFileManager.savePairingFile), and reads
+    /// before Cartouche's.
+    static let storeOwnNames = ["PairingFile_RemoteRP.plist", "PairingFile_Lockdown.plist"]
+
+    /// Makes Cartouche's pairing file the one SideStore reads: the copies
+    /// SideStore saved on its own pages go, since SideStore reads them
+    /// first. A file picked there, at the Pairing File Required prompt of
+    /// an older build, was a stale pairing, which SideStore then took for
+    /// the iPhone's, with Handshake failed: RemotePairing(PairVerifyFailed)
+    /// on every install, Cartouche's renewals included. Cartouche's setup
+    /// is where the pairing file is put and replaced (decision 76).
+    /// Returns what it did, for the journal (CartoucheSetup.claimPairingFile).
+    static func claim() -> [String] {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: storeDocuments.appendingPathComponent(importName).path) else { return [] }
+        var notes: [String] = []
+        for name in storeOwnNames {
+            let url = storeDocuments.appendingPathComponent(name)
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            do {
+                try fileManager.removeItem(at: url)
+                notes.append("Pairing file: SideStore's own copy \(name) removed, Cartouche's is the one read")
+            } catch {
+                notes.append("Pairing file: SideStore's own copy \(name) stays: \(error.localizedDescription)")
+            }
+        }
+        return notes
+    }
 }
 
 /// Where Cartouche stands, for the setup screen and the games' banner.
@@ -313,6 +343,7 @@ final class CartoucheSetup: ObservableObject {
         hasCertificate = CartoucheCertificate.handOff()
         checkCertificate()
         if CartouchePairing.takeDroppedFile() { pairingReport = nil }
+        claimPairingFile()
         hasPairingFile = CartouchePairing.exists
         #if CARTOUCHE_GALLERY
         // The gallery has no SideStore keychain.
@@ -340,8 +371,15 @@ final class CartoucheSetup: ObservableObject {
     #endif
 
     /// The player can drop the pairing file on Cartouche while it is open.
+    /// Makes Cartouche's pairing file the one SideStore reads
+    /// (CartouchePairing.claim), and notes what went.
+    private func claimPairingFile() {
+        for note in CartouchePairing.claim() { CartoucheReports.note(note) }
+    }
+
     func refreshPairingFile() {
         if CartouchePairing.takeDroppedFile() { pairingReport = nil }
+        claimPairingFile()
         let exists = CartouchePairing.exists
         if exists != hasPairingFile { hasPairingFile = exists }
     }
@@ -351,6 +389,7 @@ final class CartoucheSetup: ObservableObject {
             try CartouchePairing.importFile(at: url)
             pairingReport = nil
             CartoucheReports.note("Pairing file received")
+            claimPairingFile()
         } catch {
             pairingFailed(error)
         }

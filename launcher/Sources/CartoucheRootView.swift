@@ -6,8 +6,8 @@
 //  (app/patches/livecontainer/0006): the console, and the System page over
 //  it, which the dock or the controller's Menu button opens. Cartouche
 //  drives LiveContainer and the built-in SideStore without ever showing a
-//  page of theirs (docs/decisions.md, 24). Cartouche puts no badge on its
-//  icon: one left there is cleared each time it comes to the screen.
+//  page of theirs (docs/decisions.md, 24 and 77). Cartouche puts no badge
+//  on its icon: one left there is cleared each time it comes to the screen.
 //
 
 import SwiftUI

@@ -87,6 +87,8 @@ struct CartoucheGamesView: View {
     /// The settings page open over the game's sheet, over the console or
     /// beside it.
     @State private var gameSettings: CartoucheGameSettingsModel?
+    /// The app settings page open in an app's sheet (decision 77).
+    @State private var appSettings: LCAppModel?
     /// The game whose info the player changes, over its sheet.
     @State private var editingInfo: CartoucheEntry?
     /// The report of a failure was just copied, from its alert.
@@ -124,7 +126,7 @@ struct CartoucheGamesView: View {
             && actions.switching == nil && actions.quitQuestion == nil && actions.installQuestion == nil
     }
     /// Nothing over the console or beside it that takes the controller.
-    private var nothingOver: Bool { nothingOverConsole && gameSettings == nil }
+    private var nothingOver: Bool { nothingOverConsole && gameSettings == nil && appSettings == nil }
     /// Cartouche's own update shows over the console alone, once nothing
     /// else is over it.
     private var showsUpdate: Bool {
@@ -237,6 +239,7 @@ struct CartoucheGamesView: View {
         .onChange(of: sheetID) { _, id in
             if id == nil && !splits {
                 gameSettings = nil
+                appSettings = nil
                 editingInfo = nil
             }
         }
@@ -254,7 +257,7 @@ struct CartoucheGamesView: View {
             if splits {
                 if let sheetID { paneID = sheetID }
                 sheetID = nil
-            } else if gameSettings != nil || editingInfo != nil {
+            } else if gameSettings != nil || appSettings != nil || editingInfo != nil {
                 sheetID = paneID
             }
         }
@@ -435,8 +438,50 @@ struct CartoucheGamesView: View {
     /// A game's sheet, with its settings page one step further: over the
     /// console, with Done, or BESIDE it, where the player is asked about the
     /// game by the console's own questions. The Files picker shows over
-    /// either.
+    /// either. An app that is not a game has a sheet of its own.
+    @ViewBuilder
     private func gameSheet(_ entry: CartoucheEntry, beside: Bool) -> some View {
+        if entry.isApp {
+            appSheet(entry, beside: beside)
+        } else {
+            gameSheetOfGame(entry, beside: beside)
+        }
+    }
+
+    /// An app's sheet (decision 77), with its settings page one step further.
+    private func appSheet(_ entry: CartoucheEntry, beside: Bool) -> some View {
+        NavigationStack {
+            CartoucheAppSheetView(
+                entry: entry,
+                onOpen: { play($0) },
+                onSettings: { app in
+                    if beside { paneID = entry.id }
+                    appSettings = app
+                },
+                onUninstall: { uninstallingInSheet = $0 })
+                .id(entry.id)
+                .toolbar(beside ? .hidden : .automatic, for: .navigationBar)
+                .toolbar {
+                    if !beside {
+                        ToolbarItem(placement: .confirmationAction) {
+                            doneButton { sheetID = nil }
+                        }
+                    }
+                }
+                .navigationDestination(item: $appSettings) { app in
+                    CartoucheAppSettingsView(app: app)
+                        .toolbar {
+                            if !beside {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    doneButton { sheetID = nil }
+                                }
+                            }
+                        }
+                }
+        }
+    }
+
+    private func gameSheetOfGame(_ entry: CartoucheEntry, beside: Bool) -> some View {
         NavigationStack {
             CartoucheGameSheetView(
                 entry: entry,
@@ -510,6 +555,10 @@ struct CartoucheGamesView: View {
     /// On the controller, a game's settings page open: L and R change the
     /// category, B goes back to the sheet. Whether the page took the input.
     private func handleSettings(_ input: CartoucheGamepad.Input) -> Bool {
+        if appSettings != nil {
+            if input == .b { appSettings = nil }
+            return true
+        }
         guard let settings = gameSettings else { return false }
         switch input {
         case .b: gameSettings = nil
@@ -525,7 +574,10 @@ struct CartoucheGamesView: View {
     /// the last. With a sheet over the console, the focus does not move.
     private func focus(_ entry: CartoucheEntry) {
         guard sheetID == nil else { return }
-        if paneID != entry.id { gameSettings = nil }
+        if paneID != entry.id {
+            gameSettings = nil
+            appSettings = nil
+        }
         paneID = entry.id
     }
 
@@ -534,12 +586,18 @@ struct CartoucheGamesView: View {
     /// the last game's sheet stays, rather than a panel that would only say
     /// again what the cover says.
     private func focusShelf(_ item: CartoucheHomeView.Item) {
-        if case .game(let entry) = item { focus(entry) }
+        switch item {
+        case .game(let entry), .app(let entry): focus(entry)
+        default: break
+        }
     }
 
     /// A game's sheet: beside the console in a split, over it otherwise.
     private func showSheet(_ entry: CartoucheEntry) {
-        if paneID != entry.id { gameSettings = nil }
+        if paneID != entry.id {
+            gameSettings = nil
+            appSettings = nil
+        }
         paneID = entry.id
         if !splits { sheetID = entry.id }
     }
@@ -683,12 +741,23 @@ struct CartoucheUninstallQuestion: ViewModifier {
             if let onCopyFirst, let server = Self.copyServer(for: app) {
                 Button(CartoucheText.uninstallCopyFirst(server)) { onCopyFirst(app) }
             }
-            Button(CartoucheText.uninstallKeepSaves, role: .destructive) { onAnswer(app, false) }
-            Button(CartoucheText.uninstallEraseSaves, role: .destructive) { onAnswer(app, true) }
+            Button(Self.isApp(app) ? CartoucheText.uninstallAppKeep : CartoucheText.uninstallKeepSaves, role: .destructive) {
+                onAnswer(app, false)
+            }
+            Button(Self.isApp(app) ? CartoucheText.uninstallAppErase : CartoucheText.uninstallEraseSaves, role: .destructive) {
+                onAnswer(app, true)
+            }
             Button(CartoucheText.cancel, role: .cancel) {}
         } message: { app in
             Text(Self.message(for: app))
         }
+    }
+
+    /// An app that is not a game: its data, not saves, and no copy to the
+    /// games folder (decision 77).
+    @MainActor
+    static func isApp(_ app: LCAppModel) -> Bool {
+        CartoucheCatalog.shared.gameTitle(of: app) == nil
     }
 
     /// The copy of the game in the games folder, if there is one.
@@ -711,6 +780,7 @@ struct CartoucheUninstallQuestion: ViewModifier {
 
     @MainActor
     static func message(for app: LCAppModel) -> String {
+        if isApp(app) { return CartoucheText.uninstallAppMessage }
         if storedCopy(of: app) != nil, let server = CartoucheStoredGames.shared.serverName {
             return CartoucheText.uninstallMessageStored(server)
         }

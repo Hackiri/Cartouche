@@ -1,0 +1,39 @@
+From 3b127c950f127489c4719073124c2a297a1636d6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 19:49:02 -0500
+Subject: [PATCH] Ask for a pairing file only when none is in place
+
+SideStore's launch starts minimuxer with the pairing file and asks the
+iPhone for its UDID through LocalDevVPN. When the iPhone did not answer,
+LocalDevVPN being off as often as not, minimuxer reported an invalid
+pairing file, and the launch screen asked for another one (Pairing File
+Required), although the file Cartouche's setup had put in place was the
+right one. In Cartouche the pairing file is Cartouche's to put in place
+and to replace, from its setup: the launch now asks for a file only when
+none is there. Settings still imports one by hand.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ SideStore/AppBootManager.swift | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/SideStore/AppBootManager.swift b/SideStore/AppBootManager.swift
+index ec9becb..fd230a4 100644
+--- a/SideStore/AppBootManager.swift
++++ b/SideStore/AppBootManager.swift
+@@ -51,7 +51,11 @@ public final class AppBootManager {
+         } catch {
+             if case MinimuxerError.invalidPairing = error {
+                 debugLog("[AppBootManager] startMinimuxer(): Minimuxer fetchUDID() based connection test FAILED. \(error)")
+-                self.needsPairingPrompt = true
++                // Cartouche: the pairing file is Cartouche's to put in place
++                // and to replace, from its setup (CartouchePairing), and the
++                // iPhone's silence here is as often LocalDevVPN's as the
++                // file's. The launch asks for a file only when none is in
++                // place (performBootSequence).
+                 throw error
+             } else {
+                 debugLog("[AppBootManager] startMinimuxer(): Minimuxer fetchUDID() based connection test FAILED but PAIRING FILE IS VALID. \(error)")
+-- 
+2.54.0
+

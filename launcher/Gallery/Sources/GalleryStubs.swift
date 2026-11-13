@@ -59,6 +59,9 @@ final class LCAppInfo {
     }
 
     var relativeBundlePath: String? { folder }
+    /// What the app says of itself: a version, and when it was last opened.
+    var lastLaunched: Date?
+    func version() -> String? { "1.2.0" }
     func displayName() -> String? { name }
     func bundleIdentifier() -> String? { identifier }
     /// LiveContainer's own settings for the app (LCAppInfo.plist), never its
@@ -72,8 +75,17 @@ final class LCAppInfo {
     func iconIsDarkIcon(_ isDark: Bool) -> UIImage? { icon }
 }
 
-final class LCAppModel: ObservableObject, Identifiable, Equatable {
+/// LiveContainer's orientation lock of a guest app (LCAppInfo.h).
+enum LCOrientationLock: Int, Hashable, CaseIterable {
+    case Disabled = 0, Landscape = 1, Portrait = 2
+}
+
+final class LCAppModel: ObservableObject, Identifiable, Hashable {
     let appInfo: LCAppInfo
+    /// LiveContainer's settings of the app, which its app settings page
+    /// changes: kept in memory here.
+    @Published var uiSelectedLanguage = ""
+    @Published var uiOrientationLock: LCOrientationLock = .Disabled
 
     init(appInfo: LCAppInfo) {
         self.appInfo = appInfo
@@ -82,6 +94,7 @@ final class LCAppModel: ObservableObject, Identifiable, Equatable {
     var displayName: String { appInfo.displayName() ?? "?" }
 
     static func == (lhs: LCAppModel, rhs: LCAppModel) -> Bool { lhs === rhs }
+    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
 }
 
 /// CartoucheGameActions.swift, which installs, starts, uninstalls and copies

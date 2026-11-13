@@ -1,0 +1,816 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		049B8E1817A2B724AFD4F8C3 /* CartoucheProblemReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597248F3F7B25A1244648C72 /* CartoucheProblemReport.swift */; };
+		0B8FD8C8C96E5269ABE0FC8E /* CartoucheTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AF87D92D51852324209ECB /* CartoucheTheme.swift */; };
+		125CBEA60DCD77FAC3F8ABAC /* CartoucheCoverList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 696492CF9AD0FB12719CEAEB /* CartoucheCoverList.swift */; };
+		12FC216C41142345204AA8FD /* StorageUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A79C30D76E5864D1503ED3 /* StorageUITests.swift */; };
+		166CC8389B92825527A9BEA6 /* CartoucheRunningGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9718F51D240313BCBA3FAD60 /* CartoucheRunningGame.swift */; };
+		1ABC5373F740DFA6B4002D04 /* CartoucheSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC80A82627AE2B7611AE565 /* CartoucheSetupView.swift */; };
+		1CF536E8CC5C4D36F65FC722 /* SavesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3A735849ED2199C660BC75 /* SavesUITests.swift */; };
+		1E0BF8617B1E3F7B61536D3A /* CartoucheGameInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB49E40E371466A15826088 /* CartoucheGameInfoView.swift */; };
+		210B648693CC97E92298F1CB /* CartoucheRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F9877A6451EDDB3B8933B7 /* CartoucheRelease.swift */; };
+		23B9C27018421466E7C05FEB /* CartoucheZip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD1DFD2733946015ED1D897 /* CartoucheZip.swift */; };
+		24742A995C6D6C8FE6A1D5F8 /* CartoucheBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A6F6E744853A8B28945DB0 /* CartoucheBridge.swift */; };
+		29661166D42B1578C52BD1B9 /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74FBF0BA0C08F6EC6588A033 /* SignInUITests.swift */; };
+		2DA9C1261E4C73AB5BEFE271 /* CartoucheStorageSMB.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D6438BC12B5D6E33267FCC /* CartoucheStorageSMB.swift */; };
+		2DE91DC57C15F787E70D87BB /* CartoucheGameBuild.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E7602C353CBE6EFB748C38 /* CartoucheGameBuild.swift */; };
+		2E61B51DE475432E32BE709A /* CartoucheInstallQuestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6771CD1CF088357FFC308800 /* CartoucheInstallQuestions.swift */; };
+		334AE5D85B777429C5D48362 /* CartoucheGameLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8684E9AB51BB8E3C8DF72C2 /* CartoucheGameLog.swift */; };
+		34B04457D78F97E899E18B74 /* CartoucheGameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB6B7E5D7767B6224B67652 /* CartoucheGameStats.swift */; };
+		3669AF493793844D9569AE61 /* GalleryTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BDB7746C4A58EE08EE371AF /* GalleryTesting.swift */; };
+		393A312BC6EB6A0949950929 /* CartoucheLiveContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2DA0B06F3E3A023455B77EC /* CartoucheLiveContainerView.swift */; };
+		3B9581B1E8BF3CC61EE1B6BD /* ImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88F283A4E0A6DAED9C6A764 /* ImportUITests.swift */; };
+		3D0534E3E71EF71F6CB4DC83 /* CartoucheTextSideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D032E331F780B7F27D061 /* CartoucheTextSideStore.swift */; };
+		3FCD8D3F5D9675CDFAE40578 /* CartoucheSaveBackups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E74C7B7E163ACFA9E3CB1A4 /* CartoucheSaveBackups.swift */; };
+		4863E336474704444A87B98D /* CartoucheGameLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA890FA438F7E250CBB11143 /* CartoucheGameLanguage.swift */; };
+		49089067391E417D837D3CCA /* CartoucheUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB83DEDC017CDBE7C2AB7B39 /* CartoucheUpdates.swift */; };
+		4B43932ECCDDD63209C53EA4 /* GalleryApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2BE5DD11AAB612C627ACFB6 /* GalleryApp.swift */; };
+		4B93754D3FC11F72106C09C0 /* CartoucheReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A47C64E12F4B0232EB4FDEFF /* CartoucheReport.swift */; };
+		518052297368356738A2A78C /* CartoucheTextGameInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E652A837C00AFB0774C5A5 /* CartoucheTextGameInfo.swift */; };
+		570BF82D85105E7F31BFAF20 /* CartoucheStorageFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFF6BA7398BE1B2A7BA8D42 /* CartoucheStorageFolder.swift */; };
+		57115D022DEAD7A8759C6C12 /* CartoucheSFTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = E298D59C97D456EE8973F296 /* CartoucheSFTP.swift */; };
+		5C9570B5FC87C681EBBC09FD /* CartouchePlayerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC83F282D9A2EFE93A5F44E5 /* CartouchePlayerInfo.swift */; };
+		624FE6CE56449B80EA26E02E /* CartoucheStorageReach.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF96146706E1644ACB1D145A /* CartoucheStorageReach.swift */; };
+		65DE5CB4F18CD73A3098A51A /* ConsoleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7530BC13CC80F94AE1AC7C /* ConsoleUITests.swift */; };
+		65DE79D21A0CC02DDCF94822 /* CartoucheGameFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85458C12DFD9C509193CDD8A /* CartoucheGameFit.swift */; };
+		69EBCDDDC1B645AD7FA61C64 /* CartoucheReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8419F2F6F6A605B4C7EF831 /* CartoucheReportView.swift */; };
+		712D51DEDC2405A153B3ABE5 /* CartoucheSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A1CA88C74D7E293E4C309B /* CartoucheSignInView.swift */; };
+		71F99CB3674551EB7F63FD01 /* CartoucheText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7734AF85396E9F871A7DE9DF /* CartoucheText.swift */; };
+		7276FDE304A22C51AD9A6877 /* CartoucheStorageMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FA21ABE9C8B0EF6C1E00D4 /* CartoucheStorageMac.swift */; };
+		77CAE4184A76F45D39420FAD /* GalleryStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CCE5F86F6B5E24CD1A0640 /* GalleryStubs.swift */; };
+		791ABE8FEF0ACB85550256C6 /* CartoucheGameSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231B062E8C8F5797BF5FB608 /* CartoucheGameSettings.swift */; };
+		7AA90886C5E798A671FB6FA3 /* CartoucheSignInMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990487F7BAD43933733176E1 /* CartoucheSignInMessage.swift */; };
+		80A5A0320D0CE44383AAD3EB /* CartoucheStorageMacView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A291DB7C7BE6D0DDCAC6CE /* CartoucheStorageMacView.swift */; };
+		80F263B46A1EC88EA22D3584 /* CartoucheSaveSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D49AB677136897B4030A406 /* CartoucheSaveSync.swift */; };
+		838380544FBB0C18EB82AD78 /* CartoucheTextGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09ADEE6EA45858165CA84013 /* CartoucheTextGuide.swift */; };
+		83BDAC2D443AB1D55E01DCFB /* CartoucheLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5FDDBD9A551157F418F326 /* CartoucheLibraryView.swift */; };
+		8430C0F60D0F3EA0DDB6446E /* CartoucheContinuedWork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 258DAF7AE1203A880F5F6872 /* CartoucheContinuedWork.swift */; };
+		86768F46B5A3857796728B50 /* CartouchePlayTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C5EDFBDFBB8C3BB402A9F28 /* CartouchePlayTime.swift */; };
+		88A21A6B81A9DDB63BF87EF1 /* CartoucheArrangement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DBB27CD6849DF9AB6B57C58 /* CartoucheArrangement.swift */; };
+		896551CFA2552C09F30957CA /* CartoucheImportPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E14E4346B1E9B6D2EB1FBC55 /* CartoucheImportPicker.swift */; };
+		8CCF5597F51770C0584EDDF1 /* CartoucheGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08DEAD93E49486781FA467F9 /* CartoucheGuide.swift */; };
+		8D9A8C955EAF7AD465BF156C /* CartoucheStorageSaves.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6FBF8B0308C65B66140862 /* CartoucheStorageSaves.swift */; };
+		8FCF262A23C1B8314CC6D82C /* CartoucheGameLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02B8B6C3BB6C42F6B59E89C /* CartoucheGameLookup.swift */; };
+		90008BDCCDB04398322733F1 /* GalleryMainThread.c in Sources */ = {isa = PBXBuildFile; fileRef = 99ED5E64EE602422A3A9B57F /* GalleryMainThread.c */; };
+		94E55DEFBF70F8CA54120329 /* CartoucheGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4480289A9B5B48B85EC5AFD /* CartoucheGuideView.swift */; };
+		9585085FFE555A673A5A9254 /* CartoucheGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FBCD687F925AC8D9489F91 /* CartoucheGamesView.swift */; };
+		95BF8EFCFAE92BAB766D2E84 /* ConsoleTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742DE19592E346DAA2AA401B /* ConsoleTestCase.swift */; };
+		96DC1A36F6EEDB68F5E9597E /* CartoucheStorageS3.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC19D7CCE0AF6D28D6AA967 /* CartoucheStorageS3.swift */; };
+		983A5CAED1E1631D6E928B29 /* SystemUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F44CCEA44405295CE9239A /* SystemUITests.swift */; };
+		9993AD5869A1A97264FD2655 /* CartoucheFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4042E07E6E827C65C8CB0ACE /* CartoucheFailure.swift */; };
+		9A987BD233C1625EF21F6D53 /* CartoucheSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CE93C9BADF5A27A9ADAE854 /* CartoucheSetup.swift */; };
+		9DA4E369DDFFA4670E069956 /* CartoucheUpdateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3701DA3D6F565DD377DC62CC /* CartoucheUpdateView.swift */; };
+		9ED52044FAEAFD1D869E60B8 /* Cartouche.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0384CB6789B64EB258A0A49E /* Cartouche.xcstrings */; };
+		A2116B7F4BF806F642D53600 /* CartoucheStorageFTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA4FD1F84F3559A58CE3816 /* CartoucheStorageFTP.swift */; };
+		A32FCB644B29D2456A05B34E /* CartoucheRomfs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06733EDFD57B7AEA89265233 /* CartoucheRomfs.swift */; };
+		A33C8FF731D2A18825F2A3C8 /* CartoucheDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB032FA2A4AE1CC3DE6A945 /* CartoucheDevice.swift */; };
+		A6DB1339826FB229438D4895 /* CartoucheGameWorkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E7795F05CAE316AC3063D6 /* CartoucheGameWorkView.swift */; };
+		AEB3CE336DBBAA1F0089CD38 /* CartouchePickerMeasures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E27F198E99D609F599C16A2 /* CartouchePickerMeasures.swift */; };
+		B8AA8C4A2E0CA864F52FDA40 /* CartoucheAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBE9B0296D83C2D948D5A16 /* CartoucheAccount.swift */; };
+		BB77926AD5CF86FDB624B0DB /* CartoucheGamePlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C6B033D3E3FE9256372FE6 /* CartoucheGamePlace.swift */; };
+		BBA0798A4065B7E94E050B61 /* CartoucheFTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60395CC243C0FB7968F12FAF /* CartoucheFTP.swift */; };
+		BDB283A6C8BEEA3362A6461A /* CartoucheCatalog in Resources */ = {isa = PBXBuildFile; fileRef = 60967E5EF23E8C43962419F0 /* CartoucheCatalog */; };
+		C054081310D47DB47C5B5245 /* CartoucheGameSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 452F64C078F843D1FBF107C2 /* CartoucheGameSheetView.swift */; };
+		C15223060B2B59F64FBB6FD9 /* CartoucheCovers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B150C267E1EA667AE9CFE049 /* CartoucheCovers.swift */; };
+		C7042A599620BD4E57C97F23 /* CartoucheStorageSFTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4CA5BFF785AFA40FF8B27D /* CartoucheStorageSFTP.swift */; };
+		C8A253AD4FCD85135FF5AF38 /* CartoucheGamepad.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2610D5B9EB64B7659E67A57 /* CartoucheGamepad.swift */; };
+		C9772E2D28597B4183BF1644 /* CartoucheReporting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DF8FF46B2B006C5AD205B1D /* CartoucheReporting.swift */; };
+		CA87497ED06F3E52EF354D16 /* CartoucheTextMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4040F1BAB4160ACA802D3C7 /* CartoucheTextMac.swift */; };
+		CCA868406273D36BCA2A5845 /* CartoucheSetupFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655DB89E41AC9F0C56A8BFA /* CartoucheSetupFacts.swift */; };
+		CFC58A313985046FA7605F60 /* CartoucheTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC47D22A7A35C186C5F287E8 /* CartoucheTelemetryView.swift */; };
+		E05DCD269198EFFC7E075BD1 /* CartoucheCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F1A8B376F1BD86E77CDF42 /* CartoucheCatalog.swift */; };
+		E266092D4EE2FC312189A2D9 /* CartoucheRenewal.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F77A6192D24206A521C988 /* CartoucheRenewal.swift */; };
+		E4AB735C0468C5AFD17E0A81 /* GameUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59042B6E3DDB5394EBEE1B2 /* GameUITests.swift */; };
+		E736C3B1F4C6E752BBDAA31B /* CartoucheStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112A985AE0343328660C30C6 /* CartoucheStorage.swift */; };
+		E9D5809F209BC1B445D8023E /* GuideUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BF4BF2A8CB675BE70381BC5 /* GuideUITests.swift */; };
+		EC5DC2E463682EBB2AAEF9B7 /* CartoucheResumingSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57BA5FC65D4B1B0D3FB00EA /* CartoucheResumingSource.swift */; };
+		ED898255D4E3F0F41F516F0E /* CartoucheHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75BAB863B364110CA03DEED /* CartoucheHomeView.swift */; };
+		EED07BFA174F3C343E6D92D4 /* CartoucheTelemetryReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9557AE12FA6CCCB7A08BA78 /* CartoucheTelemetryReport.swift */; };
+		EFB536A1E482F50E21304A59 /* CartoucheStoredGames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438034C189D1BB1BE4B06CDF /* CartoucheStoredGames.swift */; };
+		F06370AF7C4B9FCBD3602FBB /* CartoucheStorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701A5141444CC5EF3C478A39 /* CartoucheStorageView.swift */; };
+		F74566C2556559CCDE538BC0 /* CartoucheRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFAA000874C75CAECD155B7C /* CartoucheRootView.swift */; };
+		FD36869B50BBB78F4FE77873 /* CartoucheS3.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5D6A2B7A3F83D273D6A28F /* CartoucheS3.swift */; };
+		FD8A5D0E2C38B315FBAA617A /* CartoucheTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C31223EDD1CCDAC1A4F7BF /* CartoucheTiles.swift */; };
+		FF209A9D6DB6B5B78F52D066 /* CartoucheSystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D87598FF6F23A2F4D65DFDB /* CartoucheSystemView.swift */; };
+		FFFF804197466C1CF678A45D /* CartoucheVPN.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCFA3CAF25863A28C613745 /* CartoucheVPN.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E1DE9236AAC587FC95ABCA3F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C240A4F1C6A5CEC03FC812C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3F745CF55B00399416B184EA;
+			remoteInfo = CartoucheGallery;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		01A1CA88C74D7E293E4C309B /* CartoucheSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSignInView.swift; sourceTree = "<group>"; };
+		01FBCD687F925AC8D9489F91 /* CartoucheGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGamesView.swift; sourceTree = "<group>"; };
+		0384CB6789B64EB258A0A49E /* Cartouche.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Cartouche.xcstrings; sourceTree = "<group>"; };
+		06733EDFD57B7AEA89265233 /* CartoucheRomfs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheRomfs.swift; sourceTree = "<group>"; };
+		08DEAD93E49486781FA467F9 /* CartoucheGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGuide.swift; sourceTree = "<group>"; };
+		09ADEE6EA45858165CA84013 /* CartoucheTextGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTextGuide.swift; sourceTree = "<group>"; };
+		0D3C155B98D8774484E6CEFD /* CartoucheGallery.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CartoucheGallery.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0DBB27CD6849DF9AB6B57C58 /* CartoucheArrangement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheArrangement.swift; sourceTree = "<group>"; };
+		0E27F198E99D609F599C16A2 /* CartouchePickerMeasures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartouchePickerMeasures.swift; sourceTree = "<group>"; };
+		112A985AE0343328660C30C6 /* CartoucheStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorage.swift; sourceTree = "<group>"; };
+		119D032E331F780B7F27D061 /* CartoucheTextSideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTextSideStore.swift; sourceTree = "<group>"; };
+		1BDB7746C4A58EE08EE371AF /* GalleryTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryTesting.swift; sourceTree = "<group>"; };
+		1D6FBF8B0308C65B66140862 /* CartoucheStorageSaves.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageSaves.swift; sourceTree = "<group>"; };
+		1DF8FF46B2B006C5AD205B1D /* CartoucheReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheReporting.swift; sourceTree = "<group>"; };
+		1DFF6BA7398BE1B2A7BA8D42 /* CartoucheStorageFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageFolder.swift; sourceTree = "<group>"; };
+		20FA21ABE9C8B0EF6C1E00D4 /* CartoucheStorageMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageMac.swift; sourceTree = "<group>"; };
+		231B062E8C8F5797BF5FB608 /* CartoucheGameSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameSettings.swift; sourceTree = "<group>"; };
+		258DAF7AE1203A880F5F6872 /* CartoucheContinuedWork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheContinuedWork.swift; sourceTree = "<group>"; };
+		2E74C7B7E163ACFA9E3CB1A4 /* CartoucheSaveBackups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSaveBackups.swift; sourceTree = "<group>"; };
+		35E6D71E3C32FB38AC9B03F8 /* Gallery-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Gallery-Bridging-Header.h"; sourceTree = "<group>"; };
+		3701DA3D6F565DD377DC62CC /* CartoucheUpdateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheUpdateView.swift; sourceTree = "<group>"; };
+		37E7795F05CAE316AC3063D6 /* CartoucheGameWorkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameWorkView.swift; sourceTree = "<group>"; };
+		3CBE9B0296D83C2D948D5A16 /* CartoucheAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheAccount.swift; sourceTree = "<group>"; };
+		3DD1DFD2733946015ED1D897 /* CartoucheZip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheZip.swift; sourceTree = "<group>"; };
+		3FB032FA2A4AE1CC3DE6A945 /* CartoucheDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheDevice.swift; sourceTree = "<group>"; };
+		4042E07E6E827C65C8CB0ACE /* CartoucheFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheFailure.swift; sourceTree = "<group>"; };
+		438034C189D1BB1BE4B06CDF /* CartoucheStoredGames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStoredGames.swift; sourceTree = "<group>"; };
+		452F64C078F843D1FBF107C2 /* CartoucheGameSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameSheetView.swift; sourceTree = "<group>"; };
+		4D49AB677136897B4030A406 /* CartoucheSaveSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSaveSync.swift; sourceTree = "<group>"; };
+		597248F3F7B25A1244648C72 /* CartoucheProblemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheProblemReport.swift; sourceTree = "<group>"; };
+		5B4CA5BFF785AFA40FF8B27D /* CartoucheStorageSFTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageSFTP.swift; sourceTree = "<group>"; };
+		60395CC243C0FB7968F12FAF /* CartoucheFTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheFTP.swift; sourceTree = "<group>"; };
+		60967E5EF23E8C43962419F0 /* CartoucheCatalog */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CartoucheCatalog; path = Build/CartoucheCatalog; sourceTree = SOURCE_ROOT; };
+		6771CD1CF088357FFC308800 /* CartoucheInstallQuestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheInstallQuestions.swift; sourceTree = "<group>"; };
+		696492CF9AD0FB12719CEAEB /* CartoucheCoverList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheCoverList.swift; sourceTree = "<group>"; };
+		6BF4BF2A8CB675BE70381BC5 /* GuideUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideUITests.swift; sourceTree = "<group>"; };
+		6CA280F9F4D0A4CF33C7080A /* GalleryMainThread.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GalleryMainThread.h; sourceTree = "<group>"; };
+		6CE93C9BADF5A27A9ADAE854 /* CartoucheSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSetup.swift; sourceTree = "<group>"; };
+		6FB6B7E5D7767B6224B67652 /* CartoucheGameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameStats.swift; sourceTree = "<group>"; };
+		701A5141444CC5EF3C478A39 /* CartoucheStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageView.swift; sourceTree = "<group>"; };
+		742DE19592E346DAA2AA401B /* ConsoleTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleTestCase.swift; sourceTree = "<group>"; };
+		74FBF0BA0C08F6EC6588A033 /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
+		7734AF85396E9F871A7DE9DF /* CartoucheText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheText.swift; sourceTree = "<group>"; };
+		79F9877A6451EDDB3B8933B7 /* CartoucheRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheRelease.swift; sourceTree = "<group>"; };
+		81CCE5F86F6B5E24CD1A0640 /* GalleryStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryStubs.swift; sourceTree = "<group>"; };
+		85458C12DFD9C509193CDD8A /* CartoucheGameFit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameFit.swift; sourceTree = "<group>"; };
+		85E652A837C00AFB0774C5A5 /* CartoucheTextGameInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTextGameInfo.swift; sourceTree = "<group>"; };
+		8C5EDFBDFBB8C3BB402A9F28 /* CartouchePlayTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartouchePlayTime.swift; sourceTree = "<group>"; };
+		8D87598FF6F23A2F4D65DFDB /* CartoucheSystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSystemView.swift; sourceTree = "<group>"; };
+		93E7602C353CBE6EFB748C38 /* CartoucheGameBuild.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameBuild.swift; sourceTree = "<group>"; };
+		96A79C30D76E5864D1503ED3 /* StorageUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageUITests.swift; sourceTree = "<group>"; };
+		9718F51D240313BCBA3FAD60 /* CartoucheRunningGame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheRunningGame.swift; sourceTree = "<group>"; };
+		982A8D38D66D6BE47DE50057 /* CartoucheGalleryUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CartoucheGalleryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		990487F7BAD43933733176E1 /* CartoucheSignInMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSignInMessage.swift; sourceTree = "<group>"; };
+		99ED5E64EE602422A3A9B57F /* GalleryMainThread.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = GalleryMainThread.c; sourceTree = "<group>"; };
+		9C5FDDBD9A551157F418F326 /* CartoucheLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheLibraryView.swift; sourceTree = "<group>"; };
+		A02B8B6C3BB6C42F6B59E89C /* CartoucheGameLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameLookup.swift; sourceTree = "<group>"; };
+		A47C64E12F4B0232EB4FDEFF /* CartoucheReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheReport.swift; sourceTree = "<group>"; };
+		A5A6F6E744853A8B28945DB0 /* CartoucheBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheBridge.swift; sourceTree = "<group>"; };
+		A8419F2F6F6A605B4C7EF831 /* CartoucheReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheReportView.swift; sourceTree = "<group>"; };
+		AB83DEDC017CDBE7C2AB7B39 /* CartoucheUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheUpdates.swift; sourceTree = "<group>"; };
+		ADA4FD1F84F3559A58CE3816 /* CartoucheStorageFTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageFTP.swift; sourceTree = "<group>"; };
+		AFAA000874C75CAECD155B7C /* CartoucheRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheRootView.swift; sourceTree = "<group>"; };
+		B150C267E1EA667AE9CFE049 /* CartoucheCovers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheCovers.swift; sourceTree = "<group>"; };
+		B1AF87D92D51852324209ECB /* CartoucheTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTheme.swift; sourceTree = "<group>"; };
+		B4F44CCEA44405295CE9239A /* SystemUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemUITests.swift; sourceTree = "<group>"; };
+		B9557AE12FA6CCCB7A08BA78 /* CartoucheTelemetryReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTelemetryReport.swift; sourceTree = "<group>"; };
+		BD7530BC13CC80F94AE1AC7C /* ConsoleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleUITests.swift; sourceTree = "<group>"; };
+		C57BA5FC65D4B1B0D3FB00EA /* CartoucheResumingSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheResumingSource.swift; sourceTree = "<group>"; };
+		C655DB89E41AC9F0C56A8BFA /* CartoucheSetupFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSetupFacts.swift; sourceTree = "<group>"; };
+		C88F283A4E0A6DAED9C6A764 /* ImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportUITests.swift; sourceTree = "<group>"; };
+		C8F77A6192D24206A521C988 /* CartoucheRenewal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheRenewal.swift; sourceTree = "<group>"; };
+		CAB49E40E371466A15826088 /* CartoucheGameInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameInfoView.swift; sourceTree = "<group>"; };
+		CB3A735849ED2199C660BC75 /* SavesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavesUITests.swift; sourceTree = "<group>"; };
+		CCC80A82627AE2B7611AE565 /* CartoucheSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSetupView.swift; sourceTree = "<group>"; };
+		CD5D6A2B7A3F83D273D6A28F /* CartoucheS3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheS3.swift; sourceTree = "<group>"; };
+		D2BE5DD11AAB612C627ACFB6 /* GalleryApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryApp.swift; sourceTree = "<group>"; };
+		D2C6B033D3E3FE9256372FE6 /* CartoucheGamePlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGamePlace.swift; sourceTree = "<group>"; };
+		D2DA0B06F3E3A023455B77EC /* CartoucheLiveContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheLiveContainerView.swift; sourceTree = "<group>"; };
+		D4F1A8B376F1BD86E77CDF42 /* CartoucheCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheCatalog.swift; sourceTree = "<group>"; };
+		D59042B6E3DDB5394EBEE1B2 /* GameUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameUITests.swift; sourceTree = "<group>"; };
+		D75BAB863B364110CA03DEED /* CartoucheHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheHomeView.swift; sourceTree = "<group>"; };
+		D8C31223EDD1CCDAC1A4F7BF /* CartoucheTiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTiles.swift; sourceTree = "<group>"; };
+		DBC19D7CCE0AF6D28D6AA967 /* CartoucheStorageS3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageS3.swift; sourceTree = "<group>"; };
+		DC47D22A7A35C186C5F287E8 /* CartoucheTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTelemetryView.swift; sourceTree = "<group>"; };
+		DF96146706E1644ACB1D145A /* CartoucheStorageReach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageReach.swift; sourceTree = "<group>"; };
+		E14E4346B1E9B6D2EB1FBC55 /* CartoucheImportPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheImportPicker.swift; sourceTree = "<group>"; };
+		E2610D5B9EB64B7659E67A57 /* CartoucheGamepad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGamepad.swift; sourceTree = "<group>"; };
+		E298D59C97D456EE8973F296 /* CartoucheSFTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSFTP.swift; sourceTree = "<group>"; };
+		E4480289A9B5B48B85EC5AFD /* CartoucheGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGuideView.swift; sourceTree = "<group>"; };
+		E8684E9AB51BB8E3C8DF72C2 /* CartoucheGameLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameLog.swift; sourceTree = "<group>"; };
+		EFCFA3CAF25863A28C613745 /* CartoucheVPN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheVPN.swift; sourceTree = "<group>"; };
+		F3D6438BC12B5D6E33267FCC /* CartoucheStorageSMB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageSMB.swift; sourceTree = "<group>"; };
+		F4040F1BAB4160ACA802D3C7 /* CartoucheTextMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTextMac.swift; sourceTree = "<group>"; };
+		F6A291DB7C7BE6D0DDCAC6CE /* CartoucheStorageMacView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageMacView.swift; sourceTree = "<group>"; };
+		FA890FA438F7E250CBB11143 /* CartoucheGameLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameLanguage.swift; sourceTree = "<group>"; };
+		FC83F282D9A2EFE93A5F44E5 /* CartouchePlayerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartouchePlayerInfo.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0668B8BC9F4487F5FA3ABDAE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0D3C155B98D8774484E6CEFD /* CartoucheGallery.app */,
+				982A8D38D66D6BE47DE50057 /* CartoucheGalleryUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4AAF548A2700D821CAB3DA43 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				35E6D71E3C32FB38AC9B03F8 /* Gallery-Bridging-Header.h */,
+				D2BE5DD11AAB612C627ACFB6 /* GalleryApp.swift */,
+				99ED5E64EE602422A3A9B57F /* GalleryMainThread.c */,
+				6CA280F9F4D0A4CF33C7080A /* GalleryMainThread.h */,
+				81CCE5F86F6B5E24CD1A0640 /* GalleryStubs.swift */,
+				1BDB7746C4A58EE08EE371AF /* GalleryTesting.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		71E308E5DD20A453D560108F = {
+			isa = PBXGroup;
+			children = (
+				60967E5EF23E8C43962419F0 /* CartoucheCatalog */,
+				4AAF548A2700D821CAB3DA43 /* Sources */,
+				F2773A4E438B39117BCCC426 /* Sources */,
+				F82E8A00F6F34D84BE3AD604 /* UITests */,
+				0668B8BC9F4487F5FA3ABDAE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F2773A4E438B39117BCCC426 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				0384CB6789B64EB258A0A49E /* Cartouche.xcstrings */,
+				3CBE9B0296D83C2D948D5A16 /* CartoucheAccount.swift */,
+				0DBB27CD6849DF9AB6B57C58 /* CartoucheArrangement.swift */,
+				A5A6F6E744853A8B28945DB0 /* CartoucheBridge.swift */,
+				D4F1A8B376F1BD86E77CDF42 /* CartoucheCatalog.swift */,
+				258DAF7AE1203A880F5F6872 /* CartoucheContinuedWork.swift */,
+				696492CF9AD0FB12719CEAEB /* CartoucheCoverList.swift */,
+				B150C267E1EA667AE9CFE049 /* CartoucheCovers.swift */,
+				3FB032FA2A4AE1CC3DE6A945 /* CartoucheDevice.swift */,
+				4042E07E6E827C65C8CB0ACE /* CartoucheFailure.swift */,
+				60395CC243C0FB7968F12FAF /* CartoucheFTP.swift */,
+				93E7602C353CBE6EFB748C38 /* CartoucheGameBuild.swift */,
+				85458C12DFD9C509193CDD8A /* CartoucheGameFit.swift */,
+				CAB49E40E371466A15826088 /* CartoucheGameInfoView.swift */,
+				FA890FA438F7E250CBB11143 /* CartoucheGameLanguage.swift */,
+				E8684E9AB51BB8E3C8DF72C2 /* CartoucheGameLog.swift */,
+				A02B8B6C3BB6C42F6B59E89C /* CartoucheGameLookup.swift */,
+				E2610D5B9EB64B7659E67A57 /* CartoucheGamepad.swift */,
+				D2C6B033D3E3FE9256372FE6 /* CartoucheGamePlace.swift */,
+				231B062E8C8F5797BF5FB608 /* CartoucheGameSettings.swift */,
+				452F64C078F843D1FBF107C2 /* CartoucheGameSheetView.swift */,
+				6FB6B7E5D7767B6224B67652 /* CartoucheGameStats.swift */,
+				01FBCD687F925AC8D9489F91 /* CartoucheGamesView.swift */,
+				37E7795F05CAE316AC3063D6 /* CartoucheGameWorkView.swift */,
+				08DEAD93E49486781FA467F9 /* CartoucheGuide.swift */,
+				E4480289A9B5B48B85EC5AFD /* CartoucheGuideView.swift */,
+				D75BAB863B364110CA03DEED /* CartoucheHomeView.swift */,
+				E14E4346B1E9B6D2EB1FBC55 /* CartoucheImportPicker.swift */,
+				6771CD1CF088357FFC308800 /* CartoucheInstallQuestions.swift */,
+				9C5FDDBD9A551157F418F326 /* CartoucheLibraryView.swift */,
+				D2DA0B06F3E3A023455B77EC /* CartoucheLiveContainerView.swift */,
+				0E27F198E99D609F599C16A2 /* CartouchePickerMeasures.swift */,
+				FC83F282D9A2EFE93A5F44E5 /* CartouchePlayerInfo.swift */,
+				8C5EDFBDFBB8C3BB402A9F28 /* CartouchePlayTime.swift */,
+				597248F3F7B25A1244648C72 /* CartoucheProblemReport.swift */,
+				79F9877A6451EDDB3B8933B7 /* CartoucheRelease.swift */,
+				C8F77A6192D24206A521C988 /* CartoucheRenewal.swift */,
+				A47C64E12F4B0232EB4FDEFF /* CartoucheReport.swift */,
+				1DF8FF46B2B006C5AD205B1D /* CartoucheReporting.swift */,
+				A8419F2F6F6A605B4C7EF831 /* CartoucheReportView.swift */,
+				C57BA5FC65D4B1B0D3FB00EA /* CartoucheResumingSource.swift */,
+				06733EDFD57B7AEA89265233 /* CartoucheRomfs.swift */,
+				AFAA000874C75CAECD155B7C /* CartoucheRootView.swift */,
+				9718F51D240313BCBA3FAD60 /* CartoucheRunningGame.swift */,
+				CD5D6A2B7A3F83D273D6A28F /* CartoucheS3.swift */,
+				2E74C7B7E163ACFA9E3CB1A4 /* CartoucheSaveBackups.swift */,
+				4D49AB677136897B4030A406 /* CartoucheSaveSync.swift */,
+				6CE93C9BADF5A27A9ADAE854 /* CartoucheSetup.swift */,
+				C655DB89E41AC9F0C56A8BFA /* CartoucheSetupFacts.swift */,
+				CCC80A82627AE2B7611AE565 /* CartoucheSetupView.swift */,
+				E298D59C97D456EE8973F296 /* CartoucheSFTP.swift */,
+				990487F7BAD43933733176E1 /* CartoucheSignInMessage.swift */,
+				01A1CA88C74D7E293E4C309B /* CartoucheSignInView.swift */,
+				112A985AE0343328660C30C6 /* CartoucheStorage.swift */,
+				1DFF6BA7398BE1B2A7BA8D42 /* CartoucheStorageFolder.swift */,
+				ADA4FD1F84F3559A58CE3816 /* CartoucheStorageFTP.swift */,
+				20FA21ABE9C8B0EF6C1E00D4 /* CartoucheStorageMac.swift */,
+				F6A291DB7C7BE6D0DDCAC6CE /* CartoucheStorageMacView.swift */,
+				DF96146706E1644ACB1D145A /* CartoucheStorageReach.swift */,
+				DBC19D7CCE0AF6D28D6AA967 /* CartoucheStorageS3.swift */,
+				1D6FBF8B0308C65B66140862 /* CartoucheStorageSaves.swift */,
+				5B4CA5BFF785AFA40FF8B27D /* CartoucheStorageSFTP.swift */,
+				F3D6438BC12B5D6E33267FCC /* CartoucheStorageSMB.swift */,
+				701A5141444CC5EF3C478A39 /* CartoucheStorageView.swift */,
+				438034C189D1BB1BE4B06CDF /* CartoucheStoredGames.swift */,
+				8D87598FF6F23A2F4D65DFDB /* CartoucheSystemView.swift */,
+				B9557AE12FA6CCCB7A08BA78 /* CartoucheTelemetryReport.swift */,
+				DC47D22A7A35C186C5F287E8 /* CartoucheTelemetryView.swift */,
+				7734AF85396E9F871A7DE9DF /* CartoucheText.swift */,
+				85E652A837C00AFB0774C5A5 /* CartoucheTextGameInfo.swift */,
+				09ADEE6EA45858165CA84013 /* CartoucheTextGuide.swift */,
+				F4040F1BAB4160ACA802D3C7 /* CartoucheTextMac.swift */,
+				119D032E331F780B7F27D061 /* CartoucheTextSideStore.swift */,
+				B1AF87D92D51852324209ECB /* CartoucheTheme.swift */,
+				D8C31223EDD1CCDAC1A4F7BF /* CartoucheTiles.swift */,
+				AB83DEDC017CDBE7C2AB7B39 /* CartoucheUpdates.swift */,
+				3701DA3D6F565DD377DC62CC /* CartoucheUpdateView.swift */,
+				EFCFA3CAF25863A28C613745 /* CartoucheVPN.swift */,
+				3DD1DFD2733946015ED1D897 /* CartoucheZip.swift */,
+			);
+			name = Sources;
+			path = ../Sources;
+			sourceTree = "<group>";
+		};
+		F82E8A00F6F34D84BE3AD604 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				742DE19592E346DAA2AA401B /* ConsoleTestCase.swift */,
+				BD7530BC13CC80F94AE1AC7C /* ConsoleUITests.swift */,
+				D59042B6E3DDB5394EBEE1B2 /* GameUITests.swift */,
+				6BF4BF2A8CB675BE70381BC5 /* GuideUITests.swift */,
+				C88F283A4E0A6DAED9C6A764 /* ImportUITests.swift */,
+				CB3A735849ED2199C660BC75 /* SavesUITests.swift */,
+				74FBF0BA0C08F6EC6588A033 /* SignInUITests.swift */,
+				96A79C30D76E5864D1503ED3 /* StorageUITests.swift */,
+				B4F44CCEA44405295CE9239A /* SystemUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3F745CF55B00399416B184EA /* CartoucheGallery */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16FBADE3AECCAFB45668F64C /* Build configuration list for PBXNativeTarget "CartoucheGallery" */;
+			buildPhases = (
+				6CE53F36E6BD3551C3A76987 /* Sources */,
+				F6AA9A4235ABACAC30C2F360 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CartoucheGallery;
+			packageProductDependencies = (
+			);
+			productName = CartoucheGallery;
+			productReference = 0D3C155B98D8774484E6CEFD /* CartoucheGallery.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5449BCCA67BB1ACAF1DACD6E /* CartoucheGalleryUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0F26ED459D3B2691B079511 /* Build configuration list for PBXNativeTarget "CartoucheGalleryUITests" */;
+			buildPhases = (
+				75DDF414F0066192A1FAA694 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				451949E6BF5608373CD9163C /* PBXTargetDependency */,
+			);
+			name = CartoucheGalleryUITests;
+			packageProductDependencies = (
+			);
+			productName = CartoucheGalleryUITests;
+			productReference = 982A8D38D66D6BE47DE50057 /* CartoucheGalleryUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3C240A4F1C6A5CEC03FC812C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3F745CF55B00399416B184EA = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+					5449BCCA67BB1ACAF1DACD6E = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+						TestTargetID = 3F745CF55B00399416B184EA;
+					};
+				};
+			};
+			buildConfigurationList = B70255FBF42EBC659CE6B31C /* Build configuration list for PBXProject "CartoucheGallery" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 71E308E5DD20A453D560108F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0668B8BC9F4487F5FA3ABDAE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3F745CF55B00399416B184EA /* CartoucheGallery */,
+				5449BCCA67BB1ACAF1DACD6E /* CartoucheGalleryUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F6AA9A4235ABACAC30C2F360 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9ED52044FAEAFD1D869E60B8 /* Cartouche.xcstrings in Resources */,
+				BDB283A6C8BEEA3362A6461A /* CartoucheCatalog in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6CE53F36E6BD3551C3A76987 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B8AA8C4A2E0CA864F52FDA40 /* CartoucheAccount.swift in Sources */,
+				88A21A6B81A9DDB63BF87EF1 /* CartoucheArrangement.swift in Sources */,
+				24742A995C6D6C8FE6A1D5F8 /* CartoucheBridge.swift in Sources */,
+				E05DCD269198EFFC7E075BD1 /* CartoucheCatalog.swift in Sources */,
+				8430C0F60D0F3EA0DDB6446E /* CartoucheContinuedWork.swift in Sources */,
+				125CBEA60DCD77FAC3F8ABAC /* CartoucheCoverList.swift in Sources */,
+				C15223060B2B59F64FBB6FD9 /* CartoucheCovers.swift in Sources */,
+				A33C8FF731D2A18825F2A3C8 /* CartoucheDevice.swift in Sources */,
+				BBA0798A4065B7E94E050B61 /* CartoucheFTP.swift in Sources */,
+				9993AD5869A1A97264FD2655 /* CartoucheFailure.swift in Sources */,
+				2DE91DC57C15F787E70D87BB /* CartoucheGameBuild.swift in Sources */,
+				65DE79D21A0CC02DDCF94822 /* CartoucheGameFit.swift in Sources */,
+				1E0BF8617B1E3F7B61536D3A /* CartoucheGameInfoView.swift in Sources */,
+				4863E336474704444A87B98D /* CartoucheGameLanguage.swift in Sources */,
+				334AE5D85B777429C5D48362 /* CartoucheGameLog.swift in Sources */,
+				8FCF262A23C1B8314CC6D82C /* CartoucheGameLookup.swift in Sources */,
+				BB77926AD5CF86FDB624B0DB /* CartoucheGamePlace.swift in Sources */,
+				791ABE8FEF0ACB85550256C6 /* CartoucheGameSettings.swift in Sources */,
+				C054081310D47DB47C5B5245 /* CartoucheGameSheetView.swift in Sources */,
+				34B04457D78F97E899E18B74 /* CartoucheGameStats.swift in Sources */,
+				A6DB1339826FB229438D4895 /* CartoucheGameWorkView.swift in Sources */,
+				C8A253AD4FCD85135FF5AF38 /* CartoucheGamepad.swift in Sources */,
+				9585085FFE555A673A5A9254 /* CartoucheGamesView.swift in Sources */,
+				8CCF5597F51770C0584EDDF1 /* CartoucheGuide.swift in Sources */,
+				94E55DEFBF70F8CA54120329 /* CartoucheGuideView.swift in Sources */,
+				ED898255D4E3F0F41F516F0E /* CartoucheHomeView.swift in Sources */,
+				896551CFA2552C09F30957CA /* CartoucheImportPicker.swift in Sources */,
+				2E61B51DE475432E32BE709A /* CartoucheInstallQuestions.swift in Sources */,
+				83BDAC2D443AB1D55E01DCFB /* CartoucheLibraryView.swift in Sources */,
+				393A312BC6EB6A0949950929 /* CartoucheLiveContainerView.swift in Sources */,
+				AEB3CE336DBBAA1F0089CD38 /* CartouchePickerMeasures.swift in Sources */,
+				86768F46B5A3857796728B50 /* CartouchePlayTime.swift in Sources */,
+				5C9570B5FC87C681EBBC09FD /* CartouchePlayerInfo.swift in Sources */,
+				049B8E1817A2B724AFD4F8C3 /* CartoucheProblemReport.swift in Sources */,
+				210B648693CC97E92298F1CB /* CartoucheRelease.swift in Sources */,
+				E266092D4EE2FC312189A2D9 /* CartoucheRenewal.swift in Sources */,
+				4B93754D3FC11F72106C09C0 /* CartoucheReport.swift in Sources */,
+				69EBCDDDC1B645AD7FA61C64 /* CartoucheReportView.swift in Sources */,
+				C9772E2D28597B4183BF1644 /* CartoucheReporting.swift in Sources */,
+				EC5DC2E463682EBB2AAEF9B7 /* CartoucheResumingSource.swift in Sources */,
+				A32FCB644B29D2456A05B34E /* CartoucheRomfs.swift in Sources */,
+				F74566C2556559CCDE538BC0 /* CartoucheRootView.swift in Sources */,
+				166CC8389B92825527A9BEA6 /* CartoucheRunningGame.swift in Sources */,
+				FD36869B50BBB78F4FE77873 /* CartoucheS3.swift in Sources */,
+				57115D022DEAD7A8759C6C12 /* CartoucheSFTP.swift in Sources */,
+				3FCD8D3F5D9675CDFAE40578 /* CartoucheSaveBackups.swift in Sources */,
+				80F263B46A1EC88EA22D3584 /* CartoucheSaveSync.swift in Sources */,
+				9A987BD233C1625EF21F6D53 /* CartoucheSetup.swift in Sources */,
+				CCA868406273D36BCA2A5845 /* CartoucheSetupFacts.swift in Sources */,
+				1ABC5373F740DFA6B4002D04 /* CartoucheSetupView.swift in Sources */,
+				7AA90886C5E798A671FB6FA3 /* CartoucheSignInMessage.swift in Sources */,
+				712D51DEDC2405A153B3ABE5 /* CartoucheSignInView.swift in Sources */,
+				E736C3B1F4C6E752BBDAA31B /* CartoucheStorage.swift in Sources */,
+				A2116B7F4BF806F642D53600 /* CartoucheStorageFTP.swift in Sources */,
+				570BF82D85105E7F31BFAF20 /* CartoucheStorageFolder.swift in Sources */,
+				7276FDE304A22C51AD9A6877 /* CartoucheStorageMac.swift in Sources */,
+				80A5A0320D0CE44383AAD3EB /* CartoucheStorageMacView.swift in Sources */,
+				624FE6CE56449B80EA26E02E /* CartoucheStorageReach.swift in Sources */,
+				96DC1A36F6EEDB68F5E9597E /* CartoucheStorageS3.swift in Sources */,
+				C7042A599620BD4E57C97F23 /* CartoucheStorageSFTP.swift in Sources */,
+				2DA9C1261E4C73AB5BEFE271 /* CartoucheStorageSMB.swift in Sources */,
+				8D9A8C955EAF7AD465BF156C /* CartoucheStorageSaves.swift in Sources */,
+				F06370AF7C4B9FCBD3602FBB /* CartoucheStorageView.swift in Sources */,
+				EFB536A1E482F50E21304A59 /* CartoucheStoredGames.swift in Sources */,
+				FF209A9D6DB6B5B78F52D066 /* CartoucheSystemView.swift in Sources */,
+				EED07BFA174F3C343E6D92D4 /* CartoucheTelemetryReport.swift in Sources */,
+				CFC58A313985046FA7605F60 /* CartoucheTelemetryView.swift in Sources */,
+				71F99CB3674551EB7F63FD01 /* CartoucheText.swift in Sources */,
+				518052297368356738A2A78C /* CartoucheTextGameInfo.swift in Sources */,
+				838380544FBB0C18EB82AD78 /* CartoucheTextGuide.swift in Sources */,
+				CA87497ED06F3E52EF354D16 /* CartoucheTextMac.swift in Sources */,
+				3D0534E3E71EF71F6CB4DC83 /* CartoucheTextSideStore.swift in Sources */,
+				0B8FD8C8C96E5269ABE0FC8E /* CartoucheTheme.swift in Sources */,
+				FD8A5D0E2C38B315FBAA617A /* CartoucheTiles.swift in Sources */,
+				9DA4E369DDFFA4670E069956 /* CartoucheUpdateView.swift in Sources */,
+				49089067391E417D837D3CCA /* CartoucheUpdates.swift in Sources */,
+				FFFF804197466C1CF678A45D /* CartoucheVPN.swift in Sources */,
+				23B9C27018421466E7C05FEB /* CartoucheZip.swift in Sources */,
+				4B43932ECCDDD63209C53EA4 /* GalleryApp.swift in Sources */,
+				90008BDCCDB04398322733F1 /* GalleryMainThread.c in Sources */,
+				77CAE4184A76F45D39420FAD /* GalleryStubs.swift in Sources */,
+				3669AF493793844D9569AE61 /* GalleryTesting.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		75DDF414F0066192A1FAA694 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				95BF8EFCFAE92BAB766D2E84 /* ConsoleTestCase.swift in Sources */,
+				65DE5CB4F18CD73A3098A51A /* ConsoleUITests.swift in Sources */,
+				E4AB735C0468C5AFD17E0A81 /* GameUITests.swift in Sources */,
+				E9D5809F209BC1B445D8023E /* GuideUITests.swift in Sources */,
+				3B9581B1E8BF3CC61EE1B6BD /* ImportUITests.swift in Sources */,
+				1CF536E8CC5C4D36F65FC722 /* SavesUITests.swift in Sources */,
+				29661166D42B1578C52BD1B9 /* SignInUITests.swift in Sources */,
+				12FC216C41142345204AA8FD /* StorageUITests.swift in Sources */,
+				983A5CAED1E1631D6E928B29 /* SystemUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		451949E6BF5608373CD9163C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3F745CF55B00399416B184EA /* CartoucheGallery */;
+			targetProxy = E1DE9236AAC587FC95ABCA3F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		325EBD2F3A5112A0ED113FE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5DF735627E8CF0765E00C016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.clabeuhtegrite.cartouche.gallery.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CartoucheGallery;
+			};
+			name = Debug;
+		};
+		7211E5AE66C9B16A3FFD2176 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Gallery-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Gallery;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.clabeuhtegrite.cartouche.gallery;
+				PRODUCT_NAME = CartoucheGallery;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG CARTOUCHE_GALLERY";
+				SWIFT_OBJC_BRIDGING_HEADER = "Sources/Gallery-Bridging-Header.h";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		78852734896E1E96929B5B98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B4CF6C95B6E8818911F4A847 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Gallery-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Gallery;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.clabeuhtegrite.cartouche.gallery;
+				PRODUCT_NAME = CartoucheGallery;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG CARTOUCHE_GALLERY";
+				SWIFT_OBJC_BRIDGING_HEADER = "Sources/Gallery-Bridging-Header.h";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DA62ED39F0E08922AAACE4D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.clabeuhtegrite.cartouche.gallery.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CartoucheGallery;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		16FBADE3AECCAFB45668F64C /* Build configuration list for PBXNativeTarget "CartoucheGallery" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7211E5AE66C9B16A3FFD2176 /* Debug */,
+				B4CF6C95B6E8818911F4A847 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B70255FBF42EBC659CE6B31C /* Build configuration list for PBXProject "CartoucheGallery" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				325EBD2F3A5112A0ED113FE9 /* Debug */,
+				78852734896E1E96929B5B98 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D0F26ED459D3B2691B079511 /* Build configuration list for PBXNativeTarget "CartoucheGalleryUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5DF735627E8CF0765E00C016 /* Debug */,
+				DA62ED39F0E08922AAACE4D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3C240A4F1C6A5CEC03FC812C /* Project object */;
+}

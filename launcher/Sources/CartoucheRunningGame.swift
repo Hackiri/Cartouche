@@ -315,6 +315,13 @@ struct CartoucheRunningGameQuestions: ViewModifier {
         return actions.quitQuestion.map { CartoucheText.quitQuestion($0.name) } ?? ""
     }
 
+    /// Whether what runs behind the console is an app that is not a game
+    /// (decision 77): the question then says app, not game.
+    private var isApp: Bool {
+        guard let running = actions.quitQuestion else { return false }
+        return CartoucheCatalog.shared.gameTitle(of: running.app) == nil
+    }
+
     func body(content: Content) -> some View {
         content.confirmationDialog(title, isPresented: asking, titleVisibility: .visible) {
             if let change = actions.switching {
@@ -323,7 +330,7 @@ struct CartoucheRunningGameQuestions: ViewModifier {
                     actions.confirmSwitch(change)
                 }
             } else if actions.quitQuestion != nil {
-                Button(CartoucheText.quitGame, role: .destructive) {
+                Button(isApp ? CartoucheText.quitApp : CartoucheText.quitGame, role: .destructive) {
                     actions.quitQuestion = nil
                     actions.quitRunningGame()
                 }
@@ -331,9 +338,14 @@ struct CartoucheRunningGameQuestions: ViewModifier {
             Button(CartoucheText.cancel, role: .cancel) {}
         } message: {
             if let change = actions.switching {
-                Text(CartoucheText.quitAndStartMessage(change.next.displayName))
+                // What runs is an app that is not a game: no saves to speak of.
+                if CartoucheCatalog.shared.gameTitle(of: change.running.app) == nil {
+                    Text(CartoucheText.quitAndStartMessageApp(change.next.displayName))
+                } else {
+                    Text(CartoucheText.quitAndStartMessage(change.next.displayName))
+                }
             } else {
-                Text(CartoucheText.quitMessage)
+                Text(isApp ? CartoucheText.quitAppMessage : CartoucheText.quitMessage)
             }
         }
     }

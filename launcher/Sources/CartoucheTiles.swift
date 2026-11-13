@@ -136,6 +136,9 @@ struct CartoucheAppIcon: View {
     var size: CGFloat = 64
     /// Square, to fill a cartridge's label, or rounded as on the home screen.
     var rounded = true
+    /// The symbol shown for an app without an icon: a controller for a
+    /// game, an app's outline for another app.
+    var placeholder = "gamecontroller.fill"
 
     var body: some View {
         Group {
@@ -144,7 +147,7 @@ struct CartoucheAppIcon: View {
             } else {
                 ZStack {
                     CartoucheTheme.brand
-                    Image(systemName: "gamecontroller.fill")
+                    Image(systemName: placeholder)
                         .font(.system(size: size * 0.4, weight: .bold))
                         .foregroundStyle(Color.white)
                 }
@@ -224,6 +227,53 @@ struct CartoucheGameCartridge: View {
         } else {
             CartoucheLabelArt(name: entry.name, platform: entry.platform, genre: entry.genre, key: entry.tileKey, side: side)
         }
+    }
+}
+
+/// An app that is not a game as a cartridge: its icon on a label of its
+/// colours, with its name under it (decision 77).
+@available(iOS 17.0, *)
+struct CartoucheAppCartridge: View {
+    let entry: CartoucheEntry
+    let width: CGFloat
+    var isFocused = false
+    /// The app runs behind the console, paused there.
+    var isPaused = false
+
+    var body: some View {
+        let side = width
+        let colors = CartoucheTheme.colors(for: entry.tileKey)
+        CartoucheCartridge(width: width, key: entry.tileKey, isFocused: isFocused) {
+            ZStack {
+                LinearGradient(colors: [colors.dark, colors.dark.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+                VStack(spacing: side * 0.08) {
+                    if let app = entry.app {
+                        CartoucheAppIcon(app: app, size: side * 0.5, placeholder: "app.fill")
+                            .shadow(color: Color.black.opacity(0.35), radius: side * 0.04, y: side * 0.02)
+                    }
+                    Text(entry.name)
+                        .font(.system(size: max(8, side * 0.11), weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, side * 0.07)
+                }
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if isPaused {
+                Image(systemName: CartouchePlayStatus.paused.symbol)
+                    .font(.system(size: max(14, width * 0.16), weight: .bold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.white, CartouchePlayStatus.paused.color)
+                    .shadow(color: Color.black.opacity(0.35), radius: 2, y: 1)
+                    .padding(width * 0.04)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(entry.name))
+        .accessibilityValue(Text(isPaused ? CartouchePlayStatus.paused.short : CartoucheText.appInstalled))
     }
 }
 

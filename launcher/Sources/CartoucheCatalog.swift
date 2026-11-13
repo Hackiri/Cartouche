@@ -124,6 +124,9 @@ struct CartoucheEntry: Identifiable, Hashable {
     /// file of their cover.
     var player: CartouchePlayerInfo? = nil
     var playerCover: URL? = nil
+    /// An app that is not a game, installed in Cartouche as its games are
+    /// (decision 77): on the shelf after the games, with a sheet of its own.
+    var isApp = false
 
     /// The name the player gave the game, else its own.
     var name: String { player?.name ?? ownName }
@@ -410,12 +413,16 @@ final class CartoucheCatalog: ObservableObject {
         var owned: [CartoucheEntry] = []
         /// The other supported games, by name.
         var others: [CartoucheEntry] = []
+        /// The player's apps that are not games, by name: installed in
+        /// Cartouche as its games are, started and uninstalled by it
+        /// (decision 77). Never among all: the library is of games.
+        var apps: [CartoucheEntry] = []
 
         var all: [CartoucheEntry] { owned + others }
 
         func entry(id: String?) -> CartoucheEntry? {
             guard let id else { return nil }
-            return owned.first { $0.id == id } ?? others.first { $0.id == id }
+            return owned.first { $0.id == id } ?? others.first { $0.id == id } ?? apps.first { $0.id == id }
         }
     }
 
@@ -437,7 +444,13 @@ final class CartoucheCatalog: ObservableObject {
         var ownedTitles = Set<String>()
         var storedLeft = stored
         for app in apps {
-            guard let found = gameTitle(of: app) else { continue }
+            guard let found = gameTitle(of: app) else {
+                // An app that is not a game: Cartouche's own, on the shelf
+                // after the games (decision 77).
+                let folder = app.appInfo.relativeBundlePath ?? app.appInfo.bundleIdentifier() ?? ""
+                result.apps.append(CartoucheEntry(id: "app:" + folder, game: nil, sheet: nil, app: app, isApp: true))
+                continue
+            }
             let titleId = found.isEmpty ? titleMatchingName(of: app) : found
             let game = titleId.flatMap { self.game(titleId: $0) }
             let sheet = (game?.titleId ?? titleId).flatMap { self.sheet(titleId: $0) }
@@ -460,6 +473,7 @@ final class CartoucheCatalog: ObservableObject {
             result.owned.append(CartoucheEntry(id: "app:" + folder, game: game, sheet: sheet, app: app, stored: storedCopy,
                                                update: update, ownTitleId: titleId))
         }
+        result.apps.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         // The games of the games folder that are not installed, one entry
         // each: the newest IPA of a game that has several.
         for copy in storedLeft.sorted(by: { $0.isNewerCopy(than: $1) }) {

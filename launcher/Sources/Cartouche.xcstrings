@@ -137,6 +137,23 @@
         }
       }
     },
+    "action.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir"
+          }
+        }
+      }
+    },
     "action.play" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -239,6 +256,74 @@
         }
       }
     },
+    "app.details.identifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifier"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifiant"
+          }
+        }
+      }
+    },
+    "app.details.installed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed on"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installée le"
+          }
+        }
+      }
+    },
+    "app.details.lastOpened" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last opened"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière ouverture"
+          }
+        }
+      }
+    },
+    "app.details.size" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size on this iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille sur cet iPhone"
+          }
+        }
+      }
+    },
     "app.needsIOS17" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -252,6 +337,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche nécessite iOS 17 ou une version ultérieure."
+          }
+        }
+      }
+    },
+    "app.settings.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer applies them the next time the app starts."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer les applique au prochain démarrage de l’app."
+          }
+        }
+      }
+    },
+    "app.settings.language" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Langue"
+          }
+        }
+      }
+    },
+    "app.settings.language.iphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The iPhone’s"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celle de l’iPhone"
+          }
+        }
+      }
+    },
+    "app.settings.orientation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orientation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orientation"
+          }
+        }
+      }
+    },
+    "app.settings.orientation.any" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As the app does"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comme l’app"
+          }
+        }
+      }
+    },
+    "app.settings.orientation.landscape" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Landscape"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paysage"
+          }
+        }
+      }
+    },
+    "app.settings.orientation.portrait" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portrait"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portrait"
+          }
+        }
+      }
+    },
+    "app.settings.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App settings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages de l’app"
+          }
+        }
+      }
+    },
+    "app.sheet.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It opens in Cartouche, as your games do, behind the console when they do: the Home button then brings the console back."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elle s’ouvre dans Cartouche, comme vos jeux, derrière la console quand ils s’y ouvrent : le bouton Home ramène alors la console."
           }
         }
       }
@@ -2823,6 +3061,23 @@
         }
       }
     },
+    "running.quit.confirm.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit the app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter l’app"
+          }
+        }
+      }
+    },
     "running.quit.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2836,6 +3091,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La progression depuis la dernière sauvegarde du jeu sera perdue."
+          }
+        }
+      }
+    },
+    "running.quit.message.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What it has not saved will be lost."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce qu’elle n’a pas enregistré sera perdu."
           }
         }
       }
@@ -2989,6 +3261,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un seul jeu à la fois : la progression depuis la dernière sauvegarde du jeu sera perdue, puis %@ démarrera."
+          }
+        }
+      }
+    },
+    "running.switch.message.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One at a time: what the app has not saved will be lost, then %@ starts."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une à la fois : ce que l’app n’a pas enregistré sera perdu, puis %@ démarre."
           }
         }
       }
@@ -6542,6 +6831,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Temps de jeu et taille"
+          }
+        }
+      }
+    },
+    "status.app.installed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installée"
           }
         }
       }
@@ -10201,6 +10507,57 @@
         }
       }
     },
+    "uninstall.app.erase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall and erase its data"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstaller et effacer ses données"
+          }
+        }
+      }
+    },
+    "uninstall.app.keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall, keep its data"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstaller, garder ses données"
+          }
+        }
+      }
+    },
+    "uninstall.app.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its data can stay on this iPhone, for the next time you install it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses données peuvent rester sur cet iPhone, pour la prochaine fois que vous l’installerez."
+          }
+        }
+      }
+    },
     "uninstall.copyFirst" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11142,13 +11499,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ is not an nxnative game: you will find it in Apps."
+            "value" : "%@ is not an nxnative game: it is on your shelf, after your games."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ n’est pas un jeu nxnative : vous le trouverez dans Apps."
+            "value" : "%@ n’est pas un jeu nxnative : elle est sur votre étagère, après vos jeux."
           }
         }
       }
@@ -11476,6 +11833,23 @@
         }
       }
     },
+    "work.start.failed.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app did not start"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app n’a pas démarré"
+          }
+        }
+      }
+    },
     "work.start.saves" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11527,6 +11901,23 @@
         }
       }
     },
+    "work.start.soon.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app opens in a moment."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app s’ouvre dans un instant."
+          }
+        }
+      }
+    },
     "work.start.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11574,6 +11965,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le jeu n’a pas été désinstallé"
+          }
+        }
+      }
+    },
+    "work.uninstall.failed.app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app was not uninstalled"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app n’a pas été désinstallée"
           }
         }
       }

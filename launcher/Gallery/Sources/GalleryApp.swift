@@ -26,6 +26,9 @@
 //                                        have, which IGDB has by its name
 //                                        when the catalogue has a game of
 //                                        that name (showFound)
+//      -GalleryApps UTM:com.utmapp.UTM,… the player's apps that are not
+//                                        games, installed in Cartouche:
+//                                        Name:bundle.identifier each
 //      -GallerySetup 1 -GalleryController 1
 //      -GallerySheet <title ID>          the game of the sheet, of its
 //                                        settings, or being installed
@@ -113,6 +116,8 @@ struct GalleryScenario {
     var setupDone = false
     var controller = false
     var sheet: String?
+    /// The player's apps that are not games, "Name:bundle.identifier" each.
+    var otherApps: [String] = []
     var work: String?
     var landscape = false
     /// The name of the file that says the screen has settled.
@@ -136,6 +141,7 @@ struct GalleryScenario {
         default: break
         }
         scenario.owned = (defaults.string(forKey: "GalleryOwned") ?? "").split(separator: ",").map(String.init)
+        scenario.otherApps = (defaults.string(forKey: "GalleryApps") ?? "").split(separator: ",").map(String.init)
         scenario.setupDone = defaults.bool(forKey: "GallerySetup")
         scenario.controller = defaults.bool(forKey: "GalleryController")
         scenario.sheet = defaults.string(forKey: "GallerySheet")
@@ -355,7 +361,14 @@ struct GalleryScenario {
     /// console (work: paused).
     @MainActor
     func pause(among apps: [LCAppModel]) {
-        guard work == "paused", let titleId = sheet ?? ownedTitles.first,
+        guard work == "paused" else { return }
+        // An app that is not a game, by its bundle identifier: "app:" first.
+        if let sheet, sheet.hasPrefix("app:"),
+           let app = apps.first(where: { $0.appInfo.bundleIdentifier() == String(sheet.dropFirst(4)) }) {
+            CartoucheGameActions.shared.showRunningForGallery(app)
+            return
+        }
+        guard let titleId = sheet ?? ownedTitles.first,
               let app = apps.first(where: { $0.appInfo.relativeBundlePath == titleId + ".app" }) else { return }
         CartoucheGameActions.shared.showRunningForGallery(app)
     }
@@ -430,6 +443,19 @@ struct GalleryScenario {
     }
 
     func apps() -> [LCAppModel] {
+        games() + otherApps.compactMap { item in
+            // "Name:bundle.identifier": an app that is not a game, with an
+            // icon drawn from its name.
+            guard let colon = item.firstIndex(of: ":") else { return nil }
+            let name = String(item[..<colon]), identifier = String(item[item.index(after: colon)...])
+            let info = LCAppInfo(name: name, identifier: identifier, folder: name + ".app",
+                                 icon: GalleryIcon.make(name: name, key: identifier))
+            return LCAppModel(appInfo: info)
+        }
+    }
+
+    /// The player's games, installed.
+    private func games() -> [LCAppModel] {
         ownedTitles.compactMap { titleId in
             guard let name = name(of: titleId) else { return nil }
             let info = LCAppInfo(name: name, identifier: "org.nxnative." + titleId.lowercased(),
@@ -507,7 +533,17 @@ struct CartoucheGalleryApp: App {
             // the player has a game.
             CartoucheGamesView(showingLibrary: true)
         case "sheet":
-            if let entry = entries.all.first(where: { $0.titleId == scenario.sheet }) {
+            if let sheet = scenario.sheet, sheet.hasPrefix("app:"),
+               let entry = entries.apps.first(where: { $0.app?.appInfo.bundleIdentifier() == String(sheet.dropFirst(4)) }) {
+                NavigationStack {
+                    CartoucheAppSheetView(entry: entry, onOpen: { _ in }, onSettings: { _ in }, onUninstall: { _ in })
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button(CartoucheText.done) {}
+                            }
+                        }
+                }
+            } else if let entry = entries.all.first(where: { $0.titleId == scenario.sheet }) {
                 NavigationStack {
                     CartoucheGameSheetView(entry: entry, memory: CartoucheMemoryReading.now(), onPlay: { _ in },
                                            onSettings: { _ in }, onImport: {}, onUninstall: { _ in })

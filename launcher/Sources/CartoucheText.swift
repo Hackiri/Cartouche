@@ -31,6 +31,8 @@ enum CartoucheText {
     static var noSheet: String { s("games.noSheet", "No sheet yet") }
     static var importCopy: String { s("action.import", "Import my copy") }
     static var play: String { s("action.play", "Play") }
+    /// An app that is not a game starts with Open (decision 77).
+    static var open: String { s("action.open", "Open") }
     static var done: String { s("action.done", "Done") }
 
     // MARK: Console
@@ -289,6 +291,26 @@ enum CartoucheText {
     static var sheets: String { s("system.cartouche.sheets", "Game sheets") }
     static var coversCredit: String { s("system.covers.credit", "Covers and artworks of the games: IGDB.com.") }
 
+    // MARK: An app that is not a game (decision 77)
+
+    static var appInstalled: String { s("status.app.installed", "Installed") }
+    static var appSettingsTitle: String { s("app.settings.title", "App settings") }
+    static var appSheetFooter: String { s("app.sheet.footer", "It opens in Cartouche, as your games do, behind the console when they do: the Home button then brings the console back.") }
+    static var appIdentifier: String { s("app.details.identifier", "Identifier") }
+    static var appInstalledOn: String { s("app.details.installed", "Installed on") }
+    static var appLastOpened: String { s("app.details.lastOpened", "Last opened") }
+    static var appSize: String { s("app.details.size", "Size on this iPhone") }
+    static var appLanguage: String { s("app.settings.language", "Language") }
+    static var appLanguageIPhone: String { s("app.settings.language.iphone", "The iPhone’s") }
+    static var appOrientation: String { s("app.settings.orientation", "Orientation") }
+    static var appOrientationAny: String { s("app.settings.orientation.any", "As the app does") }
+    static var appOrientationPortrait: String { s("app.settings.orientation.portrait", "Portrait") }
+    static var appOrientationLandscape: String { s("app.settings.orientation.landscape", "Landscape") }
+    static var appSettingsFooter: String { s("app.settings.footer", "LiveContainer applies them the next time the app starts.") }
+    static var uninstallAppMessage: String { s("uninstall.app.message", "Its data can stay on this iPhone, for the next time you install it.") }
+    static var uninstallAppKeep: String { s("uninstall.app.keep", "Uninstall, keep its data") }
+    static var uninstallAppErase: String { s("uninstall.app.erase", "Uninstall and erase its data") }
+
     // MARK: Cartouche's updates
 
     static var updatesTitle: String { s("system.updates", "Updates") }
@@ -343,18 +365,21 @@ enum CartoucheText {
     static var installDone: String { s("work.install.done", "Installed") }
     static var installGPUTitle: String { s("work.install.gpu", "This iPhone cannot run nxnative’s games") }
     static var installAnyway: String { s("work.install.gpu.anyway", "Install anyway") }
-    static func installNotAGame(_ name: String) -> String { f("work.install.notAGame", "%@ is not an nxnative game: you will find it in Apps.", name) }
+    static func installNotAGame(_ name: String) -> String { f("work.install.notAGame", "%@ is not an nxnative game: it is on your shelf, after your games.", name) }
     static func installNoSpace(needed: String, free: String) -> String {
         f("work.install.noSpace", "Installing this game takes about %1$@ of free space, and this iPhone has %2$@. Free some space, then import it again.", needed, free)
     }
     static func startTitle(_ name: String) -> String { f("work.start.title", "Starting %@", name) }
     static var startSoon: String { s("work.start.soon", "The game opens in a moment.") }
+    static var startSoonApp: String { s("work.start.soon.app", "The app opens in a moment.") }
     static var startSettings: String { s("work.start.settings", "The game opens on its settings: its Play button starts it and keeps your choices.") }
     static var startFailed: String { s("work.start.failed", "The game did not start") }
+    static var startFailedApp: String { s("work.start.failed.app", "The app did not start") }
     static var startCertificateRefused: String { s("work.start.certificateRefused", "iOS no longer accepts the certificate the game was signed with. Cartouche signs in again with your Apple ID to take the new one: try again in a moment.") }
     static func uninstallTitle(_ name: String) -> String { f("work.uninstall.title", "Uninstalling %@", name) }
     static var uninstallStep: String { s("work.uninstall.step", "Removing it from this iPhone") }
     static var uninstallFailed: String { s("work.uninstall.failed", "The game was not uninstalled") }
+    static var uninstallFailedApp: String { s("work.uninstall.failed.app", "The app was not uninstalled") }
     static func installFromStorageStep(_ server: String) -> String { f("work.install.stored", "Unpacking it from %@ as it arrives.", server) }
     static func installFromStorageNoSpace(needed: String, free: String) -> String {
         f("work.install.stored.noSpace", "Installing this game takes about %1$@ of free space, and this iPhone has %2$@. Free some space, then install it again.", needed, free)
@@ -446,9 +471,14 @@ enum CartoucheText {
     static func quitQuestion(_ name: String) -> String { f("running.quit.question", "Quit %@?", name) }
     static var quitGame: String { s("running.quit.confirm", "Quit the game") }
     static var quitMessage: String { s("running.quit.message", "Progress since the game last saved will be lost.") }
+    static var quitApp: String { s("running.quit.confirm.app", "Quit the app") }
+    static var quitAppMessage: String { s("running.quit.message.app", "What it has not saved will be lost.") }
     static func quitAndStart(_ name: String) -> String { f("running.switch.action", "Quit and start %@", name) }
     static func quitAndStartMessage(_ name: String) -> String {
         f("running.switch.message", "One game at a time: progress since the game last saved will be lost, then %@ starts.", name)
+    }
+    static func quitAndStartMessageApp(_ name: String) -> String {
+        f("running.switch.message.app", "One at a time: what the app has not saved will be lost, then %@ starts.", name)
     }
     static func quitFirst(_ name: String) -> String { f("running.quitFirst", "%@ is running behind Cartouche: quit it first.", name) }
     static func gameStoppedTitle(_ name: String) -> String { f("running.stopped.title", "%@ has closed", name) }

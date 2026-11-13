@@ -993,8 +993,12 @@ final class CartoucheGameActions: ObservableObject {
         guard work == nil, !app.isAppRunning else { return }
         facts = Self.buildFacts(CartoucheInstalledBuilds.shared.build(of: app))
             + [.init("nxnative's settings screen", showingSettings ? "shown" : "skipped")]
+        // An app that is not a game is an app in what the console says.
+        let isApp = CartoucheCatalog.shared.gameTitle(of: app) == nil
+        let startSoon = isApp ? CartoucheText.startSoonApp : CartoucheText.startSoon
+        let startFailed = isApp ? CartoucheText.startFailedApp : CartoucheText.startFailed
         work = CartoucheGameWork(kind: .starting, name: app.displayName,
-                                 step: showingSettings ? CartoucheText.startSettings : CartoucheText.startSoon, fraction: nil,
+                                 step: showingSettings ? CartoucheText.startSettings : startSoon, fraction: nil,
                                  stage: "preparing")
         signing = app.$signProgress
             .combineLatest(app.$isSigningInProgress)
@@ -1019,7 +1023,7 @@ final class CartoucheGameActions: ObservableObject {
                 }
                 await backups.finish()
                 await fetchSaves(of: app)
-                work?.step = showingSettings ? CartoucheText.startSettings : CartoucheText.startSoon
+                work?.step = showingSettings ? CartoucheText.startSettings : startSoon
                 work?.stage = "starting"
                 try Self.prepareStart(of: app, showingSettings: showingSettings)
                 if #available(iOS 18.0, *), try await startBehindConsole(app, showingSettings: showingSettings) {
@@ -1034,9 +1038,9 @@ final class CartoucheGameActions: ObservableObject {
                 // iOS refused the certificate LiveContainer signed the game
                 // with: Cartouche has SideStore fetch the one that works.
                 CartoucheSetup.shared.certificateRefusedAtStart()
-                fail(.start, CartoucheText.startFailed, message: CartoucheText.startCertificateRefused, error: error)
+                fail(.start, startFailed, message: CartoucheText.startCertificateRefused, error: error)
             } catch {
-                fail(.start, CartoucheText.startFailed, error: error)
+                fail(.start, startFailed, error: error)
             }
             // Still here: the game did not start.
             app.delegate = delegate
@@ -1376,8 +1380,10 @@ final class CartoucheGameActions: ObservableObject {
     /// game makes again at each start goes either way.
     func uninstall(_ app: LCAppModel, erasingData: Bool) {
         guard work == nil, let bundlePath = app.appInfo.bundlePath() else { return }
+        let uninstallFailed = CartoucheCatalog.shared.gameTitle(of: app) == nil
+            ? CartoucheText.uninstallFailedApp : CartoucheText.uninstallFailed
         if app === running?.app {
-            notice = CartoucheGameNotice(title: CartoucheText.uninstallFailed, message: CartoucheText.quitFirst(app.displayName))
+            notice = CartoucheGameNotice(title: uninstallFailed, message: CartoucheText.quitFirst(app.displayName))
             return
         }
         let model = DataManager.shared.model
@@ -1401,7 +1407,7 @@ final class CartoucheGameActions: ObservableObject {
                     }
                 }
             } catch {
-                fail(.uninstall, CartoucheText.uninstallFailed, error: error)
+                fail(.uninstall, uninstallFailed, error: error)
             }
             work = nil
         }

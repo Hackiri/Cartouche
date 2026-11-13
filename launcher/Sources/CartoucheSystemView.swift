@@ -78,6 +78,7 @@ struct CartoucheSystemView: View {
 
     private func measure() {
         setup.refresh()
+        guide.refreshVPN()
         memory = CartoucheMemoryReading.now()
         signature = CartoucheSignature.current()
         CartoucheRenewal.scheduleWarnings()

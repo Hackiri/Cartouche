@@ -341,6 +341,14 @@ final class CartoucheGameHost {
     /// The orientations the game's Info.plist allows, among those
     /// Cartouche's allows.
     private static func orientations(of app: LCAppModel) -> UIInterfaceOrientationMask {
+        // LiveContainer's orientation lock of the app, which its settings
+        // page sets (CartoucheAppSettingsView): LiveContainer applies it in
+        // its own place only, so the host applies it here.
+        switch app.appInfo.orientationLock {
+        case .Landscape: return [.landscapeLeft, .landscapeRight]
+        case .Portrait: return .portrait
+        default: break
+        }
         let info = app.appInfo.info()
         let isPad = UIDevice.current.userInterfaceIdiom == .pad
         let key = "UISupportedInterfaceOrientations"

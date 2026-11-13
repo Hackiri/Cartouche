@@ -37,6 +37,49 @@
       ]
     },
     {
+      "name": "iphone-apps",
+      "screen": "games",
+      "owned": [
+        "0400C3F00006E000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ],
+      "apps": [
+        "Delta:com.rileytestut.Delta",
+        "UTM:com.utmapp.UTM"
+      ]
+    },
+    {
+      "name": "iphone-app-sheet",
+      "screen": "sheet",
+      "owned": [
+        "0400C3F00006E000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ],
+      "apps": [
+        "Delta:com.rileytestut.Delta",
+        "UTM:com.utmapp.UTM"
+      ],
+      "sheet": "app:com.utmapp.UTM"
+    },
+    {
       "name": "iphone-home-certificate-refused",
       "screen": "games",
       "owned": [

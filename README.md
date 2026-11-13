@@ -17,7 +17,7 @@ Cartouche is an iOS app that turns an iPhone into a console for the games [nxnat
 - **Your games, built on your Mac.** Cartouche Builder, a Mac app beside Cartouche, builds your games with nxnative from your own files into your games folder, and builds a game again when a change to nxnative touches it ([builder/README.md](builder/README.md)).
 - **Measurements that make games run better.** After each session, Cartouche sends what nxnative measured, such as the frame rate and the memory, never your files, saves or accounts; **System › Game measurements** turns it off ([docs/privacy.md](docs/privacy.md)). Under each error, **Copy the report** gives what it takes to understand it, and **System › Report a problem** shows a report in full before anything leaves the iPhone.
 
-You never see LiveContainer or SideStore, which Cartouche is built on: it drives them out of sight.
+You never see LiveContainer or SideStore, which Cartouche is built on: it drives them out of sight. An IPA that is not a game installs the same way, and sits on the shelf after your games, with Open, its settings and Uninstall on Cartouche's own screens.
 
 ## Install
 
