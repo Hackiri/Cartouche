@@ -32,6 +32,7 @@ struct CartoucheSystemView: View {
     @ObservedObject private var updates = CartoucheUpdates.shared
     @ObservedObject private var keeping = CartoucheGameKeeping.shared
     @ObservedObject private var actions = CartoucheGameActions.shared
+    @ObservedObject private var apps = CartoucheIPhoneApps.shared
     @ObservedObject private var telemetry = CartoucheTelemetry.shared
     @ObservedObject private var guide = CartoucheGuide.shared
     @ObservedObject private var storedGames = CartoucheStoredGames.shared
@@ -300,6 +301,8 @@ struct CartoucheSystemView: View {
             .padding(.vertical, 4)
         } else {
             Button(CartoucheText.renewNow, systemImage: "arrow.triangle.2.circlepath", action: renew)
+                // One action of the built-in SideStore at a time (decision 88).
+                .disabled(apps.work != nil)
         }
         if let renewalReport {
             Label(renewalReport.message, systemImage: "exclamationmark.triangle.fill")
@@ -442,7 +445,7 @@ struct CartoucheSystemView: View {
                     updates.start()
                 }
                 // The update closes Cartouche, and the game behind it with it.
-                .disabled(!updates.canStart || actions.running != nil)
+                .disabled(!updates.canStart || actions.running != nil || apps.work != nil)
                 if let running = actions.running {
                     Text(CartoucheText.updateWhilePlaying(running.name))
                         .font(.footnote)

@@ -76,6 +76,11 @@ final class CartoucheIPhoneApps: ObservableObject {
 
     static var isAvailable: Bool { unavailableReason == nil }
 
+    /// Whether the built-in SideStore works for Renew now or an update:
+    /// the bridge takes one action at a time (RefreshHandler), and those
+    /// two wait for this model's in turn (CartoucheSystemView).
+    static var isBusyElsewhere: Bool { CartoucheRenewal.isRenewing || CartoucheUpdates.shared.phase != nil }
+
     /// Why nothing can be installed: a p12 and its profile sign Cartouche
     /// alone (decision 78), or the bridge did not load.
     static var unavailableReason: String? {
@@ -122,13 +127,7 @@ final class CartoucheIPhoneApps: ObservableObject {
             // Renew now reads its own within seconds (CartoucheRenewal), so
             // only one older than two minutes is a night's; nothing to
             // attribute it to without apps.
-            var nightly: CartoucheSideStoreOutcome?
-            if !listed.isEmpty, let data = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account),
-               let outcome = CartoucheSideStoreOutcome(data: data, expecting: .refresh, maximumAge: 86_400),
-               Date().timeIntervalSince(outcome.date) > 120 {
-                CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
-                nightly = outcome
-            }
+            let nightly = listed.isEmpty ? nil : Self.takeNightlyOutcomeFromKeychain()
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 if fresh != self.apps { self.apps = fresh }
@@ -137,11 +136,32 @@ final class CartoucheIPhoneApps: ObservableObject {
         }
     }
 
+    /// The outcome a Refresh All Apps left with no one to read it, taken:
+    /// older than two minutes, so Renew now's own, read within seconds
+    /// (CartoucheRenewal), is never mistaken for it.
+    private static func takeNightlyOutcomeFromKeychain() -> CartoucheSideStoreOutcome? {
+        guard let data = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account),
+              let outcome = CartoucheSideStoreOutcome(data: data, expecting: .refresh, maximumAge: 86_400),
+              Date().timeIntervalSince(outcome.date) > 120 else { return nil }
+        CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
+        return outcome
+    }
+
+    /// Takes a night's outcome now, on the main thread: Renew now calls it
+    /// before it clears the keychain item for its own.
+    func takeNightlyOutcome() {
+        guard !Self.listed.isEmpty, let outcome = Self.takeNightlyOutcomeFromKeychain() else { return }
+        noteRenewal(outcome: outcome, message: nil)
+    }
+
     /// The apps of Cartouche's that OUTCOME, a Refresh All Apps', names as
     /// failed: each row shows it, with MESSAGE when the renewal said why.
+    /// Named from the list in the app group, which is there before this
+    /// model ever loaded its apps.
     func noteRenewal(outcome: CartoucheSideStoreOutcome?, message: String?) {
         guard let outcome, !outcome.failedApps.isEmpty else { return }
-        for app in apps where outcome.failedApps.contains(app.bundleIdentifier) {
+        let named = CartoucheIPhoneAppList.apps(listed: Self.listed, widgetData: nil)
+        for app in named where outcome.failedApps.contains(app.bundleIdentifier) {
             let failure = CartoucheFailure.sideStore(outcome: outcome, message: message, fraction: nil,
                                                      seconds: outcome.seconds.map(Double.init),
                                                      vpn: CartoucheVPN.isConnected, pairing: CartouchePairing.exists)
@@ -161,7 +181,7 @@ final class CartoucheIPhoneApps: ObservableObject {
             failures[Self.installFailure] = busy(CartoucheText.appsFailedInstall, message: Self.unavailableReason ?? CartoucheText.renewUnavailable)
             return
         }
-        guard work == nil else {
+        guard work == nil, !Self.isBusyElsewhere else {
             failures[Self.installFailure] = busy(CartoucheText.appsFailedInstall, message: CartoucheText.appsBusy)
             return
         }
@@ -175,8 +195,8 @@ final class CartoucheIPhoneApps: ObservableObject {
             reload(force: true)
         }
         CartoucheReports.note("Apps on this iPhone: installing \(name)")
+        let copy = installs.appendingPathComponent(UUID().uuidString + ".ipa")
         do {
-            let copy = installs.appendingPathComponent(UUID().uuidString + ".ipa")
             let reachable = url.startAccessingSecurityScopedResource()
             defer { if reachable { url.stopAccessingSecurityScopedResource() } }
             try await Task.detached(priority: .userInitiated) {
@@ -192,6 +212,10 @@ final class CartoucheIPhoneApps: ObservableObject {
         let message = await call(method, Self.installSelector, progress)
         let outcome = Self.takeOutcome().flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .install) }
         if let message {
+            // The intent deletes the copy once it ran; one that never started,
+            // the bridge busy, leaves it and the request.
+            try? FileManager.default.removeItem(at: copy)
+            LCUtils.appGroupUserDefault.removeObject(forKey: Self.requestKey)
             failures[Self.installFailure] = failed(CartoucheText.appsFailedInstall, message: message, outcome: outcome,
                                                    progress: progress, started: started)
         } else {
@@ -201,7 +225,7 @@ final class CartoucheIPhoneApps: ObservableObject {
 
     /// Renews APP's signature.
     func renew(_ app: CartoucheIPhoneApp) async {
-        guard let method = Self.method(Self.refreshSelector), work == nil else {
+        guard let method = Self.method(Self.refreshSelector), work == nil, !Self.isBusyElsewhere else {
             failures[app.bundleIdentifier] = busy(CartoucheText.appsFailedRenew(app.name),
                                                   message: Self.unavailableReason ?? CartoucheText.appsBusy)
             return
@@ -226,7 +250,7 @@ final class CartoucheIPhoneApps: ObservableObject {
     /// Uninstalls APP from this iPhone, or clears what SideStore kept of an
     /// app already gone from the home screen.
     func remove(_ app: CartoucheIPhoneApp) async {
-        guard let method = Self.method(Self.removeSelector), work == nil else {
+        guard let method = Self.method(Self.removeSelector), work == nil, !Self.isBusyElsewhere else {
             failures[app.bundleIdentifier] = busy(CartoucheText.appsFailedRemove(app.name),
                                                   message: Self.unavailableReason ?? CartoucheText.appsBusy)
             return

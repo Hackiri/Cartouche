@@ -40,6 +40,11 @@ enum CartoucheRenewal {
 
     static var canRenew: Bool { !CartoucheImportedSigning.accountSigningDisabled && refreshAllApps != nil }
 
+    /// Whether a renewal runs: the apps Cartouche installed on this iPhone
+    /// wait for it, as it waits for them (CartoucheIPhoneApps), the bridge
+    /// taking one action at a time.
+    @MainActor static private(set) var isRenewing = false
+
     /// Renews Cartouche without leaving the app; its SideStore renews no
     /// other app (app/patches/sidestore/0017). LocalDevVPN has to be
     /// connected. A failure says why, as SideStore left it.
@@ -56,6 +61,12 @@ enum CartoucheRenewal {
         guard let refresh = refreshAllApps else {
             throw Failure(message: CartoucheText.renewUnavailable, failure: CartoucheFailure(.bridgeMissing, stage: "start"))
         }
+        // A night's renewal left how it went in the keychain, which this
+        // clears before it starts: what it said of the apps Cartouche
+        // installed on this iPhone is taken first (decision 88).
+        CartoucheIPhoneApps.shared.takeNightlyOutcome()
+        isRenewing = true
+        defer { isRenewing = false }
         let started = Date()
         var attempt = 1
         while true {

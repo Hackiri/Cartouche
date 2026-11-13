@@ -101,6 +101,37 @@ class IPhoneAppsTest(unittest.TestCase):
         caught = remove[remove.index("catch"):]
         self.assertIn("removeApp(", caught)
 
+    def test_the_built_in_sidestore_runs_one_action_at_a_time(self):
+        # The bridge takes one action (RefreshHandler): an install, a renewal
+        # or a removal waits for Renew now and the update, and they for it;
+        # a refused install leaves no IPA copy behind.
+        model = read(LAUNCHER)
+        renewal = read(ROOT / "launcher" / "Sources" / "CartoucheRenewal.swift")
+        system = read(ROOT / "launcher" / "Sources" / "CartoucheSystemView.swift")
+        self.assertIn("static private(set) var isRenewing", renewal)
+        self.assertIn("CartoucheRenewal.isRenewing", model)
+        self.assertIn("CartoucheUpdates.shared.phase", model)
+        self.assertIn("removeItem(at: copy)", model)
+        renew_button = system.index("Button(CartoucheText.renewNow")
+        self.assertIn("apps.work != nil", system[renew_button:renew_button + 400])
+        update_button = system.index("Button(CartoucheText.updateTo")
+        self.assertIn("apps.work != nil", system[update_button:update_button + 400])
+
+    def test_a_renewals_failed_apps_are_named_from_the_list_and_a_nights_taken_first(self):
+        # Renew now may run before the section ever loaded its apps, and it
+        # clears the keychain item a night's renewal left: the failures are
+        # named from the list in the app group, and the night's outcome is
+        # taken before Renew now begins.
+        model = read(LAUNCHER)
+        renewal = read(ROOT / "launcher" / "Sources" / "CartoucheRenewal.swift")
+        note = model[model.index("func noteRenewal("):]
+        note = note[:note.index("\n    }\n")]
+        self.assertIn("Self.listed", note)
+        self.assertNotIn("for app in apps", note)
+        renew = renewal[renewal.index("static func renew(progress: Progress)"):]
+        taken = renew.index("CartoucheIPhoneApps.shared.takeNightlyOutcome()")
+        self.assertLess(taken, renew.index("CartoucheStoreKeychain.remove("))
+
     def test_the_apps_that_failed_stay_out_of_the_measurements(self):
         # The outcome's facts go to the telemetry with a renewal's event
         # (CartoucheFailure.sideStoreSuccess); bundle identifiers never do.
