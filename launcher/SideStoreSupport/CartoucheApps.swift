@@ -26,46 +26,47 @@ public final class CartoucheApps: NSObject {
     /// `completion` runs on the main queue, with nil or the error's text.
     @objc(installAppWithProgress:completion:)
     public static func installApp(progress: Progress, completion: @escaping (String?) -> Void) {
-        run(progress: progress, completion: completion) {
-            try await performIntentRefresh(identifier: "CartoucheInstallAppIntent",
-                                           mangledTypeName: "9SideStore25CartoucheInstallAppIntentV", intentProgress: progress)
-        }
-    }
-
-    /// Renews the apps the request names.
-    @objc(refreshAppsWithProgress:completion:)
-    public static func refreshApps(progress: Progress, completion: @escaping (String?) -> Void) {
-        run(progress: progress, completion: completion) {
-            try await performIntentRefresh(identifier: "CartoucheRefreshAppsIntent",
-                                           mangledTypeName: "9SideStore26CartoucheRefreshAppsIntentV", intentProgress: progress)
-        }
-    }
-
-    /// Uninstalls the app the request names.
-    @objc(removeAppWithProgress:completion:)
-    public static func removeApp(progress: Progress, completion: @escaping (String?) -> Void) {
-        run(progress: progress, completion: completion) {
-            try await performIntentRefresh(identifier: "CartoucheRemoveAppIntent",
-                                           mangledTypeName: "9SideStore24CartoucheRemoveAppIntentV", intentProgress: progress)
-        }
-    }
-
-    /// The names the actions have in SideStore's module: performIntentRefresh
-    /// takes them as LiveContainer's own Refresh All Apps intent passes its
-    /// own (SideStoreSupport/SideStore.swift).
-    private static func run(progress: Progress, completion: @escaping (String?) -> Void,
-                            _ action: @escaping @MainActor () async throws -> Void) {
-        guard #available(iOS 17.0, *) else {
-            completion("Installing apps from Cartouche needs iOS 17 or later.")
-            return
-        }
+        guard #available(iOS 17.0, *) else { return completion(tooOld) }
         Task { @MainActor in
             do {
-                try await action()
+                try await performIntentRefresh(identifier: "CartoucheInstallAppIntent",
+                                               mangledTypeName: "9SideStore25CartoucheInstallAppIntentV", intentProgress: progress)
                 completion(nil)
             } catch {
                 completion(error.localizedDescription)
             }
         }
     }
+
+    /// Renews the apps the request names.
+    @objc(refreshAppsWithProgress:completion:)
+    public static func refreshApps(progress: Progress, completion: @escaping (String?) -> Void) {
+        guard #available(iOS 17.0, *) else { return completion(tooOld) }
+        Task { @MainActor in
+            do {
+                try await performIntentRefresh(identifier: "CartoucheRefreshAppsIntent",
+                                               mangledTypeName: "9SideStore26CartoucheRefreshAppsIntentV", intentProgress: progress)
+                completion(nil)
+            } catch {
+                completion(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Uninstalls the app the request names.
+    @objc(removeAppWithProgress:completion:)
+    public static func removeApp(progress: Progress, completion: @escaping (String?) -> Void) {
+        guard #available(iOS 17.0, *) else { return completion(tooOld) }
+        Task { @MainActor in
+            do {
+                try await performIntentRefresh(identifier: "CartoucheRemoveAppIntent",
+                                               mangledTypeName: "9SideStore24CartoucheRemoveAppIntentV", intentProgress: progress)
+                completion(nil)
+            } catch {
+                completion(error.localizedDescription)
+            }
+        }
+    }
+
+    private static let tooOld = "Installing apps from Cartouche needs iOS 17 or later."
 }
