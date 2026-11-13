@@ -139,7 +139,7 @@ final class CartoucheIPhoneApps: ObservableObject {
     /// The outcome a Refresh All Apps left with no one to read it, taken:
     /// older than two minutes, so Renew now's own, read within seconds
     /// (CartoucheRenewal), is never mistaken for it.
-    private static func takeNightlyOutcomeFromKeychain() -> CartoucheSideStoreOutcome? {
+    nonisolated private static func takeNightlyOutcomeFromKeychain() -> CartoucheSideStoreOutcome? {
         guard let data = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account),
               let outcome = CartoucheSideStoreOutcome(data: data, expecting: .refresh, maximumAge: 86_400),
               Date().timeIntervalSince(outcome.date) > 120 else { return nil }
