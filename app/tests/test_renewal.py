@@ -7,7 +7,8 @@ LiveContainer and SideStore:
   Apps action does;
 - Cartouche's warnings before expiry use SideStore's identifiers, so that each
   replaces the other instead of showing twice;
-- the built-in SideStore renews Cartouche alone (app/patches/sidestore/0017),
+- the built-in SideStore renews Cartouche and the apps Cartouche installed on
+  this iPhone alone (app/patches/sidestore/0017, decision 88),
   and Refresh All Apps still takes its apps where the patch changes them.
 
 Needs the LiveContainer and SideStore submodules, and patch(1).
@@ -108,11 +109,21 @@ class RenewalTest(unittest.TestCase):
             copy.write_text(read(SS_INSTALLED_APP), encoding="utf-8")
             subprocess.run(["patch", "-s", "-N", "-t", "-p1", "-d", directory, "-i", str(patch)], check=True)
             patched = copy.read_text(encoding="utf-8")
+        # Each fetch takes the apps Cartouche installed on this iPhone, by the
+        # list Cartouche keeps in the app group (decision 88), then Cartouche.
         for name in ("fetchAppsForRefreshingAll", "fetchAppsForBackgroundRefresh"):
             body = function_body(patched, name)
             self.assertIn("InstalledApp.fetchAltStore(in: context)", body, name)
+            self.assertIn("fetchCartoucheApps(in: context", body, name)
             self.assertNotIn("InstalledApp.all(", body, name)
             self.assertNotIn("NSPredicate", body, name)
+        own = function_body(patched, "fetchCartoucheApps")
+        self.assertIn('"CartoucheInstalledApps"', own)
+        self.assertIn("#keyPath(InstalledApp.isActive)", own)
+        self.assertIn("#keyPath(InstalledApp.bundleIdentifier)", own)
+        # Never another store's apps: nothing of the pledge predicate SideStore
+        # renews every app by.
+        self.assertNotIn("InstalledApp.storeApp", own)
 
     def test_refresh_all_apps_takes_its_apps_where_the_patch_changes_them(self):
         intent = read(SS_REFRESH_ALL)

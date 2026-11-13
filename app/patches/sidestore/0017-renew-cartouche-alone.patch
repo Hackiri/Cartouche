@@ -1,7 +1,7 @@
-From 01c0ea192e89c1ec5e7eb2a4408f8090077d9ae8 Mon Sep 17 00:00:00 2001
+From 3318ddeb4d546311dbfb10721412032ce01d6bbb Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
-Date: Thu, 12 Nov 2026 07:19:51 +0000
-Subject: [PATCH] Renew Cartouche alone
+Date: Fri, 13 Nov 2026 11:10:01 -0500
+Subject: [PATCH] Renew Cartouche and the apps it installed alone
 
 SideStore keeps its database in its app group, and Cartouche signs
 with the group of every SideStore of the same Apple ID,
@@ -13,24 +13,33 @@ own error, "Invalid parameters", once Cartouche itself had been
 renewed.
 
 Refresh All Apps, which Cartouche's Renew now and its Shortcuts action
-run, and the background refresh now renew Cartouche alone, the app
-SideStore is built into. Cartouche installs its games in LiveContainer,
-never through SideStore, so no other app is its to renew: the SideStore
-that installed one renews it, as before.
+run, and the background refresh now renew Cartouche, the app SideStore
+is built into, and the apps Cartouche itself installed on this iPhone
+through SideStore (decision 88), which Cartouche lists in the app
+group under CartoucheInstalledApps (CartoucheAppsRequest.swift, patch
+0022). Nothing of another store's: the SideStore that installed an
+app renews it, as before.
 
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01MzPJotUFrVR2CyQYzeyDrQ
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 ---
- AltStore/Core/Model/InstalledApp.swift | 31 ++++++++------------------
- 1 file changed, 9 insertions(+), 22 deletions(-)
+ AltStore/Core/Model/InstalledApp.swift | 59 ++++++++++++++++----------
+ 1 file changed, 37 insertions(+), 22 deletions(-)
 
 diff --git a/AltStore/Core/Model/InstalledApp.swift b/AltStore/Core/Model/InstalledApp.swift
-index ccb7133..b4f37f6 100644
+index ccb7133..3b1abd1 100644
 --- a/AltStore/Core/Model/InstalledApp.swift
 +++ b/AltStore/Core/Model/InstalledApp.swift
-@@ -389,16 +389,12 @@ public extension InstalledApp
+@@ -387,18 +387,41 @@ public extension InstalledApp
+         return activeApps
+     }
      
-     class func fetchAppsForRefreshingAll(in context: NSManagedObjectContext) -> [InstalledApp]
+-    class func fetchAppsForRefreshingAll(in context: NSManagedObjectContext) -> [InstalledApp]
++    /// Cartouche: the active apps Cartouche installed on this iPhone through
++    /// the built-in SideStore, by the list Cartouche keeps in the app group
++    /// (CartoucheInstalledApps, CartoucheAppsRequest.swift), the soonest to
++    /// expire first; with DATE, those not renewed since. Never another
++    /// store's apps, which this database holds too.
++    class func fetchCartoucheApps(in context: NSManagedObjectContext, refreshedBefore date: Date? = nil) -> [InstalledApp]
      {
 -        let predicate = NSPredicate(format: "(%K == YES AND %K != %@) AND (%K == nil OR %K == NO OR %K == YES)",
 -                                    #keyPath(InstalledApp.isActive),
@@ -38,20 +47,41 @@ index ccb7133..b4f37f6 100644
 -                                    #keyPath(InstalledApp.storeApp),
 -                                    #keyPath(InstalledApp.storeApp.isPledgeRequired),
 -                                    #keyPath(InstalledApp.storeApp.isPledged))
--        
++        guard let appGroup = Bundle.main.altstoreAppGroup,
++              let listed = UserDefaults(suiteName: appGroup)?.array(forKey: "CartoucheInstalledApps") as? [[String: String]]
++        else { return [] }
++        let identifiers = listed.compactMap { $0["bundleIdentifier"] }
++        if identifiers.isEmpty { return [] }
+         
 -        var installedApps = InstalledApp.all(satisfying: predicate,
 -                                             sortedBy: [NSSortDescriptor(keyPath: \InstalledApp.expirationDate, ascending: true)],
 -                                             in: context)
++        var format = "(%K == YES) AND (%K IN %@)"
++        var arguments: [Any] = [#keyPath(InstalledApp.isActive), #keyPath(InstalledApp.bundleIdentifier), identifiers]
++        if let date
++        {
++            format += " AND (%K < %@)"
++            arguments += [#keyPath(InstalledApp.refreshedDate), date as NSDate]
++        }
++        let predicate = NSPredicate(format: format, argumentArray: arguments)
++        return InstalledApp.all(satisfying: predicate,
++                                sortedBy: [NSSortDescriptor(keyPath: \InstalledApp.expirationDate, ascending: true)],
++                                in: context)
++    }
++    
++    class func fetchAppsForRefreshingAll(in context: NSManagedObjectContext) -> [InstalledApp]
++    {
 +        // Cartouche: this database is in the app group that every SideStore
 +        // signed with the same Apple ID opens, so it also holds the apps of
 +        // the player's own SideStore or LiveContainer+SideStore, which renews
-+        // them itself. Cartouche installs no app through SideStore: it renews
-+        // Cartouche alone, added below.
-+        var installedApps: [InstalledApp] = []
++        // them itself. Cartouche renews the apps it installed on this iPhone
++        // itself, those on the list it keeps in the app group
++        // (fetchCartoucheApps), and Cartouche, added below.
++        var installedApps = InstalledApp.fetchCartoucheApps(in: context)
          
          if let altStoreApp = InstalledApp.fetchAltStore(in: context)
          {
-@@ -427,18 +423,9 @@ public extension InstalledApp
+@@ -427,18 +450,10 @@ public extension InstalledApp
          // Date 6 hours before now.
          let date = Date().addingTimeInterval(-1 * 6 * 60 * 60)
          
@@ -67,12 +97,13 @@ index ccb7133..b4f37f6 100644
 -        var installedApps = InstalledApp.all(satisfying: predicate,
 -                                             sortedBy: [NSSortDescriptor(keyPath: \InstalledApp.expirationDate, ascending: true)],
 -                                             in: context)
-+        // Cartouche: Cartouche alone, added below, as for Refresh All Apps
++        // Cartouche: the apps Cartouche installed that were not renewed since,
++        // and Cartouche, added below, as for Refresh All Apps
 +        // (fetchAppsForRefreshingAll).
-+        var installedApps: [InstalledApp] = []
++        var installedApps = InstalledApp.fetchCartoucheApps(in: context, refreshedBefore: date)
          
          if let altStoreApp = InstalledApp.fetchAltStore(in: context), altStoreApp.refreshedDate < date
          {
 -- 
-2.43.0
+2.54.0
 
