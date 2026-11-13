@@ -50,13 +50,24 @@ struct CartoucheGameSwitch {
 
 extension Notification.Name {
     /// Posted on the main thread, with the game's LCAppModel as its object,
+    /// as Cartouche starts a game, behind the console or in its own place,
+    /// before the game's process does. Its user info holds, under
+    /// "dataFolder", the data folder the game runs with, under "started"
+    /// when it started, and under "behind" whether it runs behind the
+    /// console. A game in Cartouche's place takes Cartouche's process: an
+    /// observer that keeps something of it does so before it returns.
+    static let cartoucheGameStarts = Notification.Name("CartoucheGameStarts")
+    /// Posted on the main thread, with the game's LCAppModel as its object,
     /// when the game running behind the console goes behind it: the player
     /// opened the console, and the game is paused.
     static let cartoucheGameDidPause = Notification.Name("CartoucheGameDidPause")
     /// Posted on the main thread, with the game's LCAppModel as its object,
     /// when the game running behind the console has ended: the player quit
     /// it, or iOS stopped it. Its user info holds, under "quit", whether the
-    /// player quit it, and under "dataFolder" the data folder it ran with.
+    /// player quit it, under "dataFolder" the data folder it ran with,
+    /// under "started" when it started, as cartoucheGameStarts said, and
+    /// under "reading", when there is one, the last reading of its memory
+    /// its own process wrote (CartoucheGameMemoryReading).
     static let cartoucheGameDidEnd = Notification.Name("CartoucheGameDidEnd")
 }
 
@@ -316,7 +327,7 @@ struct CartoucheRunningGameQuestions: ViewModifier {
     }
 
     /// Whether what runs behind the console is an app that is not a game
-    /// (decision 77): the question then says app, not game.
+    /// (decision 86): the question then says app, not game.
     private var isApp: Bool {
         guard let running = actions.quitQuestion else { return false }
         return CartoucheCatalog.shared.gameTitle(of: running.app) == nil

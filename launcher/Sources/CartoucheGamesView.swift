@@ -87,7 +87,7 @@ struct CartoucheGamesView: View {
     /// The settings page open over the game's sheet, over the console or
     /// beside it.
     @State private var gameSettings: CartoucheGameSettingsModel?
-    /// The app settings page open in an app's sheet (decision 77).
+    /// The app settings page open in an app's sheet (decision 86).
     @State private var appSettings: LCAppModel?
     /// The game whose info the player changes, over its sheet.
     @State private var editingInfo: CartoucheEntry?
@@ -448,7 +448,7 @@ struct CartoucheGamesView: View {
         }
     }
 
-    /// An app's sheet (decision 77), with its settings page one step further.
+    /// An app's sheet (decision 86), with its settings page one step further.
     private func appSheet(_ entry: CartoucheEntry, beside: Bool) -> some View {
         NavigationStack {
             CartoucheAppSheetView(
@@ -754,7 +754,7 @@ struct CartoucheUninstallQuestion: ViewModifier {
     }
 
     /// An app that is not a game: its data, not saves, and no copy to the
-    /// games folder (decision 77).
+    /// games folder (decision 86).
     @MainActor
     static func isApp(_ app: LCAppModel) -> Bool {
         CartoucheCatalog.shared.gameTitle(of: app) == nil

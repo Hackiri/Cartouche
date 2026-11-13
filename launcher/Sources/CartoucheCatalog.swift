@@ -125,7 +125,7 @@ struct CartoucheEntry: Identifiable, Hashable {
     var player: CartouchePlayerInfo? = nil
     var playerCover: URL? = nil
     /// An app that is not a game, installed in Cartouche as its games are
-    /// (decision 77): on the shelf after the games, with a sheet of its own.
+    /// (decision 86): on the shelf after the games, with a sheet of its own.
     var isApp = false
 
     /// The name the player gave the game, else its own.
@@ -154,6 +154,11 @@ struct CartoucheEntry: Identifiable, Hashable {
         if let genre = game?.genre, genre != "other" { return genre }
         return cover?.genre ?? found?.genre
     }
+    /// What the player wrote of the game, else IGDB's summary of it.
+    var summary: String? { player?.summary ?? ownSummary }
+    /// IGDB's summary of the game, in English: by its title ID, or by its
+    /// name for a game Cartouche does not know.
+    var ownSummary: String? { cover?.summary ?? found?.summary }
     /// Whether Cartouche knows nothing of the game but what the player's
     /// copy says: nxnative has no profile for it, nor IGDB a cover by its
     /// title ID.
@@ -415,7 +420,7 @@ final class CartoucheCatalog: ObservableObject {
         var others: [CartoucheEntry] = []
         /// The player's apps that are not games, by name: installed in
         /// Cartouche as its games are, started and uninstalled by it
-        /// (decision 77). Never among all: the library is of games.
+        /// (decision 86). Never among all: the library is of games.
         var apps: [CartoucheEntry] = []
 
         var all: [CartoucheEntry] { owned + others }
@@ -446,7 +451,7 @@ final class CartoucheCatalog: ObservableObject {
         for app in apps {
             guard let found = gameTitle(of: app) else {
                 // An app that is not a game: Cartouche's own, on the shelf
-                // after the games (decision 77).
+                // after the games (decision 86).
                 let folder = app.appInfo.relativeBundlePath ?? app.appInfo.bundleIdentifier() ?? ""
                 result.apps.append(CartoucheEntry(id: "app:" + folder, game: nil, sheet: nil, app: app, isApp: true))
                 continue

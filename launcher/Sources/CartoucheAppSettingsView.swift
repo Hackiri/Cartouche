@@ -2,7 +2,7 @@
 //  CartoucheAppSettingsView.swift
 //  Cartouche
 //
-//  The settings of an app that is not a game (decision 77): the language it
+//  The settings of an app that is not a game (decision 86): the language it
 //  starts in and its orientation, LiveContainer's own settings of the app,
 //  which LiveContainer keeps in the app's LCAppInfo.plist and applies the
 //  next time the app starts. One step further than the app's sheet

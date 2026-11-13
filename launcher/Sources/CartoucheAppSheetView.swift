@@ -3,7 +3,7 @@
 //  Cartouche
 //
 //  The sheet of an app that is not a game, installed in Cartouche as its
-//  games are (decision 77): Open, or Resume and Quit while it is paused
+//  games are (decision 86): Open, or Resume and Quit while it is paused
 //  behind the console; App settings (CartoucheAppSettingsView); what the
 //  app says of itself, and the room it takes on this iPhone; and Uninstall,
 //  which asks whether its data stays (CartoucheUninstallQuestion). It opens

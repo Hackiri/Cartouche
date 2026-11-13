@@ -105,7 +105,7 @@ struct CartoucheHomeView: View {
 
     enum Item: Hashable {
         case game(CartoucheEntry)
-        /// An app that is not a game (decision 77).
+        /// An app that is not a game (decision 86).
         case app(CartoucheEntry)
         case importGame
         case allGames
@@ -130,7 +130,7 @@ struct CartoucheHomeView: View {
     private static let dockRow = 1
 
     /// The player's games, installed or in their games folder, then their
-    /// apps that are not games (decision 77), then the covers that import
+    /// apps that are not games (decision 86), then the covers that import
     /// one and open every game. The games nxnative plays on the iPhone are
     /// in All games, under their filter.
     private var libraryShelf: [Item] {
@@ -261,15 +261,18 @@ struct CartoucheHomeView: View {
             // room for it beside the wordmark; on an upright iPhone, the
             // symbol alone, as the controller's.
             if let offline = reach.offlineInUse.first {
+                // A Google Drive whose sign-in Google ended says so, the
+                // same way: its Storage page signs in again.
+                let away = CartoucheStorageOffline(offline)
                 Button {
                     onTab(.system)
                 } label: {
                     Group {
                         if metrics.size.width >= Self.offlineNameWidth {
-                            Label(CartoucheText.storageOfflineShort(offline.name), systemImage: "wifi.slash")
+                            Label(away.short, systemImage: away.symbol)
                                 .labelStyle(CartoucheTightLabelStyle())
                         } else {
-                            Image(systemName: "wifi.slash")
+                            Image(systemName: away.symbol)
                         }
                     }
                     .font(.subheadline.weight(.semibold))
@@ -280,7 +283,7 @@ struct CartoucheHomeView: View {
                     .cartoucheGlass(in: Capsule(), interactive: true)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(CartoucheText.storageOfflineTitle(offline.name)))
+                .accessibilityLabel(Text(away.title))
             }
             // Renewals keep Cartouche signed: its expiry shows here only
             // when it comes close, and leads to the System page.
@@ -523,7 +526,7 @@ struct CartoucheHomeView: View {
 
     /// An app that is not a game, in focus: its name, what it says of
     /// itself, and Open, or Resume and Quit while it is paused behind the
-    /// console, and Details (decision 77).
+    /// console, and Details (decision 86).
     private func appHero(_ entry: CartoucheEntry, metrics: Metrics) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
@@ -578,9 +581,10 @@ struct CartoucheHomeView: View {
                 return setup.bannerDetail(signingInAgain: CartoucheAccount.shared.isAutomatic)
             }
             guard status == .update else { return nil }
-            return isGamesFolderOffline ? CartoucheText.statusUpdateOffline(serverName) : status.long
+            guard isGamesFolderOffline else { return status.long }
+            return isGamesFolderSignedOut ? CartoucheText.statusUpdateSignedOut(serverName) : CartoucheText.statusUpdateOffline(serverName)
         case .stored where isGamesFolderOffline:
-            return CartoucheText.statusStoredOffline(serverName)
+            return isGamesFolderSignedOut ? CartoucheText.statusStoredSignedOut(serverName) : CartoucheText.statusStoredOffline(serverName)
         default:
             return status.long
         }
@@ -591,6 +595,13 @@ struct CartoucheHomeView: View {
     private var isGamesFolderOffline: Bool {
         guard let server = CartoucheStorageSettings.shared.location(.games)?.server else { return false }
         return reach.isOffline(server.id)
+    }
+
+    /// Whether the games folder is on a Google Drive whose sign-in Google
+    /// ended: its games install once the player signs in again.
+    private var isGamesFolderSignedOut: Bool {
+        guard let server = CartoucheStorageSettings.shared.location(.games)?.server else { return false }
+        return CartoucheStorageOffline(server).isSignedOut
     }
 
     private var serverName: String {
