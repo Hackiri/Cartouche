@@ -275,6 +275,15 @@ struct CartoucheGamesView: View {
         } message: { notice in
             Text(notice.message)
         }
+        // An app that waits for StikDebug's JIT, once the player came back
+        // without it (decision 87): its buttons answer.
+        .alert(CartoucheText.jitQuestionTitle(actions.jitQuestion?.name ?? ""), isPresented: jitAsked,
+               presenting: actions.jitQuestion) { _ in
+            Button(CartoucheText.jitOpenWithout) { actions.answerJIT(open: true) }
+            Button(CartoucheText.cancel, role: .cancel) { actions.answerJIT(open: false) }
+        } message: { _ in
+            Text(CartoucheText.jitQuestionMessage)
+        }
         // On an iPhone whose GPU nxnative refuses, an install asks first.
         .alert(CartoucheText.installGPUTitle, isPresented: installAsked, presenting: actions.installQuestion) { question in
             Button(CartoucheText.installAnyway) { actions.installAnyway(question) }
@@ -632,6 +641,11 @@ struct CartoucheGamesView: View {
             set: { shown in
                 if !shown { actions.notice = nil }
             })
+    }
+
+    /// Its buttons alone answer it: the question stays until they do.
+    private var jitAsked: Binding<Bool> {
+        Binding(get: { actions.jitQuestion != nil }, set: { _ in })
     }
 
     /// The question goes as the alert closes; its buttons answer it.

@@ -92,6 +92,8 @@ enum Words {
     static let resume = "Resume"                            // action.resume
     static let open = "Open"                                // action.open
     static let appSettings = "App settings"                 // app.settings.title
+    static let needsJIT = "Needs JIT"                       // app.settings.jit
+    static let jitScriptChoose = "Choose a file"            // app.settings.jit.script.choose
     static let uninstall = "Uninstall"                      // action.uninstall
     static let quit = "Quit"                                // action.quit
     static let quitQuestion = "Quit %@?"                    // running.quit.question

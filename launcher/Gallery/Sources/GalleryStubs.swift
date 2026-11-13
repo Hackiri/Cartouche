@@ -86,6 +86,10 @@ final class LCAppModel: ObservableObject, Identifiable, Hashable {
     /// changes: kept in memory here.
     @Published var uiSelectedLanguage = ""
     @Published var uiOrientationLock: LCOrientationLock = .Disabled
+    /// Whether the app needs JIT, and the script StikDebug runs for it,
+    /// base64 as LiveContainer keeps it (decision 87).
+    @Published var uiIsJITNeeded = false
+    @Published var jitLaunchScriptJs: String?
 
     init(appInfo: LCAppInfo) {
         self.appInfo = appInfo
@@ -115,8 +119,10 @@ final class CartoucheGameActions: ObservableObject {
     @Published var switching: CartoucheGameSwitch?
     @Published var quitQuestion: CartoucheRunningGame?
     @Published var installQuestion: CartoucheInstallQuestion?
+    @Published var jitQuestion: CartoucheJITQuestion?
 
     nonisolated static func takes(_ url: URL) -> Bool { false }
+    func answerJIT(open: Bool) { jitQuestion = nil }
     func install(_ url: URL) { GalleryTest.install(url, with: self) }
     func install(stored game: CartoucheStoredGame) {}
     func installAnyway(_ question: CartoucheInstallQuestion) { installQuestion = nil }

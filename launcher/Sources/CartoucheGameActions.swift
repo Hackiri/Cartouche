@@ -132,6 +132,12 @@ final class CartoucheGameActions: ObservableObject {
     @Published var switching: CartoucheGameSwitch?
     /// The running game the player asked to quit: the console asks first.
     @Published var quitQuestion: CartoucheRunningGame?
+    /// An app that waits for StikDebug's JIT, once the player came back
+    /// without it: whether to open it without JIT (decision 87).
+    @Published private(set) var jitQuestion: CartoucheJITQuestion?
+    /// The wait for StikDebug, which answerJIT ends.
+    private var jitAnswer: CheckedContinuation<Bool, Never>?
+    private var jitWaiting: NSObjectProtocol?
     /// The installs the console asks about first, on an iPhone whose GPU
     /// nxnative refuses (CartoucheInstallQuestions).
     @Published private var installQuestions = CartoucheInstallQuestions<CartoucheInstallQuestion>()
@@ -1011,6 +1017,7 @@ final class CartoucheGameActions: ObservableObject {
         let isApp = CartoucheCatalog.shared.gameTitle(of: app) == nil
         let startSoon = isApp ? CartoucheText.startSoonApp : CartoucheText.startSoon
         let startFailed = isApp ? CartoucheText.startFailedApp : CartoucheText.startFailed
+        if isApp { facts.append(.init("JIT", app.appInfo.isJITNeeded ? "asked of StikDebug" : "none")) }
         work = CartoucheGameWork(kind: .starting, name: app.displayName,
                                  step: showingSettings ? CartoucheText.startSettings : startSoon, fraction: nil,
                                  stage: "preparing")
@@ -1052,7 +1059,9 @@ final class CartoucheGameActions: ObservableObject {
                         "dataFolder": container.folderName, "started": Date(), "behind": false,
                     ])
                 }
-                try await app.runApp(multitask: false, forceJIT: false)
+                // An app that is not a game asks for JIT when its settings
+                // say so (decision 87), as jitLaunch below; a game never does.
+                try await app.runApp(multitask: false, forceJIT: isApp ? nil : false)
             } catch let error where error.localizedDescription == "lc.signer.latestCertificateInvalidErr".loc {
                 // iOS refused the certificate LiveContainer signed the game
                 // with: Cartouche has SideStore fetch the one that works.
@@ -1521,12 +1530,82 @@ extension CartoucheGameActions: LCAppModelDelegate {
 
     nonisolated func changeAppVisibility(app: LCAppModel) {}
 
-    // Play never asks for JIT (forceJIT: false): nxnative games run without.
-    nonisolated func jitLaunch(appName: String, classicMode: UInt) async {}
+    // MARK: JIT, through StikDebug (decision 87)
 
-    nonisolated func jitLaunch(withScript script: String, appName: String, classicMode: UInt) async {}
+    // A game never asks for JIT (forceJIT: false): nxnative runs without.
+    // An app that is not a game does when its settings say so
+    // (CartoucheAppSettingsView), in Cartouche's place only: never behind
+    // the console (startsBehindConsole).
+    nonisolated func jitLaunch(appName: String, classicMode: UInt) async {
+        await askStikDebug(script: "", appName: appName, classicMode: classicMode)
+    }
 
+    nonisolated func jitLaunch(withScript script: String, appName: String, classicMode: UInt) async {
+        await askStikDebug(script: script, appName: appName, classicMode: classicMode)
+    }
+
+    // JIT by process is for an app in LiveContainer's LiveProcess
+    // extension, which no app that needs JIT starts in.
     nonisolated func jitLaunch(withPID pid: Int, withScript script: String?, appName: String) async {}
+
+    /// Asks StikDebug for JIT, as LiveContainer's Apps tab does with
+    /// StikDebug for its JIT enabler (LCUtils.askForJIT): the stikjit link
+    /// with Cartouche's identifier and the app's script, base64 as
+    /// LiveContainer keeps it. StikDebug, an app of its own, starts
+    /// Cartouche again under its debugger, and LiveContainer opens the app
+    /// runApp selected: this process ends then. A player who comes back
+    /// first is asked whether to open the app without JIT, as
+    /// LiveContainer's Apps tab asks (LCAppListView.jitLaunch).
+    @MainActor
+    private func askStikDebug(script: String, appName: String, classicMode: UInt) async {
+        work?.step = CartoucheText.startJIT
+        work?.stage = "jit"
+        var link = URLComponents()
+        link.scheme = "stikjit"
+        link.host = "enable-jit"
+        var items = [URLQueryItem(name: "bundle-id", value: Bundle.main.bundleIdentifier)]
+        if !script.isEmpty { items.append(URLQueryItem(name: "script-data", value: script)) }
+        link.queryItems = items
+        guard let url = link.url, await UIApplication.shared.open(url) else {
+            Self.forgetSelectedApp()
+            fail(.start, CartoucheText.startFailedApp, message: CartoucheText.jitNoStikDebug)
+            return
+        }
+        let opens = await withCheckedContinuation { (answer: CheckedContinuation<Bool, Never>) in
+            jitAnswer = answer
+            jitWaiting = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                                                object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, self.jitAnswer != nil else { return }
+                    self.jitQuestion = CartoucheJITQuestion(name: appName)
+                }
+            }
+        }
+        guard opens else {
+            Self.forgetSelectedApp()
+            return
+        }
+        if !LCSharedUtils.launchToGuestApp(withClassicMode: classicMode) {
+            Self.forgetSelectedApp()
+            fail(.start, CartoucheText.startFailedApp, message: CartoucheText.jitOpenFailed)
+        }
+    }
+
+    /// The player's answer: open the app without JIT, or not at all.
+    func answerJIT(open: Bool) {
+        jitQuestion = nil
+        if let waiting = jitWaiting { NotificationCenter.default.removeObserver(waiting) }
+        jitWaiting = nil
+        jitAnswer?.resume(returning: open)
+        jitAnswer = nil
+    }
+
+    /// What runApp selected for LiveContainer's next start, as its Apps
+    /// tab forgets it when the player cancels.
+    private static func forgetSelectedApp() {
+        UserDefaults.standard.removeObject(forKey: "selected")
+        UserDefaults.standard.removeObject(forKey: "selectedContainer")
+    }
 
     /// An app runs in a window of its own: the player pressed Play, so it
     /// closes, as the Apps tab's Continue does.

@@ -307,6 +307,20 @@ enum CartoucheText {
     static var appOrientationPortrait: String { s("app.settings.orientation.portrait", "Portrait") }
     static var appOrientationLandscape: String { s("app.settings.orientation.landscape", "Landscape") }
     static var appSettingsFooter: String { s("app.settings.footer", "LiveContainer applies them the next time the app starts.") }
+    // JIT for such an app, through StikDebug (decision 87).
+    static var appNeedsJIT: String { s("app.settings.jit", "Needs JIT") }
+    static var appJITScript: String { s("app.settings.jit.script", "JIT script") }
+    static var appJITScriptNone: String { s("app.settings.jit.script.none", "None") }
+    static var appJITScriptLoaded: String { s("app.settings.jit.script.loaded", "Loaded") }
+    static var appJITScriptChoose: String { s("app.settings.jit.script.choose", "Choose a file") }
+    static var appJITScriptRemove: String { s("app.settings.jit.script.remove", "Remove the script") }
+    static var appJITFooter: String { s("app.settings.jit.footer", "StikDebug, an app of its own on this iPhone, turns JIT on as the app opens, with LocalDevVPN connected and Cartouche’s pairing file, from its folder in Files, imported in StikDebug once. With iOS 26 or later, an iPhone 13 or newer also needs the app’s JIT script: the file StikDebug names for the app, legacy.js or universal.js, from github.com/StikDebug/StikDebug. The app then opens in Cartouche’s place, not behind the console.") }
+    static var startJIT: String { s("work.start.jit", "StikDebug turns JIT on, then opens the app. Come back here if it does not.") }
+    static var jitNoStikDebug: String { s("jit.noStikDebug", "StikDebug is not on this iPhone. Install it as an app of its own, from stikdebug.xyz, then open the app again.") }
+    static func jitQuestionTitle(_ name: String) -> String { f("jit.question.title", "StikDebug has not opened %@", name) }
+    static var jitQuestionMessage: String { s("jit.question.message", "Once StikDebug says JIT is on, it opens the app by itself. Without JIT, the app may refuse to run, or run slowly.") }
+    static var jitOpenWithout: String { s("jit.question.openWithout", "Open without JIT") }
+    static var jitOpenFailed: String { s("jit.open.failed", "LiveContainer did not open it in Cartouche’s place.") }
     static var uninstallAppMessage: String { s("uninstall.app.message", "Its data can stay on this iPhone, for the next time you install it.") }
     static var uninstallAppKeep: String { s("uninstall.app.keep", "Uninstall, keep its data") }
     static var uninstallAppErase: String { s("uninstall.app.erase", "Uninstall and erase its data") }

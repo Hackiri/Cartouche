@@ -4,8 +4,9 @@
 //
 //  An app that is not a game, installed in Cartouche (decision 86): on the
 //  home's shelf after the games, with Open and Details; its sheet, with App
-//  settings, which opens and comes back, and Uninstall; and the app paused
-//  behind the console, which the home offers to resume or to quit.
+//  settings, which opens and comes back, whose Needs JIT switch shows the
+//  JIT script's row (decision 87), and Uninstall; and the app paused behind
+//  the console, which the home offers to resume or to quit.
 //
 
 import XCTest
@@ -33,6 +34,16 @@ final class AppsUITests: ConsoleTestCase {
         scrollTo(settings, "App settings on the sheet", in: console)
         tap(settings, "App settings on the sheet", in: console)
         expect(console.navigationBars[Words.appSettings].waitForExistence(timeout: 15), "App settings did not open", in: console)
+        // Needs JIT shows the JIT script's row, and hides it again.
+        let needsJIT = element(in: console.switches, beginningWith: Words.needsJIT)
+        expect(needsJIT.waitForExistence(timeout: 10), "App settings shows no Needs JIT", in: console)
+        let before = needsJIT.value as? String
+        needsJIT.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        expect(waitUntil(5) { (needsJIT.value as? String) != before }, "Needs JIT did not change: \(before ?? "no value")", in: console)
+        let choose = element(in: console.buttons, beginningWith: Words.jitScriptChoose)
+        expect(choose.waitForExistence(timeout: 10), "Needs JIT did not show the JIT script's row", in: console)
+        needsJIT.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        expect(waitForGone(choose), "The JIT script's row stayed once Needs JIT went off", in: console)
         back(from: Words.appSettings, in: console)
         let uninstall = element(in: console.buttons, beginningWith: Words.uninstall)
         scrollTo(uninstall, "Uninstall on the sheet", in: console)

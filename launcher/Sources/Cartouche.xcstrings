@@ -358,6 +358,125 @@
         }
       }
     },
+    "app.settings.jit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs JIT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A besoin du JIT"
+          }
+        }
+      }
+    },
+    "app.settings.jit.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug, an app of its own on this iPhone, turns JIT on as the app opens, with LocalDevVPN connected and Cartouche’s pairing file, from its folder in Files, imported in StikDebug once. With iOS 26 or later, an iPhone 13 or newer also needs the app’s JIT script: the file StikDebug names for the app, legacy.js or universal.js, from github.com/StikDebug/StikDebug. The app then opens in Cartouche’s place, not behind the console."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug, une app à part sur cet iPhone, active le JIT à l’ouverture de l’app, avec LocalDevVPN connecté et le fichier d’appairage de Cartouche, depuis son dossier dans Fichiers, importé une fois dans StikDebug. Avec iOS 26 ou plus récent, un iPhone 13 ou plus récent a aussi besoin du script JIT de l’app : le fichier que StikDebug indique pour elle, legacy.js ou universal.js, depuis github.com/StikDebug/StikDebug. L’app s’ouvre alors à la place de Cartouche, pas derrière la console."
+          }
+        }
+      }
+    },
+    "app.settings.jit.script" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT script"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script JIT"
+          }
+        }
+      }
+    },
+    "app.settings.jit.script.choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a file"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un fichier"
+          }
+        }
+      }
+    },
+    "app.settings.jit.script.loaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loaded"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargé"
+          }
+        }
+      }
+    },
+    "app.settings.jit.script.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun"
+          }
+        }
+      }
+    },
+    "app.settings.jit.script.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove the script"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer le script"
+          }
+        }
+      }
+    },
     "app.settings.language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2462,6 +2581,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ma bibliothèque"
+          }
+        }
+      }
+    },
+    "jit.noStikDebug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug is not on this iPhone. Install it as an app of its own, from stikdebug.xyz, then open the app again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug n’est pas sur cet iPhone. Installez-le comme app à part, depuis stikdebug.xyz, puis ouvrez l’app de nouveau."
+          }
+        }
+      }
+    },
+    "jit.open.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer did not open it in Cartouche’s place."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer ne l’a pas ouverte à la place de Cartouche."
+          }
+        }
+      }
+    },
+    "jit.question.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once StikDebug says JIT is on, it opens the app by itself. Without JIT, the app may refuse to run, or run slowly."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dès que StikDebug dit que le JIT est actif, il ouvre l’app de lui-même. Sans JIT, l’app peut refuser de fonctionner, ou tourner lentement."
+          }
+        }
+      }
+    },
+    "jit.question.openWithout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open without JIT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir sans JIT"
+          }
+        }
+      }
+    },
+    "jit.question.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug has not opened %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug n’a pas ouvert %@"
           }
         }
       }
@@ -13138,6 +13342,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L’app n’a pas démarré"
+          }
+        }
+      }
+    },
+    "work.start.jit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug turns JIT on, then opens the app. Come back here if it does not."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StikDebug active le JIT, puis ouvre l’app. Revenez ici si elle ne s’ouvre pas."
           }
         }
       }

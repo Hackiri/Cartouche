@@ -68,6 +68,14 @@ struct CartoucheGameNotice: Equatable {
     var report: CartoucheReport? = nil
 }
 
+/// An app that is not a game, waiting for StikDebug's JIT, once the player
+/// came back to Cartouche without it: whether to open the app without JIT
+/// (CartoucheGameActions.jitQuestion, decision 87).
+struct CartoucheJITQuestion: Equatable {
+    /// The app's name.
+    let name: String
+}
+
 /// An install the console asks about before it starts, on an iPhone whose
 /// GPU nxnative refuses (CartoucheGameActions.installQuestion).
 struct CartoucheInstallQuestion: Equatable {
