@@ -5,10 +5,11 @@
 //  Apps on this iPhone, on the System page (decision 88): the apps
 //  Cartouche installed as apps of their own through its built-in SideStore,
 //  each with its App ID, when its signature expires, Open, Renew and
-//  Uninstall, and Install an IPA on this iPhone, from Files. The actions
-//  and the list are CartoucheIPhoneApps'. One action at a time, its
-//  progress in its row as Renew now shows its own; a failure under the
-//  row, with its report.
+//  Uninstall, and Install an IPA on this iPhone, from Files; under them,
+//  the App IDs Apple keeps for the Apple ID, as SideStore's App IDs page
+//  lists them, fetched on demand. The actions and the lists are
+//  CartoucheIPhoneApps'. One action at a time, its progress in its row as
+//  Renew now shows its own; a failure under the row, with its report.
 //
 
 import SwiftUI
@@ -64,7 +65,7 @@ struct CartoucheIPhoneAppsView: View {
     var body: some View {
         List {
             Section {
-                if let work = model.work, work.bundleIdentifier == nil {
+                if let work = model.work, case .installing = work.kind {
                     progressRow(CartoucheText.appsInstalling(work.name), work.progress)
                 } else {
                     Button(CartoucheText.appsInstall, systemImage: "square.and.arrow.down") { choosingIPA = true }
@@ -89,6 +90,7 @@ struct CartoucheIPhoneAppsView: View {
                     Text(app.name)
                 }
             }
+            appIDsSection
         }
         .scrollContentBackground(.hidden)
         .cartoucheStageBackground()
@@ -171,6 +173,72 @@ struct CartoucheIPhoneAppsView: View {
         if let failure = model.failures[app.bundleIdentifier] {
             failureRows(failure)
         }
+    }
+
+    // MARK: App IDs
+
+    /// The App IDs Apple keeps for the Apple ID, as SideStore's App IDs page
+    /// lists them: name, bundle identifier, Apple's identifier and expiry,
+    /// the one that expires first first. Fetched on demand; the last fetch
+    /// stays.
+    private var appIDsSection: some View {
+        Section {
+            if let work = model.work, case .fetchingAppIDs = work.kind {
+                progressRow(CartoucheText.appIDsFetching, work.progress)
+            } else {
+                Button(model.appIDs == nil ? CartoucheText.appIDsFetch : CartoucheText.appIDsRefresh, systemImage: "arrow.clockwise") {
+                    Task { await model.fetchAppIDs() }
+                }
+                .disabled(model.work != nil)
+            }
+            if let failure = model.failures[CartoucheIPhoneApps.appIDsFailure] {
+                failureRows(failure)
+            }
+            if let listing = model.appIDs {
+                if listing.appIDs.isEmpty {
+                    Text(CartoucheText.appIDsNone)
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(listing.appIDs) { appID in
+                    appIDRow(appID)
+                }
+            }
+        } header: {
+            Text(CartoucheText.appIDsTitle)
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                if let listing = model.appIDs {
+                    let fetched = listing.date.formatted(date: .abbreviated, time: .shortened)
+                    Text(listing.appIDs.count == 1 ? CartoucheText.appIDsFetchedOne(fetched)
+                         : CartoucheText.appIDsFetched(listing.appIDs.count, fetched))
+                }
+                Text(CartoucheText.appIDsFooter)
+            }
+        }
+    }
+
+    private func appIDRow(_ appID: CartoucheAppID) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(appID.name.isEmpty ? appID.bundleIdentifier : appID.name)
+            Text(appID.bundleIdentifier)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+            HStack {
+                Text(CartoucheText.appIDsID(appID.identifier))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if let expirationDate = appID.expirationDate {
+                    let expired = expirationDate < .now
+                    let when = expirationDate.formatted(date: .abbreviated, time: .omitted)
+                    Text(expired ? CartoucheText.appIDsExpired(when) : CartoucheText.appIDsExpires(when))
+                        .font(.caption)
+                        .foregroundStyle(expired ? Color.red : Color.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private func progressRow(_ step: String, _ progress: Progress) -> some View {

@@ -10677,6 +10677,210 @@
         }
       }
     },
+    "system.appIDs.expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expired %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiré le %@"
+          }
+        }
+      }
+    },
+    "system.appIDs.expires" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expire le %@"
+          }
+        }
+      }
+    },
+    "system.appIDs.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The App IDs were not fetched"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les App IDs n’ont pas été récupérés"
+          }
+        }
+      }
+    },
+    "system.appIDs.fetch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch the App IDs from Apple"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérer les App IDs chez Apple"
+          }
+        }
+      }
+    },
+    "system.appIDs.fetched" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld App IDs, fetched %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld App IDs, récupérés le %@"
+          }
+        }
+      }
+    },
+    "system.appIDs.fetched.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 App ID, fetched %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 App ID, récupéré le %@"
+          }
+        }
+      }
+    },
+    "system.appIDs.fetching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetching the App IDs"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupération des App IDs"
+          }
+        }
+      }
+    },
+    "system.appIDs.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple keeps one App ID per app signed with this Apple ID, by Cartouche or any SideStore or AltStore, for seven days with a free Apple ID. It registers ten in seven days at most: once they are spent, a new app waits until the oldest expires. Renewing an app before its App ID expires registers none."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple garde un App ID par app signée avec cet identifiant Apple, par Cartouche ou tout SideStore ou AltStore, sept jours avec un identifiant Apple gratuit. Celui-ci en enregistre dix par sept jours au plus : une fois épuisés, une nouvelle app attend que le plus ancien expire. Renouveler une app avant que son App ID n’expire n’en enregistre aucun."
+          }
+        }
+      }
+    },
+    "system.appIDs.id" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID %@"
+          }
+        }
+      }
+    },
+    "system.appIDs.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple keeps no App ID for this Apple ID."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple ne garde aucun App ID pour cet identifiant Apple."
+          }
+        }
+      }
+    },
+    "system.appIDs.refresh" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch the App IDs again"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérer les App IDs à nouveau"
+          }
+        }
+      }
+    },
+    "system.appIDs.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App IDs"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App IDs"
+          }
+        }
+      }
+    },
     "system.apps.appID" : {
       "extractionState" : "manual",
       "localizations" : {

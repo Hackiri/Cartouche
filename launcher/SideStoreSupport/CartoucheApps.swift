@@ -3,14 +3,15 @@
 //  Cartouche
 //
 //  Lets Cartouche install an IPA as an app of its own on this iPhone, renew
-//  the apps it installed that way and uninstall them, without showing
-//  SideStore (decision 88). The built-in SideStore starts in LiveProcess, as
-//  it does to renew the app (CartoucheRefresh), and runs the action
-//  app/patches/sidestore/0022 adds; what the action works on, the IPA's
-//  path in the app group or the apps' bundle identifiers, waits in the app
-//  group defaults under CartoucheAppsRequest, written by the launcher
-//  before the call (CartoucheIPhoneApps). One action at a time: the
-//  bridge's RefreshHandler takes one.
+//  the apps it installed that way, uninstall them and list the App IDs
+//  Apple keeps for the Apple ID, without showing SideStore (decision 88).
+//  The built-in SideStore starts in LiveProcess, as it does to renew the
+//  app (CartoucheRefresh), and runs the action app/patches/sidestore/0022
+//  or 0023 adds; what the action works on, the IPA's path in the app group
+//  or the apps' bundle identifiers, waits in the app group defaults under
+//  CartoucheAppsRequest, written by the launcher before the call
+//  (CartoucheIPhoneApps). One action at a time: the bridge's RefreshHandler
+//  takes one.
 //
 //  This file joins LiveContainer's SideStoreSupport framework, which
 //  LiveContainer loads when the app carries the built-in SideStore. The
@@ -61,6 +62,21 @@ public final class CartoucheApps: NSObject {
             do {
                 try await performIntentRefresh(identifier: "CartoucheRemoveAppIntent",
                                                mangledTypeName: "9SideStore24CartoucheRemoveAppIntentV", intentProgress: progress)
+                completion(nil)
+            } catch {
+                completion(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Lists the App IDs Apple keeps for the Apple ID, into the app group.
+    @objc(fetchAppIDsWithProgress:completion:)
+    public static func fetchAppIDs(progress: Progress, completion: @escaping (String?) -> Void) {
+        guard #available(iOS 17.0, *) else { return completion(tooOld) }
+        Task { @MainActor in
+            do {
+                try await performIntentRefresh(identifier: "CartoucheAppIDsIntent",
+                                               mangledTypeName: "9SideStore21CartoucheAppIDsIntentV", intentProgress: progress)
                 completion(nil)
             } catch {
                 completion(error.localizedDescription)

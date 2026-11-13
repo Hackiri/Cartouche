@@ -1,15 +1,16 @@
 """Checks that the apps Cartouche installs on this iPhone through the built-in
-SideStore (app/patches/sidestore/0022, decision 88) line up across the three
-sides that make them work:
+SideStore (app/patches/sidestore/0022 and 0023, decision 88) line up across
+the three sides that make them work:
 
-- the patch adds the three actions, install, refresh and remove, headless:
-  no page of SideStore's, no prompt, not listed by Shortcuts;
+- the patches add the four actions, install, refresh, remove and the list
+  of the App IDs, headless: no page of SideStore's, no prompt, not listed
+  by Shortcuts;
 - they read the request and keep the list Cartouche writes in the app
   group, under the names the launcher writes them by;
 - the install refuses another store's app and the three-app limit before
   anything goes to Apple, and the removal clears an app that is already
   gone from the home screen;
-- CartoucheApps (launcher/SideStoreSupport) runs the three actions by
+- CartoucheApps (launcher/SideStoreSupport) runs the four actions by
   their types' mangled names, and the launcher finds it by its
   Objective-C names.
 
@@ -25,27 +26,33 @@ PATCHES = ROOT / "app" / "patches" / "sidestore"
 BRIDGE = ROOT / "launcher" / "SideStoreSupport" / "CartoucheApps.swift"
 LAUNCHER = ROOT / "launcher" / "Sources" / "CartoucheIPhoneApps.swift"
 MODULE = "SideStore"
-INTENTS = ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent")
+INTENTS = ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent",
+           "CartoucheAppIDsIntent")
 SELECTORS = ("installAppWithProgress:completion:", "refreshAppsWithProgress:completion:",
-             "removeAppWithProgress:completion:")
+             "removeAppWithProgress:completion:", "fetchAppIDsWithProgress:completion:")
+PATCH_NAMES = ("*-install-renew-and-remove-apps-for-cartouche.patch", "*-list-the-app-ids-for-cartouche.patch")
 
 
-def apps_patch() -> Path:
-    patches = sorted(PATCHES.glob("*-install-renew-and-remove-apps-for-cartouche.patch"))
-    if len(patches) != 1:
-        raise AssertionError(f"expected one apps patch in {PATCHES.relative_to(ROOT)}, found {len(patches)}")
-    return patches[0]
+def apps_patches() -> list:
+    found = []
+    for name in PATCH_NAMES:
+        patches = sorted(PATCHES.glob(name))
+        if len(patches) != 1:
+            raise AssertionError(f"expected one {name} in {PATCHES.relative_to(ROOT)}, found {len(patches)}")
+        found.append(patches[0])
+    return found
 
 
 def added_files() -> dict:
-    """The lines patch 0022 adds, by the file they go to."""
+    """The lines patches 0022 and 0023 add, by the file they go to."""
     files, current = {}, None
-    for line in apps_patch().read_text(encoding="utf-8").splitlines():
-        if line.startswith("+++ b/"):
-            current = line[6:].strip()
-            files.setdefault(current, [])
-        elif line.startswith("+") and not line.startswith("+++") and current:
-            files[current].append(line[1:])
+    for patch in apps_patches():
+        for line in patch.read_text(encoding="utf-8").splitlines():
+            if line.startswith("+++ b/"):
+                current = line[6:].strip()
+                files.setdefault(current, [])
+            elif line.startswith("+") and not line.startswith("+++") and current:
+                files[current].append(line[1:])
     return {name: "\n".join(lines) for name, lines in files.items()}
 
 
@@ -62,23 +69,29 @@ class IPhoneAppsTest(unittest.TestCase):
         cls.intents = {name: cls.added[f"{MODULE}/Intents/{name}.swift"] for name in INTENTS}
         cls.patch = "\n".join(cls.added.values())
 
-    def test_the_patch_adds_the_three_intents(self):
+    def test_the_patches_add_the_four_intents(self):
         for name, text in self.intents.items():
             with self.subTest(intent=name):
                 self.assertIn(f"struct {name}: AppIntent", text)
                 self.assertIn("static var openAppWhenRun = false", text)
                 self.assertIn("static var isDiscoverable: Bool { false }", text)
-                # Every call into SideStore is headless.
+                # Every call into SideStore is headless: the App IDs come
+                # from the developer portal as SyncAppIDsOperation gets them.
                 calls = re.findall(r"AppManager\.shared\.\w+\((?:[^()]|\([^()]*\))*\)", text, re.S)
-                self.assertTrue(calls, "no AppManager call")
+                if name == "CartoucheAppIDsIntent":
+                    self.assertIn("DeveloperPortalProxy.shared.fetchAppIDs()", text)
+                    self.assertEqual(calls, [])
+                else:
+                    self.assertTrue(calls, "no AppManager call")
                 for call in calls:
                     if "presentingViewController" in call:
                         self.assertIn("presentingViewController: nil", call, call)
-                self.assertEqual(set(re.findall(r"presentingViewController: (\w+)", text)), {"nil"})
+                self.assertLessEqual(set(re.findall(r"presentingViewController: (\w+)", text)), {"nil"})
 
     def test_the_intents_read_the_request_and_the_list_cartouche_writes(self):
         launcher = read(LAUNCHER)
-        for name in ('"CartoucheAppsRequest"', '"CartoucheInstalledApps"', '"ipa"', '"apps"', '"app"'):
+        for name in ('"CartoucheAppsRequest"', '"CartoucheInstalledApps"', '"ipa"', '"apps"', '"app"',
+                     '"Cartouche/AppIDs.json"'):
             with self.subTest(name=name):
                 self.assertIn(name, self.patch)
                 self.assertIn(name, launcher)
@@ -140,7 +153,7 @@ class IPhoneAppsTest(unittest.TestCase):
         self.assertIn("CartoucheIPhoneAppList.failedIdentifiers(written.texts[.failed])", failure)
         self.assertNotIn('facts["failed"]', failure)
 
-    def test_the_bridge_runs_the_three_intents(self):
+    def test_the_bridge_runs_the_four_intents(self):
         bridge = read(BRIDGE)
         self.assertIn("@objc(CartoucheApps)\npublic final class CartoucheApps", bridge)
         for selector in SELECTORS:

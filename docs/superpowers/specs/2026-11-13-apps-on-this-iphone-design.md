@@ -204,6 +204,26 @@ screens: no page of SideStore's ever shows (decision 24).
   that are not games; `docs/privacy.md` only if telemetry gains events,
   named as the renewal's are.
 
+### Added the same day: the App IDs (`app/patches/sidestore/0023-...`)
+
+- On the iPhone the first install was refused by Apple: *Your maximum App
+  ID limit has been reached. You may create up to 10 App IDs every 7 days
+  (9120)*, and the player asked to see the App IDs as SideStore's App IDs
+  page lists them (name, expiry, Apple's identifier, bundle identifier).
+- SideStore gets a fourth headless action, `CartoucheAppIDsIntent`, which
+  fetches them from the developer portal as `SyncAppIDsOperation` does
+  (`DeveloperPortalProxy.shared.fetchAppIDs()`, the session and the team
+  from the keychain) and writes `Cartouche/AppIDs.json` in the app group:
+  the date, and each App ID's name, identifier, bundle identifier and
+  expiry, dates in seconds since 1970. Its outcome is the action `appIDs`.
+- The bridge gains `fetchAppIDsWithProgress:completion:`; the model a
+  `fetchAppIDs` action, the fourth kind of work, and the listing read from
+  the file at each reload (`CartoucheIPhoneAppList.appIDs`, the one that
+  expires first first, those without a date last); the page an **App IDs**
+  section under the apps: **Fetch the App IDs from Apple**, then each App
+  ID as SideStore's SwiftUI list shows it, with when and how many in the
+  footer. Nothing is fetched on its own: a fetch is a sign-in to Apple.
+
 ## Left to the builder
 
 - Exact predicate shapes in patch 0017's successor, the kinds added to

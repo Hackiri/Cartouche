@@ -244,9 +244,11 @@ class SideStoreOutcomeTest(unittest.TestCase):
         self.sources = own_sources()
         self.sign_in = self.files["SideStore/Intents/CartoucheSignInIntent.swift"]
         self.device = patched("SideStore/Intents/CartoucheRegisterDeviceIntent.swift")
-        # The apps Cartouche installs on this iPhone (app/patches/sidestore/0022).
+        # The apps Cartouche installs on this iPhone, and the App IDs Apple
+        # keeps (app/patches/sidestore/0022 and 0023).
         self.apps = {name: patched(f"SideStore/Intents/{name}.swift")
-                     for name in ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent")}
+                     for name in ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent",
+                                  "CartoucheAppIDsIntent")}
         self.apps_request = patched("SideStore/Intents/CartoucheAppsRequest.swift")
 
     def test_both_sides_name_the_same_keychain_item(self):
@@ -259,7 +261,7 @@ class SideStoreOutcomeTest(unittest.TestCase):
     def test_each_action_leaves_the_one_cartouche_waits_for(self):
         theirs = cases(block(self.outcome, "enum Action: String", "SideStore's actions"))
         mine = cases(block(self.ours, "enum Action: String", "Cartouche's actions"))
-        self.assertEqual(theirs, {"signIn", "device", "refresh", "update", "install", "apps", "remove"})
+        self.assertEqual(theirs, {"signIn", "device", "refresh", "update", "install", "apps", "remove", "appIDs"})
         self.assertEqual(theirs, mine)
         left = {
             "SideStore/Intents/CartoucheSignInIntent.swift": "signIn",
@@ -270,10 +272,11 @@ class SideStoreOutcomeTest(unittest.TestCase):
             self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.files[name]), [action], name)
         self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.device), ["device"])
         for name, action in (("CartoucheInstallAppIntent", "install"), ("CartoucheRefreshAppsIntent", "apps"),
-                             ("CartoucheRemoveAppIntent", "remove")):
+                             ("CartoucheRemoveAppIntent", "remove"), ("CartoucheAppIDsIntent", "appIDs")):
             self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.apps[name]), [action], name)
         waited = {"CartoucheAccount.swift": ["signIn", "device"], "CartoucheRenewal.swift": ["refresh"],
-                  "CartoucheUpdates.swift": ["update"], "CartoucheIPhoneApps.swift": ["install", "apps", "remove"]}
+                  "CartoucheUpdates.swift": ["update"],
+                  "CartoucheIPhoneApps.swift": ["install", "apps", "remove", "appIDs"]}
         for name, actions in waited.items():
             text = (LAUNCHER / name).read_text(encoding="utf-8")
             self.assertEqual(re.findall(r"CartoucheSideStoreOutcome\(data: \$0, expecting: \.(\w+)", text), actions, name)

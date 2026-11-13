@@ -4,15 +4,16 @@
 //
 //  The apps Cartouche installed on this iPhone through the built-in
 //  SideStore, as apps of their own, and what the System page does with them
-//  (decision 88): install an IPA, renew one, uninstall one, open one. Each
-//  action is SideStore's, run headless in LiveProcess through LiveContainer's
-//  bridge (CartoucheApps, launcher/SideStoreSupport; app/patches/sidestore/
-//  0022), with its request left in the app group defaults first and how it
-//  ended read from the keychain item SideStore leaves (CartoucheSideStoreOutcome),
-//  as Renew now runs Refresh All Apps (CartoucheRenewal). The list of the
-//  apps is SideStore's to keep (CartoucheInstalledApps); what each app's
-//  signature is comes from SideStore's record for its widget
-//  (CartoucheIPhoneAppList).
+//  (decision 88): install an IPA, renew one, uninstall one, open one, and
+//  list the App IDs Apple keeps for the Apple ID. Each action is SideStore's,
+//  run headless in LiveProcess through LiveContainer's bridge (CartoucheApps,
+//  launcher/SideStoreSupport; app/patches/sidestore/0022 and 0023), with its
+//  request left in the app group defaults first and how it ended read from
+//  the keychain item SideStore leaves (CartoucheSideStoreOutcome), as Renew
+//  now runs Refresh All Apps (CartoucheRenewal). The list of the apps is
+//  SideStore's to keep (CartoucheInstalledApps); what each app's signature
+//  is comes from SideStore's record for its widget, and the App IDs from
+//  the file its action leaves (CartoucheIPhoneAppList).
 //
 
 import Foundation
@@ -26,7 +27,7 @@ final class CartoucheIPhoneApps: ObservableObject {
     /// The action under way, one at a time: the bridge takes one.
     struct Work: Equatable {
         enum Kind: Equatable {
-            case installing(String), renewing(String), removing(String)
+            case installing(String), renewing(String), removing(String), fetchingAppIDs
         }
         let kind: Kind
         let progress: Progress
@@ -34,24 +35,30 @@ final class CartoucheIPhoneApps: ObservableObject {
         var name: String {
             switch kind {
             case .installing(let name), .renewing(let name), .removing(let name): return name
+            case .fetchingAppIDs: return CartoucheText.appIDsTitle
             }
         }
-        /// Which app's row shows it: nil for an install.
+        /// Which app's row shows it: nil for an install and the App IDs.
         var bundleIdentifier: String? {
             switch kind {
-            case .installing: return nil
+            case .installing, .fetchingAppIDs: return nil
             case .renewing(let identifier), .removing(let identifier): return identifier
             }
         }
     }
 
     @Published private(set) var apps: [CartoucheIPhoneApp] = []
+    /// The App IDs Apple keeps for the Apple ID, as last fetched; nil
+    /// before the first fetch.
+    @Published private(set) var appIDs: CartoucheAppIDListing?
     @Published private(set) var work: Work?
     /// Why the last action on each app failed, by bundle identifier; under
-    /// `installFailure` for the last install.
+    /// `installFailure` for the last install, `appIDsFailure` for the last
+    /// fetch of the App IDs.
     @Published private(set) var failures: [String: CartoucheReport] = [:]
 
     static let installFailure = ""
+    static let appIDsFailure = "*"
     /// Where SideStore's patch keeps the list, and where the launcher leaves
     /// a request (CartoucheAppsRequest.swift).
     static let listKey = "CartoucheInstalledApps"
@@ -65,6 +72,7 @@ final class CartoucheIPhoneApps: ObservableObject {
     private static let installSelector = NSSelectorFromString("installAppWithProgress:completion:")
     private static let refreshSelector = NSSelectorFromString("refreshAppsWithProgress:completion:")
     private static let removeSelector = NSSelectorFromString("removeAppWithProgress:completion:")
+    private static let appIDsSelector = NSSelectorFromString("fetchAppIDsWithProgress:completion:")
 
     /// CartoucheApps is in SideStoreSupport, which LiveContainer loads only
     /// when the app carries the built-in SideStore.
@@ -100,6 +108,9 @@ final class CartoucheIPhoneApps: ObservableObject {
 
     private static var widgetData: URL? { LCSharedUtils.appGroupPath()?.appendingPathComponent("widget_data.json") }
 
+    /// Where CartoucheAppIDsIntent leaves the App IDs (patch 0023).
+    private static var appIDsFile: URL? { LCSharedUtils.appGroupPath()?.appendingPathComponent("Cartouche/AppIDs.json") }
+
     /// Where an IPA waits for its install, in the app group LiveProcess reads.
     private static var installs: URL? {
         LCSharedUtils.appGroupPath()?.appendingPathComponent("Cartouche/Installs", isDirectory: true)
@@ -118,9 +129,11 @@ final class CartoucheIPhoneApps: ObservableObject {
         lastReload = Date()
         let listed = Self.listed
         let widgetData = Self.widgetData
+        let appIDsFile = Self.appIDsFile
         let installs = Self.installs
         Task.detached(priority: .userInitiated) { [weak self] in
             let fresh = CartoucheIPhoneAppList.apps(listed: listed, widgetData: widgetData.flatMap { try? Data(contentsOf: $0) })
+            let appIDs = CartoucheIPhoneAppList.appIDs(data: appIDsFile.flatMap { try? Data(contentsOf: $0) })
             if let installs { CartoucheIPhoneAppList.removeLeftoverIPAs(in: installs) }
             // A Refresh All Apps that ended with no one to read it, the
             // Shortcuts automation's: its outcome waits in the keychain.
@@ -131,6 +144,7 @@ final class CartoucheIPhoneApps: ObservableObject {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 if fresh != self.apps { self.apps = fresh }
+                if appIDs != self.appIDs { self.appIDs = appIDs }
                 if let nightly { self.noteRenewal(outcome: nightly, message: nil) }
             }
         }
@@ -269,6 +283,30 @@ final class CartoucheIPhoneApps: ObservableObject {
         if let message {
             failures[app.bundleIdentifier] = failed(CartoucheText.appsFailedRemove(app.name), message: message,
                                                     outcome: outcome, progress: progress, started: started)
+        }
+    }
+
+    /// Fetches from Apple the App IDs it keeps for the Apple ID, which
+    /// SideStore leaves in the app group for the list (patch 0023).
+    func fetchAppIDs() async {
+        guard let method = Self.method(Self.appIDsSelector), work == nil, !Self.isBusyElsewhere else {
+            failures[Self.appIDsFailure] = busy(CartoucheText.appIDsFailed, message: Self.unavailableReason ?? CartoucheText.appsBusy)
+            return
+        }
+        failures[Self.appIDsFailure] = nil
+        let progress = Progress(totalUnitCount: 100)
+        let started = Date()
+        work = Work(kind: .fetchingAppIDs, progress: progress)
+        defer {
+            work = nil
+            reload(force: true)
+        }
+        CartoucheReports.note("Apps on this iPhone: fetching the App IDs")
+        let message = await call(method, Self.appIDsSelector, progress)
+        let outcome = Self.takeOutcome().flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .appIDs) }
+        if let message {
+            failures[Self.appIDsFailure] = failed(CartoucheText.appIDsFailed, message: message, outcome: outcome,
+                                                  progress: progress, started: started)
         }
     }
 

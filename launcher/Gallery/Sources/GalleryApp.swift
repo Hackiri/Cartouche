@@ -201,6 +201,12 @@ struct GalleryScenario {
          "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}
         """]
         var listed: [[String: String]] = []
+        // And the App IDs Apple keeps, as SideStore's patch 0023 leaves them:
+        // Cartouche's own and one per app, dates in seconds since 1970.
+        var appIDs = ["""
+        {"name": "Cartouche", "identifier": "GALLERY000", "bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "").GALLERY1234",
+         "expirationDate": \(Int(Date().addingTimeInterval(6 * 86_400 + 3_600).timeIntervalSince1970))}
+        """]
         for item in iphoneApps {
             let parts = item.split(separator: ":").map(String.init)
             guard parts.count == 3, let days = Double(parts[2]) else { continue }
@@ -210,10 +216,22 @@ struct GalleryScenario {
              "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}
             """)
             listed.append(["bundleIdentifier": parts[1], "resignedBundleIdentifier": parts[1] + ".GALLERY1234", "name": parts[0]])
+            appIDs.append("""
+            {"name": "\(parts[0])", "identifier": "GALLERY\(String(format: "%03d", listed.count))", "bundleIdentifier": "\(parts[1]).GALLERY1234",
+             "expirationDate": \(Int(Date().addingTimeInterval(days * 86_400 + 43_200).timeIntervalSince1970))}
+            """)
         }
         let renewal = "{\"allApps\": [" + records.joined(separator: ",") + "]}"
         try? Data(renewal.utf8).write(to: GalleryState.appGroup.appendingPathComponent("widget_data.json"))
         UserDefaults.standard.set(listed, forKey: "CartoucheInstalledApps")
+        let appIDsFile = GalleryState.appGroup.appendingPathComponent("Cartouche/AppIDs.json")
+        if iphoneApps.isEmpty {
+            try? FileManager.default.removeItem(at: appIDsFile)
+        } else {
+            let listing = "{\"date\": \(Int(Date().addingTimeInterval(-3_600).timeIntervalSince1970)), \"appIDs\": [" + appIDs.joined(separator: ",") + "]}"
+            try? FileManager.default.createDirectory(at: appIDsFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Data(listing.utf8).write(to: appIDsFile)
+        }
         MainActor.assumeIsolated {
             CartoucheSetup.shared.refresh()
             CartoucheGuide.shared.startOverForGallery()

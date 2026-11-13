@@ -7,8 +7,9 @@
 //  in the app group (CartoucheInstalledApps, which SideStore's patch 0022
 //  writes), joined with what SideStore records of every installed app for
 //  its widget (widget_data.json), as CartoucheSignature reads Cartouche's
-//  own expiry from it. Pure: CartoucheIPhoneApps reads the files and runs
-//  the actions.
+//  own expiry from it; and the App IDs Apple keeps for the Apple ID, as
+//  SideStore's patch 0023 leaves them in the app group. Pure:
+//  CartoucheIPhoneApps reads the files and runs the actions.
 //
 
 import Foundation
@@ -29,6 +30,26 @@ struct CartoucheIPhoneApp: Identifiable, Equatable, Sendable {
     /// The link iOS opens the app by: the scheme SideStore adds to every app
     /// it signs (InstalledApp.openAppURL).
     var openURL: URL { URL(string: "sidestore-\(resignedBundleIdentifier)://") ?? URL(fileURLWithPath: "/") }
+}
+
+/// An App ID Apple keeps for the Apple ID, as SideStore's App IDs page lists
+/// them and CartoucheAppIDsIntent writes them (app/patches/sidestore/0023).
+struct CartoucheAppID: Identifiable, Equatable, Sendable {
+    let name: String
+    /// Apple's own, ten characters.
+    let identifier: String
+    let bundleIdentifier: String
+    /// A week after a free Apple ID registered it; nil for a paid team's,
+    /// which never expire.
+    let expirationDate: Date?
+
+    var id: String { identifier }
+}
+
+/// The App IDs as last fetched, and when.
+struct CartoucheAppIDListing: Equatable, Sendable {
+    let date: Date
+    let appIDs: [CartoucheAppID]
 }
 
 enum CartoucheIPhoneAppList {
@@ -61,6 +82,47 @@ enum CartoucheIPhoneAppList {
                 refreshedDate: record?.refreshedDate,
                 daysLeft: expiration.map { Int(floor($0.timeIntervalSince(now) / 86_400)) })
         }
+    }
+
+    /// What CartoucheAppIDsIntent leaves in the app group: dates in seconds
+    /// since 1970.
+    private struct WrittenAppIDs: Decodable {
+        struct Entry: Decodable {
+            let name: String?
+            let identifier: String
+            let bundleIdentifier: String?
+            let expirationDate: Date?
+        }
+        let date: Date
+        let appIDs: [Entry]
+    }
+
+    /// The App IDs in DATA, the one that expires first first and those
+    /// without a date last, at most 500 of them, each text cut to 256
+    /// characters; nil without a list, or one that cannot be read, is from
+    /// the future or is over a year old.
+    static func appIDs(data: Data?, now: Date = Date()) -> CartoucheAppIDListing? {
+        guard let data else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        guard let written = try? decoder.decode(WrittenAppIDs.self, from: data),
+              written.date <= now.addingTimeInterval(300), now.timeIntervalSince(written.date) <= 366 * 86_400 else { return nil }
+        func cut(_ text: String?) -> String { String((text ?? "").prefix(256)) }
+        let appIDs = written.appIDs.prefix(500).compactMap { entry -> CartoucheAppID? in
+            let identifier = cut(entry.identifier)
+            guard !identifier.isEmpty else { return nil }
+            return CartoucheAppID(name: cut(entry.name), identifier: identifier, bundleIdentifier: cut(entry.bundleIdentifier),
+                                  expirationDate: entry.expirationDate)
+        }
+        .sorted { first, second in
+            switch (first.expirationDate, second.expirationDate) {
+            case let (one?, other?) where one != other: return one < other
+            case (nil, _?): return false
+            case (_?, nil): return true
+            default: return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
+            }
+        }
+        return CartoucheAppIDListing(date: written.date, appIDs: appIDs)
     }
 
     static func soonestExpiry(of apps: [CartoucheIPhoneApp]) -> Date? {

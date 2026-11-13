@@ -6,7 +6,8 @@
 //  them (Sources/CartoucheIPhoneAppList.swift): the list Cartouche keeps in
 //  the app group joined with what SideStore records of every installed app
 //  for its widget, the days left before each expires, the link that opens
-//  one, and the leftovers an install may leave.
+//  one, the leftovers an install may leave, and the App IDs Apple keeps for
+//  the Apple ID as SideStore's patch 0023 leaves them.
 //
 
 import Foundation
@@ -93,5 +94,37 @@ final class CartoucheIPhoneAppListTests: XCTestCase {
     func testFailedIdentifiersAreSplitOnCommas() {
         XCTAssertEqual(CartoucheIPhoneAppList.failedIdentifiers("a.b, c.d,,"), ["a.b", "c.d"])
         XCTAssertEqual(CartoucheIPhoneAppList.failedIdentifiers(nil), [])
+    }
+
+    /// Cartouche/AppIDs.json as CartoucheAppIDsIntent writes it, dates in
+    /// seconds since 1970.
+    private func appIDsData(date: TimeInterval, _ appIDs: [[String: Any]]) throws -> Data {
+        try JSONSerialization.data(withJSONObject: ["date": now.addingTimeInterval(date).timeIntervalSince1970, "appIDs": appIDs])
+    }
+
+    func testAppIDsComeTheOneThatExpiresFirstFirstAndThoseWithoutADateLast() throws {
+        let data = try appIDsData(date: -60, [
+            ["name": "Delta", "identifier": "ABCDE12345", "bundleIdentifier": "com.rileytestut.Delta.T1",
+             "expirationDate": now.addingTimeInterval(5 * 86_400).timeIntervalSince1970],
+            ["name": "Paid", "identifier": "KLMNO13579", "bundleIdentifier": "com.example.paid"],
+            ["name": "UTM", "identifier": "FGHIJ67890", "bundleIdentifier": "com.utmapp.UTM.T1",
+             "expirationDate": now.addingTimeInterval(86_400).timeIntervalSince1970],
+            ["name": "", "identifier": "", "bundleIdentifier": "com.example.none"],
+        ])
+        let listing = try XCTUnwrap(CartoucheIPhoneAppList.appIDs(data: data, now: now))
+        XCTAssertEqual(listing.date, now.addingTimeInterval(-60))
+        XCTAssertEqual(listing.appIDs.map(\.identifier), ["FGHIJ67890", "ABCDE12345", "KLMNO13579"])
+        XCTAssertEqual(listing.appIDs[0].name, "UTM")
+        XCTAssertEqual(listing.appIDs[0].bundleIdentifier, "com.utmapp.UTM.T1")
+        XCTAssertEqual(listing.appIDs[0].expirationDate, now.addingTimeInterval(86_400))
+        XCTAssertNil(listing.appIDs[2].expirationDate)
+    }
+
+    func testAppIDsFromTheFutureOrUnreadableAreNoList() throws {
+        XCTAssertNil(CartoucheIPhoneAppList.appIDs(data: nil, now: now))
+        XCTAssertNil(CartoucheIPhoneAppList.appIDs(data: Data("{".utf8), now: now))
+        XCTAssertNil(CartoucheIPhoneAppList.appIDs(data: try appIDsData(date: 3_600, []), now: now))
+        XCTAssertNil(CartoucheIPhoneAppList.appIDs(data: try appIDsData(date: -400 * 86_400, []), now: now))
+        XCTAssertEqual(CartoucheIPhoneAppList.appIDs(data: try appIDsData(date: 0, []), now: now)?.appIDs, [])
     }
 }

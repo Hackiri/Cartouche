@@ -350,6 +350,18 @@ enum CartoucheText {
     static var appsErrorAnotherStore: String { s("system.apps.error.anotherStore", "Another SideStore or AltStore installed this app and renews it: Cartouche leaves it alone.") }
     static var appsErrorLimit: String { s("system.apps.error.limit", "A free Apple ID signs three apps at once on this iPhone, Cartouche included. Uninstall one first.") }
     static var appsFooter: String { s("system.apps.footer", "Cartouche installs them with the Apple ID it signs with, as apps of their own on the home screen, and renews them with itself: Renew now and the nightly renewal keep their signatures alive. A free Apple ID signs three apps at once on this iPhone, Cartouche and any app signed by another store included, and ten App IDs a week.") }
+    static var appIDsTitle: String { s("system.appIDs.title", "App IDs") }
+    static var appIDsFetch: String { s("system.appIDs.fetch", "Fetch the App IDs from Apple") }
+    static var appIDsRefresh: String { s("system.appIDs.refresh", "Fetch the App IDs again") }
+    static var appIDsFetching: String { s("system.appIDs.fetching", "Fetching the App IDs") }
+    static var appIDsFailed: String { s("system.appIDs.failed", "The App IDs were not fetched") }
+    static var appIDsNone: String { s("system.appIDs.none", "Apple keeps no App ID for this Apple ID.") }
+    static func appIDsID(_ identifier: String) -> String { f("system.appIDs.id", "ID %@", identifier) }
+    static func appIDsExpires(_ date: String) -> String { f("system.appIDs.expires", "Expires %@", date) }
+    static func appIDsExpired(_ date: String) -> String { f("system.appIDs.expired", "Expired %@", date) }
+    static func appIDsFetched(_ count: Int, _ date: String) -> String { f("system.appIDs.fetched", "%lld App IDs, fetched %@", count, date) }
+    static func appIDsFetchedOne(_ date: String) -> String { f("system.appIDs.fetched.one", "1 App ID, fetched %@", date) }
+    static var appIDsFooter: String { s("system.appIDs.footer", "Apple keeps one App ID per app signed with this Apple ID, by Cartouche or any SideStore or AltStore, for seven days with a free Apple ID. It registers ten in seven days at most: once they are spent, a new app waits until the oldest expires. Renewing an app before its App ID expires registers none.") }
 
     // MARK: Cartouche's updates
 

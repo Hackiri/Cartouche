@@ -1,0 +1,137 @@
+From 5c2c3820f452491eed7cce9dbc764ada8a7c1895 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 14:34:27 -0500
+Subject: [PATCH] List the App IDs for Cartouche
+
+Cartouche shows, under the apps it installed on this iPhone, the App IDs
+Apple keeps for the player's Apple ID, as SideStore's own App IDs page
+lists them (decision 88): each app ever signed with the Apple ID, by any
+SideStore or AltStore, has one, and a free Apple ID registers ten in
+seven days, so that an install refused for the limit shows which ones
+hold it. SideStore gets a fourth headless action for it,
+CartoucheAppIDsIntent, which fetches them as SyncAppIDsOperation does and
+leaves them in the app group (Cartouche/AppIDs.json), where the launcher
+reads them; its outcome is the action appIDs.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ SideStore/Intents/CartoucheAppIDsIntent.swift | 93 +++++++++++++++++++
+ SideStore/Intents/CartoucheOutcome.swift      |  2 +
+ 2 files changed, 95 insertions(+)
+ create mode 100644 SideStore/Intents/CartoucheAppIDsIntent.swift
+
+diff --git a/SideStore/Intents/CartoucheAppIDsIntent.swift b/SideStore/Intents/CartoucheAppIDsIntent.swift
+new file mode 100644
+index 0000000..ea7c9c5
+--- /dev/null
++++ b/SideStore/Intents/CartoucheAppIDsIntent.swift
+@@ -0,0 +1,93 @@
++//
++//  CartoucheAppIDsIntent.swift
++//  SideStore
++//
++//  Cartouche: lists the App IDs Apple keeps for the player's Apple ID, as
++//  SideStore's own App IDs page does, for Cartouche's System page to show
++//  under the apps it installed on this iPhone (decision 88). Each app ever
++//  signed with the Apple ID, by any SideStore or AltStore, has one; a free
++//  Apple ID registers ten in seven days, and once they are spent no new app
++//  installs until the oldest expires, which is what the player wants to see
++//  when an install is refused for it. The list goes to the app group
++//  (Cartouche/AppIDs.json), where the launcher reads it. Cartouche runs this
++//  through LiveContainer's SideStoreSupport, in LiveProcess, so that the
++//  player never sees SideStore. Shortcuts does not list it.
++//
++
++import AppIntents
++import Foundation
++import SideSign
++
++@available(iOS 17.0, tvOS 17.0, *)
++struct CartoucheAppIDsIntent: AppIntent, ProgressReportingIntent
++{
++    static var title: LocalizedStringResource = "List the App IDs for Cartouche"
++    static var description = IntentDescription("Lists the App IDs of the Apple ID for Cartouche.")
++    static var openAppWhenRun = false
++    static var isDiscoverable: Bool { false }
++
++    /// What the launcher reads: when the list was fetched, and each App ID
++    /// as Apple keeps it. Dates in seconds since 1970.
++    private struct Listing: Encodable
++    {
++        struct Entry: Encodable
++        {
++            let name: String
++            let identifier: String
++            let bundleIdentifier: String
++            let expirationDate: Date?
++        }
++
++        let date: Date
++        let appIDs: [Entry]
++    }
++
++    static var file: URL?
++    {
++        FileManager.default.altstoreSharedDirectory?.appendingPathComponent("Cartouche/AppIDs.json")
++    }
++
++    init()
++    {
++        self.progress.completedUnitCount = 0
++        self.progress.totalUnitCount = 100
++    }
++
++    func perform() async throws -> some IntentResult
++    {
++        let outcome = CartoucheOutcome(action: .appIDs)
++        do
++        {
++            try await DatabaseManager.shared.start()
++            self.progress.completedUnitCount = 5
++
++            guard AuthManager.shared.isAuthenticated else { throw OperationError.notAuthenticated }
++            guard let file = Self.file else { throw OperationError.missingAppGroup(name: Bundle.main.altstoreAppGroup ?? "") }
++            self.progress.completedUnitCount = 10
++
++            // The session and the team come from the keychain, as for a
++            // renewal without a screen.
++            let appIDs = try await DeveloperPortalProxy.shared.fetchAppIDs()
++            self.progress.completedUnitCount = 90
++
++            let listing = Listing(date: Date(), appIDs: appIDs.map {
++                Listing.Entry(name: $0.name, identifier: $0.identifier, bundleIdentifier: $0.bundleIdentifier,
++                              expirationDate: $0.expirationDate)
++            })
++            let encoder = JSONEncoder()
++            encoder.dateEncodingStrategy = .secondsSince1970
++            let data = try encoder.encode(listing)
++            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
++            try data.write(to: file, options: .atomic)
++
++            self.progress.completedUnitCount = 100
++            outcome.save(error: nil, progress: self.progress)
++            return .result()
++        }
++        catch
++        {
++            outcome.save(error: error, progress: self.progress)
++            throw IntentError(error)
++        }
++    }
++}
+diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
+index 80f874d..a127725 100644
+--- a/SideStore/Intents/CartoucheOutcome.swift
++++ b/SideStore/Intents/CartoucheOutcome.swift
+@@ -54,6 +54,8 @@ final class CartoucheOutcome: @unchecked Sendable
+         case install
+         case apps
+         case remove
++        // The App IDs Apple keeps for the Apple ID, listed for Cartouche.
++        case appIDs
+     }
+ 
+     static let account = "cartouche.outcome"
+-- 
+2.54.0
+

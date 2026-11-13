@@ -459,6 +459,8 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         case install
         case apps
         case remove
+        /// The App IDs Apple keeps for the Apple ID, listed (patch 0023).
+        case appIDs
     }
 
     var action: Action
