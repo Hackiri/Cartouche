@@ -1,4 +1,4 @@
-From de9727f271f53efdd63fd99e66e790eada122ffc Mon Sep 17 00:00:00 2001
+From 1a72fad5eae17777c6ba1ecd7ebc643dbdff8e2d Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 11:17:15 -0500
 Subject: [PATCH] Install, renew and remove apps on the iPhone for Cartouche
@@ -31,8 +31,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
  .../Intents/CartoucheInstallAppIntent.swift   | 111 ++++++++++++++++++
  SideStore/Intents/CartoucheOutcome.swift      |   9 ++
  .../Intents/CartoucheRefreshAppsIntent.swift  |  83 +++++++++++++
- .../Intents/CartoucheRemoveAppIntent.swift    | 101 ++++++++++++++++
- 7 files changed, 419 insertions(+), 3 deletions(-)
+ .../Intents/CartoucheRemoveAppIntent.swift    | 102 ++++++++++++++++
+ 7 files changed, 420 insertions(+), 3 deletions(-)
  create mode 100644 SideStore/Intents/CartoucheAppsRequest.swift
  create mode 100644 SideStore/Intents/CartoucheInstallAppIntent.swift
  create mode 100644 SideStore/Intents/CartoucheRefreshAppsIntent.swift
@@ -433,10 +433,10 @@ index 0000000..4bfa1ec
 +}
 diff --git a/SideStore/Intents/CartoucheRemoveAppIntent.swift b/SideStore/Intents/CartoucheRemoveAppIntent.swift
 new file mode 100644
-index 0000000..8480125
+index 0000000..db27ef1
 --- /dev/null
 +++ b/SideStore/Intents/CartoucheRemoveAppIntent.swift
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,102 @@
 +//
 +//  CartoucheRemoveAppIntent.swift
 +//  SideStore
@@ -453,7 +453,7 @@ index 0000000..8480125
 +import AppIntents
 +import CoreData
 +import Foundation
-+import minimuxer
++import Minimuxer
 +
 +@available(iOS 17.0, tvOS 17.0, *)
 +struct CartoucheRemoveAppIntent: AppIntent, ProgressReportingIntent
@@ -489,12 +489,13 @@ index 0000000..8480125
 +            {
 +                try await self.run { completion in AppManager.shared.deleteApp(installedApp, presentingViewController: nil, completionHandler: completion) }
 +            }
-+            catch let error as MinimuxerError
++            catch
 +            {
 +                // The iPhone has no such app any more, deleted from the home
-+                // screen: the record alone goes. Any other failure of
-+                // minimuxer, the VPN or the pairing file, stops here.
-+                guard case .uninstallApp = error else { throw error }
++                // screen: the record alone goes. Any other failure, of
++                // minimuxer, the VPN or the pairing file, stops here. The
++                // pipeline may wrap the error in a title (CartoucheOutcome).
++                guard case .uninstallApp(_)? = CartoucheOutcome.unwrapped(error) as? MinimuxerError else { throw error }
 +                stage = "recordOnly"
 +                try await self.run { completion in AppManager.shared.removeApp(installedApp, presentingViewController: nil, completionHandler: completion) }
 +            }
