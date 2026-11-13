@@ -33,7 +33,7 @@ On your Mac, Cartouche Builder builds your games, and builds them again when nxn
 - **Made for every screen.** Portrait or landscape, iPhone or iPad: the interface follows the room it has.
 - **Measurements that make games run better.** After each session, Cartouche sends what nxnative measured, such as the frame rate and the memory, never your files, saves or accounts; **System › Game measurements** turns it off ([privacy](docs/privacy.md)). Under each error, **Copy the report** gives what it takes to understand it.
 
-You never see LiveContainer or SideStore, which Cartouche is built on: it drives them out of sight. An IPA that is not a game installs the same way, and sits on the shelf after your games, with Open, its settings and Uninstall on Cartouche's own screens.
+You never see LiveContainer or SideStore, which Cartouche is built on: it drives them out of sight. An IPA that is not a game installs the same way, and sits on the shelf after your games, with Open, its settings and Uninstall on Cartouche's own screens. An IPA can also go on the iPhone itself, as an app of its own that Cartouche signs, renews and uninstalls from its System page.
 
 <p align="center"><img src="docs/images/screens.png" width="100%" alt="Three iPhone screens of Cartouche: All games, with every game of nxnative's list and what runs on the iPhone; a game paused behind the console, with Resume and Quit; and a game's settings: frame rate, render scale, console mode, upscaling, game language"></p>
 
