@@ -80,7 +80,10 @@ final class CartoucheIPhoneApps: ObservableObject {
     /// alone (decision 78), or the bridge did not load.
     static var unavailableReason: String? {
         if CartoucheImportedSigning.accountSigningDisabled { return CartoucheText.signingUpdateOnComputer }
+        #if !CARTOUCHE_GALLERY
+        // The gallery has no bridge: its section shows all the same.
         if method(installSelector) == nil { return CartoucheText.renewUnavailable }
+        #endif
         return nil
     }
 
@@ -97,25 +100,41 @@ final class CartoucheIPhoneApps: ObservableObject {
         LCSharedUtils.appGroupPath()?.appendingPathComponent("Cartouche/Installs", isDirectory: true)
     }
 
+    private var lastReload = Date.distantPast
+
     /// Reads the list and SideStore's record again, sweeps the IPAs an
     /// install left, and takes what a renewal without a screen, the nightly
-    /// one, left of the apps that failed.
-    func reload() {
-        apps = CartoucheIPhoneAppList.apps(listed: Self.listed, widgetData: Self.widgetData.flatMap { try? Data(contentsOf: $0) })
-        if let installs = Self.installs { CartoucheIPhoneAppList.removeLeftoverIPAs(in: installs) }
-        takeNightlyFailures()
-    }
-
-    /// A Refresh All Apps that ended with no one to read it, the Shortcuts
-    /// automation's: its outcome waits in the keychain. Renew now reads its
-    /// own within seconds (CartoucheRenewal), so only one older than two
-    /// minutes is a night's.
-    private func takeNightlyFailures() {
-        guard let data = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account),
-              let outcome = CartoucheSideStoreOutcome(data: data, expecting: .refresh, maximumAge: 86_400),
-              Date().timeIntervalSince(outcome.date) > 120 else { return }
-        CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
-        noteRenewal(outcome: outcome, message: nil)
+    /// one, left of the apps that failed. Once every two seconds at most,
+    /// unless FORCED: the System page asks at each return to it. The files
+    /// and the keychain are read off the main thread, which the console's
+    /// watch holds to a few hundred milliseconds.
+    func reload(force: Bool = false) {
+        guard force || Date().timeIntervalSince(lastReload) > 2 else { return }
+        lastReload = Date()
+        let listed = Self.listed
+        let widgetData = Self.widgetData
+        let installs = Self.installs
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let fresh = CartoucheIPhoneAppList.apps(listed: listed, widgetData: widgetData.flatMap { try? Data(contentsOf: $0) })
+            if let installs { CartoucheIPhoneAppList.removeLeftoverIPAs(in: installs) }
+            // A Refresh All Apps that ended with no one to read it, the
+            // Shortcuts automation's: its outcome waits in the keychain.
+            // Renew now reads its own within seconds (CartoucheRenewal), so
+            // only one older than two minutes is a night's; nothing to
+            // attribute it to without apps.
+            var nightly: CartoucheSideStoreOutcome?
+            if !listed.isEmpty, let data = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account),
+               let outcome = CartoucheSideStoreOutcome(data: data, expecting: .refresh, maximumAge: 86_400),
+               Date().timeIntervalSince(outcome.date) > 120 {
+                CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
+                nightly = outcome
+            }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                if fresh != self.apps { self.apps = fresh }
+                if let nightly { self.noteRenewal(outcome: nightly, message: nil) }
+            }
+        }
     }
 
     /// The apps of Cartouche's that OUTCOME, a Refresh All Apps', names as
@@ -153,7 +172,7 @@ final class CartoucheIPhoneApps: ObservableObject {
         work = Work(kind: .installing(name), progress: progress)
         defer {
             work = nil
-            reload()
+            reload(force: true)
         }
         CartoucheReports.note("Apps on this iPhone: installing \(name)")
         do {
@@ -193,7 +212,7 @@ final class CartoucheIPhoneApps: ObservableObject {
         work = Work(kind: .renewing(app.bundleIdentifier), progress: progress)
         defer {
             work = nil
-            reload()
+            reload(force: true)
         }
         LCUtils.appGroupUserDefault.set(["apps": [app.bundleIdentifier]], forKey: Self.requestKey)
         let message = await call(method, Self.refreshSelector, progress)
@@ -218,7 +237,7 @@ final class CartoucheIPhoneApps: ObservableObject {
         work = Work(kind: .removing(app.bundleIdentifier), progress: progress)
         defer {
             work = nil
-            reload()
+            reload(force: true)
         }
         LCUtils.appGroupUserDefault.set(["app": app.bundleIdentifier], forKey: Self.requestKey)
         let message = await call(method, Self.removeSelector, progress)

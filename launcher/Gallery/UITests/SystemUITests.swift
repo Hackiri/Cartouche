@@ -24,6 +24,7 @@ final class SystemUITests: ConsoleTestCase {
             (Words.setup, nil),
             (Words.storage, Words.storageIntro),
             (Words.renewEveryNight, Words.openShortcuts),
+            (Words.iphoneApps, Words.installOnIPhone),
             (Words.telemetry, Words.sendMeasurements),
             (Words.report, nil),
         ]
@@ -45,6 +46,35 @@ final class SystemUITests: ConsoleTestCase {
         }
         tap(app.buttons[Words.done], "Done of the System page", in: app)
         expect(waitUntil(10) { isOnConsole(app) }, "Done did not bring the console back", in: app)
+        expectMainThreadAnswered(app)
+    }
+
+    /// Apps on this iPhone lists each app Cartouche installed with its days
+    /// left, and Uninstall asks first (decision 88).
+    @MainActor
+    func testAppsOnThisIPhoneListsEachAppAndAsksBeforeUninstalling() {
+        let app = openConsole(Launch(iphoneApps: ["UTM:com.utmapp.UTM:3", "Delta:com.rileytestut.Delta:0"]))
+        tap(app.buttons[Words.system], "System in the dock", in: app)
+        expect(app.navigationBars[Words.system].waitForExistence(timeout: 15), "The System page did not open", in: app)
+        let row = element(in: app.buttons, beginningWith: Words.iphoneApps)
+        scrollTo(row, "Apps on this iPhone on the System page", in: app)
+        tap(row, "Apps on this iPhone on the System page", in: app)
+        expect(app.navigationBars[Words.iphoneApps].waitForExistence(timeout: 15), "Apps on this iPhone did not open", in: app)
+        for name in ["UTM", "Delta"] {
+            expect(element(beginningWith: name, in: app).waitForExistence(timeout: 10), "No row for \(name)", in: app)
+        }
+        expect(element(beginningWith: Words.daysLeft, in: app).exists, "No Days left on the rows", in: app)
+        expect(element(in: app.buttons, beginningWith: Words.renewApp).exists, "No Renew on the rows", in: app)
+        let uninstall = element(in: app.buttons, beginningWith: Words.uninstall)
+        scrollTo(uninstall, "Uninstall of UTM", in: app)
+        tap(uninstall, "Uninstall of UTM", in: app)
+        let question = String(format: Words.uninstallFromIPhone, "UTM")
+        let asked = element(labelled: question, in: app)
+        expect(asked.waitForExistence(timeout: 15), "Uninstall did not ask \(question)", in: app)
+        tap(app.buttons[Words.cancel], "Cancel, in the question", in: app)
+        expect(waitForGone(asked), "The question stayed once cancelled", in: app)
+        back(from: Words.iphoneApps, in: app)
+        expect(app.navigationBars[Words.system].waitForExistence(timeout: 10), "Back did not come back to the System page", in: app)
         expectMainThreadAnswered(app)
     }
 

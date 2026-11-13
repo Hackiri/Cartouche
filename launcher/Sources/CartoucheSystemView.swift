@@ -48,6 +48,7 @@ struct CartoucheSystemView: View {
                 playingSection
                 signatureSection
                 if !CartoucheImportedSigning.accountSigningDisabled { automaticRenewalSection }
+                CartoucheIPhoneAppsSection()
                 deviceSection
                 updateSection
                 telemetrySection

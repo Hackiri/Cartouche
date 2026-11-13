@@ -148,6 +148,8 @@ def arguments(scenario):
         args += ["-GalleryOwned", ",".join(scenario["owned"])]
     if scenario.get("apps"):
         args += ["-GalleryApps", ",".join(scenario["apps"])]
+    if scenario.get("iphoneApps"):
+        args += ["-GalleryIPhoneApps", ",".join(scenario["iphoneApps"])]
     if "device" not in scenario:
         args += ["-GalleryWidth", str(scenario["width"]), "-GalleryHeight", str(scenario["height"]),
                  "-GalleryInsets", ",".join(str(n) for n in scenario.get("insets", [0, 0, 0, 0]))]

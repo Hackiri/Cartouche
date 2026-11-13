@@ -65,6 +65,11 @@ enum Words {
     static let sendMeasurements = "Send game measurements"  // telemetry.send
     static let report = "Report a problem"                  // report.title
     static let renewEveryNight = "Renew every night"        // system.auto.daily
+    static let iphoneApps = "Apps on this iPhone"           // system.apps.title
+    static let installOnIPhone = "Install an IPA on this iPhone" // system.apps.install
+    static let renewApp = "Renew"                           // system.apps.renew
+    static let uninstallFromIPhone = "Uninstall %@ from this iPhone?" // system.apps.uninstall.question
+    static let daysLeft = "Days left"                       // system.signature.daysLeft
     static let openShortcuts = "Open Shortcuts"             // daily.openShortcuts
     static let storageIntro = "Your games and saves on your own storage" // storage.intro
     static let addFirst = "First add your Mac"              // storage.addFirst
@@ -166,6 +171,10 @@ struct Launch {
     /// The main thread held once, for that many seconds, which the watch
     /// must see.
     var holdMainThread: Double?
+    /// The apps Cartouche installed on this iPhone through the built-in
+    /// SideStore, as "Name:bundle.identifier:daysLeft" (-GalleryIPhoneApps,
+    /// GalleryApp.swift, decision 88).
+    var iphoneApps: [String] = []
     /// A test that types: the keyboard shown once and put away as the
     /// gallery opens, before the watch counts, as its first showing in a
     /// process holds the main thread for seconds on a CI Mac
@@ -181,6 +190,7 @@ struct Launch {
         if pairingOnly { arguments += ["-GalleryPairing", "1"] }
         if let work { arguments += ["-GalleryWork", work] }
         if let sheet { arguments += ["-GallerySheet", sheet] }
+        if !iphoneApps.isEmpty { arguments += ["-GalleryIPhoneApps", iphoneApps.joined(separator: ",")] }
         if let holdMainThread { arguments += ["-GalleryHoldMainThread", String(holdMainThread)] }
         if typing { arguments += ["-GalleryKeyboard", "1"] }
         return arguments

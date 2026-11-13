@@ -126,6 +126,9 @@ struct GalleryScenario {
     var sheet: String?
     /// The player's apps that are not games, "Name:bundle.identifier" each.
     var otherApps: [String] = []
+    /// The apps Cartouche installed on this iPhone through the built-in
+    /// SideStore, as "Name:bundle.identifier:daysLeft" (decision 88).
+    var iphoneApps: [String] = []
     var work: String?
     var landscape = false
     /// The name of the file that says the screen has settled.
@@ -150,6 +153,7 @@ struct GalleryScenario {
         }
         scenario.owned = (defaults.string(forKey: "GalleryOwned") ?? "").split(separator: ",").map(String.init)
         scenario.otherApps = (defaults.string(forKey: "GalleryApps") ?? "").split(separator: ",").map(String.init)
+        scenario.iphoneApps = (defaults.string(forKey: "GalleryIPhoneApps") ?? "").split(separator: ",").map(String.init)
         scenario.setupDone = defaults.bool(forKey: "GallerySetup")
         scenario.controller = defaults.bool(forKey: "GalleryController")
         scenario.sheet = defaults.string(forKey: "GallerySheet")
@@ -188,13 +192,28 @@ struct GalleryScenario {
             try? FileManager.default.createDirectory(at: pairing, withIntermediateDirectories: true)
             try? Data("gallery".utf8).write(to: pairing.appendingPathComponent("ALTPairingFile.mobiledevicepairing"))
         }
-        // The built-in SideStore's record of its last renewal.
-        let renewal = """
-        {"allApps": [{"bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "")",
-                      "expirationDate": \(Date().addingTimeInterval(6 * 86_400 + 3_600).timeIntervalSinceReferenceDate),
-                      "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}]}
-        """
+        // The built-in SideStore's record of its last renewal, and of the apps
+        // Cartouche installed on this iPhone, which it also lists in the app
+        // group's defaults (CartoucheIPhoneApps).
+        var records = ["""
+        {"bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "")",
+         "expirationDate": \(Date().addingTimeInterval(6 * 86_400 + 3_600).timeIntervalSinceReferenceDate),
+         "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}
+        """]
+        var listed: [[String: String]] = []
+        for item in iphoneApps {
+            let parts = item.split(separator: ":").map(String.init)
+            guard parts.count == 3, let days = Double(parts[2]) else { continue }
+            records.append("""
+            {"name": "\(parts[0])", "bundleIdentifier": "\(parts[1])",
+             "expirationDate": \(Date().addingTimeInterval(days * 86_400 + 43_200).timeIntervalSinceReferenceDate),
+             "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}
+            """)
+            listed.append(["bundleIdentifier": parts[1], "resignedBundleIdentifier": parts[1] + ".GALLERY1234", "name": parts[0]])
+        }
+        let renewal = "{\"allApps\": [" + records.joined(separator: ",") + "]}"
         try? Data(renewal.utf8).write(to: GalleryState.appGroup.appendingPathComponent("widget_data.json"))
+        UserDefaults.standard.set(listed, forKey: "CartoucheInstalledApps")
         MainActor.assumeIsolated {
             CartoucheSetup.shared.refresh()
             CartoucheGuide.shared.startOverForGallery()
