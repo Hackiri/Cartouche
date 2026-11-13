@@ -1,7 +1,7 @@
 # Apps on this iPhone: installing, seeing and renewing apps outside Cartouche
 
-Date: 2026-11-13. Status: design, reviewed by a builder check, awaiting approval. Becomes decision 88 in
-[docs/decisions.md](../../decisions.md) once built.
+Date: 2026-11-13. Status: built the same day, as decision 88 in
+[docs/decisions.md](../../decisions.md); the plan is beside it in `../plans/`.
 
 ## Intent
 
