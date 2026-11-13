@@ -492,6 +492,10 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
     /// invalidParameters (patch 0018), which of its sentences it is and the
     /// step or value that sentence names.
     var facts: [String: CartoucheTelemetryValue]
+    /// The apps Cartouche installed on this iPhone that a renewal failed
+    /// (decision 88), by their bundle identifiers: shown under each, never
+    /// sent.
+    var failedApps: [String] = []
 
     /// What SideStore wrote, each value of the type it must have or none.
     private struct Written: Decodable {
@@ -573,11 +577,9 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             if let name = written.name(key) { facts[key.rawValue] = .text(name) }
         }
         // The apps that failed a renewal, by their bundle identifiers (patch
-        // 0022): those that read as one, none of the rest.
-        if let failed = written.texts[.failed] {
-            let identifiers = failed.split(separator: ",").map(String.init).filter(CartoucheFailure.isDomain)
-            if !identifiers.isEmpty, identifiers.count <= 50 { facts["failed"] = .text(identifiers.joined(separator: ",")) }
-        }
+        // 0022): for the System page alone, never among the facts, which
+        // the measurements send.
+        failedApps = Array(CartoucheIPhoneAppList.failedIdentifiers(written.texts[.failed]).prefix(50))
         self.facts = facts
     }
 

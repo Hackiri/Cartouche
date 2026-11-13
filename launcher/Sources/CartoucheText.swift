@@ -270,7 +270,7 @@ enum CartoucheText {
     static var renewed: String { s("system.signature.renewed", "Last renewed") }
     static var team: String { s("system.signature.team", "Apple account team") }
     static var profileUnknown: String { s("system.signature.unknown", "Cartouche could not read its provisioning profile.") }
-    static var signatureFooter: String { s("system.signature.footer", "Cartouche renews itself with LocalDevVPN on. Once expired, it no longer opens: install it again with the Cartouche Installer.") }
+    static var signatureFooter: String { s("system.signature.footer", "Cartouche renews itself, and the apps it installed on this iPhone, with LocalDevVPN on. Once expired, it no longer opens: install it again with the Cartouche Installer.") }
     static var renewNow: String { s("system.signature.renew", "Renew now") }
     static var renewing: String { s("system.signature.renewing", "Renewing…") }
     static var renewUnavailable: String { s("system.signature.renew.unavailable", "The built-in SideStore did not load. Close Cartouche, open it again, then renew.") }
@@ -325,6 +325,31 @@ enum CartoucheText {
     static var uninstallAppKeep: String { s("uninstall.app.keep", "Uninstall, keep its data") }
     static var uninstallAppErase: String { s("uninstall.app.erase", "Uninstall and erase its data") }
 
+    // MARK: Apps on this iPhone (decision 88)
+
+    static var appsTitle: String { s("system.apps.title", "Apps on this iPhone") }
+    static var appsNone: String { s("system.apps.none", "None yet") }
+    static func appsCount(_ count: Int) -> String { f("system.apps.count", "%lld apps", count) }
+    static var appsCountOne: String { s("system.apps.count.one", "1 app") }
+    static func appsSoonest(_ days: Int) -> String { f("system.apps.soonest", "the first expires in %lld days", days) }
+    static var appsSoonestToday: String { s("system.apps.soonest.today", "the first expires today") }
+    static var appsOneExpired: String { s("system.apps.expired", "one has expired") }
+    static var appsInstall: String { s("system.apps.install", "Install an IPA on this iPhone") }
+    static func appsInstalling(_ name: String) -> String { f("system.apps.installing", "Installing %@", name) }
+    static func appsRenewing(_ name: String) -> String { f("system.apps.renewing", "Renewing %@", name) }
+    static func appsRemoving(_ name: String) -> String { f("system.apps.removing", "Uninstalling %@", name) }
+    static var appsRenew: String { s("system.apps.renew", "Renew") }
+    static func appsUninstallQuestion(_ name: String) -> String { f("system.apps.uninstall.question", "Uninstall %@ from this iPhone?", name) }
+    static var appsUninstallConfirm: String { s("system.apps.uninstall.confirm", "Uninstall") }
+    static func appsOpenFailed(_ name: String) -> String { f("system.apps.open.failed", "%@ is not on this iPhone any more: renew it, or uninstall it here.", name) }
+    static var appsBusy: String { s("system.apps.busy", "Wait for the step under way to finish.") }
+    static var appsFailedInstall: String { s("system.apps.failed.install", "The app did not install") }
+    static func appsFailedRenew(_ name: String) -> String { f("system.apps.failed.renew", "%@ was not renewed", name) }
+    static func appsFailedRemove(_ name: String) -> String { f("system.apps.failed.remove", "%@ was not uninstalled", name) }
+    static var appsErrorAnotherStore: String { s("system.apps.error.anotherStore", "Another SideStore or AltStore installed this app and renews it: Cartouche leaves it alone.") }
+    static var appsErrorLimit: String { s("system.apps.error.limit", "A free Apple ID signs three apps at once on this iPhone, Cartouche included. Uninstall one first.") }
+    static var appsFooter: String { s("system.apps.footer", "Cartouche installs them with the Apple ID it signs with, as apps of their own on the home screen, and renews them with itself: Renew now and the nightly renewal keep their signatures alive. A free Apple ID signs three apps at once on this iPhone, Cartouche and any app signed by another store included, and ten App IDs a week.") }
+
     // MARK: Cartouche's updates
 
     static var updatesTitle: String { s("system.updates", "Updates") }
@@ -360,7 +385,7 @@ enum CartoucheText {
 
     // MARK: Renewing every night
 
-    static var dailyIntro: String { s("daily.intro", "An automation in Shortcuts can renew Cartouche every night, with no computer. It runs Cartouche’s Refresh All Apps action, which does what Renew now does.") }
+    static var dailyIntro: String { s("daily.intro", "An automation in Shortcuts can renew Cartouche, and the apps it installed on this iPhone, every night, with no computer. It runs Cartouche’s Refresh All Apps action, which does what Renew now does.") }
     static var dailyStepVPN: String { s("daily.step1", "Leave LocalDevVPN connected. Its traffic stays on the iPhone, so it can stay on all day.") }
     static var dailyStepAutomation: String { s("daily.step2", "In Shortcuts, open Automation, then tap +.") }
     static var dailyStepTime: String { s("daily.step3", "Choose Time of Day: a time when the iPhone charges and is online, such as 4 AM, every day. Then choose Run Immediately.") }

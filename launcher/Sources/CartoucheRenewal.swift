@@ -69,6 +69,9 @@ enum CartoucheRenewal {
             let outcome = CartoucheStoreKeychain.data(CartoucheSideStoreOutcome.account)
                 .flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .refresh) }
             CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
+            // The apps Cartouche installed on this iPhone that the renewal
+            // left out: each one's row says so (decision 88).
+            CartoucheIPhoneApps.shared.noteRenewal(outcome: outcome, message: message)
             let seconds = Date().timeIntervalSince(started)
             let failure = message.map {
                 CartoucheFailure.sideStore(outcome: outcome, message: $0, fraction: progress.fractionCompleted,

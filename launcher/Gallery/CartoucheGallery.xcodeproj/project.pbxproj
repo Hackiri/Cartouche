@@ -30,6 +30,7 @@
 		3B9581B1E8BF3CC61EE1B6BD /* ImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88F283A4E0A6DAED9C6A764 /* ImportUITests.swift */; };
 		3D0534E3E71EF71F6CB4DC83 /* CartoucheTextSideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D032E331F780B7F27D061 /* CartoucheTextSideStore.swift */; };
 		3FCD8D3F5D9675CDFAE40578 /* CartoucheSaveBackups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E74C7B7E163ACFA9E3CB1A4 /* CartoucheSaveBackups.swift */; };
+		471F1C61557D26BDF0284A54 /* CartoucheIPhoneApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18775A9EC57685EBFF15ED8D /* CartoucheIPhoneApps.swift */; };
 		4863E336474704444A87B98D /* CartoucheGameLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA890FA438F7E250CBB11143 /* CartoucheGameLanguage.swift */; };
 		49089067391E417D837D3CCA /* CartoucheUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB83DEDC017CDBE7C2AB7B39 /* CartoucheUpdates.swift */; };
 		4974E64DCA28905CFEC6B792 /* CartoucheGameOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2BBA7783C0C0EB24D7CD281 /* CartoucheGameOrientation.swift */; };
@@ -105,6 +106,7 @@
 		EED07BFA174F3C343E6D92D4 /* CartoucheTelemetryReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9557AE12FA6CCCB7A08BA78 /* CartoucheTelemetryReport.swift */; };
 		EFB536A1E482F50E21304A59 /* CartoucheStoredGames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438034C189D1BB1BE4B06CDF /* CartoucheStoredGames.swift */; };
 		F06370AF7C4B9FCBD3602FBB /* CartoucheStorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701A5141444CC5EF3C478A39 /* CartoucheStorageView.swift */; };
+		F2A17087F8D4BAF89B23D3D3 /* CartoucheIPhoneAppList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A0AD454A8891D79C0DB4AC /* CartoucheIPhoneAppList.swift */; };
 		F74566C2556559CCDE538BC0 /* CartoucheRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFAA000874C75CAECD155B7C /* CartoucheRootView.swift */; };
 		FC7FFCBB59961F936D9B3691 /* AppsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388D91171BD09FB88A24A033 /* AppsUITests.swift */; };
 		FD36869B50BBB78F4FE77873 /* CartoucheS3.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5D6A2B7A3F83D273D6A28F /* CartoucheS3.swift */; };
@@ -137,6 +139,7 @@
 		0E27F198E99D609F599C16A2 /* CartouchePickerMeasures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartouchePickerMeasures.swift; sourceTree = "<group>"; };
 		112A985AE0343328660C30C6 /* CartoucheStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorage.swift; sourceTree = "<group>"; };
 		119D032E331F780B7F27D061 /* CartoucheTextSideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheTextSideStore.swift; sourceTree = "<group>"; };
+		18775A9EC57685EBFF15ED8D /* CartoucheIPhoneApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheIPhoneApps.swift; sourceTree = "<group>"; };
 		1BDB7746C4A58EE08EE371AF /* GalleryTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryTesting.swift; sourceTree = "<group>"; };
 		1D6FBF8B0308C65B66140862 /* CartoucheStorageSaves.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageSaves.swift; sourceTree = "<group>"; };
 		1DF8FF46B2B006C5AD205B1D /* CartoucheReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheReporting.swift; sourceTree = "<group>"; };
@@ -160,6 +163,7 @@
 		4042E07E6E827C65C8CB0ACE /* CartoucheFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheFailure.swift; sourceTree = "<group>"; };
 		438034C189D1BB1BE4B06CDF /* CartoucheStoredGames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStoredGames.swift; sourceTree = "<group>"; };
 		452F64C078F843D1FBF107C2 /* CartoucheGameSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheGameSheetView.swift; sourceTree = "<group>"; };
+		49A0AD454A8891D79C0DB4AC /* CartoucheIPhoneAppList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheIPhoneAppList.swift; sourceTree = "<group>"; };
 		4D49AB677136897B4030A406 /* CartoucheSaveSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheSaveSync.swift; sourceTree = "<group>"; };
 		597248F3F7B25A1244648C72 /* CartoucheProblemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheProblemReport.swift; sourceTree = "<group>"; };
 		5B4CA5BFF785AFA40FF8B27D /* CartoucheStorageSFTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartoucheStorageSFTP.swift; sourceTree = "<group>"; };
@@ -308,6 +312,8 @@
 				E6772833488F02BDD71A395F /* CartoucheImportedSigning.swift */,
 				E14E4346B1E9B6D2EB1FBC55 /* CartoucheImportPicker.swift */,
 				6771CD1CF088357FFC308800 /* CartoucheInstallQuestions.swift */,
+				49A0AD454A8891D79C0DB4AC /* CartoucheIPhoneAppList.swift */,
+				18775A9EC57685EBFF15ED8D /* CartoucheIPhoneApps.swift */,
 				9C5FDDBD9A551157F418F326 /* CartoucheLibraryView.swift */,
 				0E27F198E99D609F599C16A2 /* CartouchePickerMeasures.swift */,
 				FC83F282D9A2EFE93A5F44E5 /* CartouchePlayerInfo.swift */,
@@ -512,6 +518,8 @@
 				8CCF5597F51770C0584EDDF1 /* CartoucheGuide.swift in Sources */,
 				94E55DEFBF70F8CA54120329 /* CartoucheGuideView.swift in Sources */,
 				ED898255D4E3F0F41F516F0E /* CartoucheHomeView.swift in Sources */,
+				F2A17087F8D4BAF89B23D3D3 /* CartoucheIPhoneAppList.swift in Sources */,
+				471F1C61557D26BDF0284A54 /* CartoucheIPhoneApps.swift in Sources */,
 				896551CFA2552C09F30957CA /* CartoucheImportPicker.swift in Sources */,
 				6B7EF60152BF929CA426D4C9 /* CartoucheImportedSigning.swift in Sources */,
 				2E61B51DE475432E32BE709A /* CartoucheInstallQuestions.swift in Sources */,

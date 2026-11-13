@@ -101,6 +101,14 @@ class IPhoneAppsTest(unittest.TestCase):
         caught = remove[remove.index("catch"):]
         self.assertIn("removeApp(", caught)
 
+    def test_the_apps_that_failed_stay_out_of_the_measurements(self):
+        # The outcome's facts go to the telemetry with a renewal's event
+        # (CartoucheFailure.sideStoreSuccess); bundle identifiers never do.
+        failure = read(ROOT / "launcher" / "Sources" / "CartoucheFailure.swift")
+        self.assertIn("var failedApps: [String]", failure)
+        self.assertIn("CartoucheIPhoneAppList.failedIdentifiers(written.texts[.failed])", failure)
+        self.assertNotIn('facts["failed"]', failure)
+
     def test_the_bridge_runs_the_three_intents(self):
         bridge = read(BRIDGE)
         self.assertIn("@objc(CartoucheApps)\npublic final class CartoucheApps", bridge)

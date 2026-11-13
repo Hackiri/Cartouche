@@ -738,13 +738,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "An automation in Shortcuts can renew Cartouche every night, with no computer. It runs Cartouche’s Refresh All Apps action, which does what Renew now does."
+            "value" : "An automation in Shortcuts can renew Cartouche, and the apps it installed on this iPhone, every night, with no computer. It runs Cartouche’s Refresh All Apps action, which does what Renew now does."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une automatisation de Raccourcis peut renouveler Cartouche chaque nuit, sans ordinateur. Elle lance l’action Refresh All Apps de Cartouche, qui fait comme Renouveler maintenant."
+            "value" : "Une automatisation de Raccourcis peut renouveler Cartouche, et les apps qu’il a installées sur cet iPhone, chaque nuit, sans ordinateur. Elle lance l’action Refresh All Apps de Cartouche, qui fait comme Renouveler maintenant."
           }
         }
       }
@@ -10677,6 +10677,380 @@
         }
       }
     },
+    "system.apps.busy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait for the step under way to finish."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attendez la fin de l’étape en cours."
+          }
+        }
+      }
+    },
+    "system.apps.count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld apps"
+          }
+        }
+      }
+    },
+    "system.apps.count.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 app"
+          }
+        }
+      }
+    },
+    "system.apps.error.anotherStore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another SideStore or AltStore installed this app and renews it: Cartouche leaves it alone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un autre SideStore ou AltStore a installé cette app et la renouvelle : Cartouche n’y touche pas."
+          }
+        }
+      }
+    },
+    "system.apps.error.limit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A free Apple ID signs three apps at once on this iPhone, Cartouche included. Uninstall one first."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un identifiant Apple gratuit signe trois apps à la fois sur cet iPhone, Cartouche compris. Désinstallez-en une d’abord."
+          }
+        }
+      }
+    },
+    "system.apps.expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "one has expired"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "une a expiré"
+          }
+        }
+      }
+    },
+    "system.apps.failed.install" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app did not install"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app ne s’est pas installée"
+          }
+        }
+      }
+    },
+    "system.apps.failed.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ was not uninstalled"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’a pas été désinstallée"
+          }
+        }
+      }
+    },
+    "system.apps.failed.renew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ was not renewed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’a pas été renouvelée"
+          }
+        }
+      }
+    },
+    "system.apps.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche installs them with the Apple ID it signs with, as apps of their own on the home screen, and renews them with itself: Renew now and the nightly renewal keep their signatures alive. A free Apple ID signs three apps at once on this iPhone, Cartouche and any app signed by another store included, and ten App IDs a week."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche les installe avec l’identifiant Apple qui le signe, comme des apps à part sur l’écran d’accueil, et les renouvelle avec lui : Renouveler maintenant et le renouvellement de nuit entretiennent leurs signatures. Un identifiant Apple gratuit signe trois apps à la fois sur cet iPhone, Cartouche et toute app signée par un autre store compris, et dix App ID par semaine."
+          }
+        }
+      }
+    },
+    "system.apps.install" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install an IPA on this iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer un IPA sur cet iPhone"
+          }
+        }
+      }
+    },
+    "system.apps.installing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installing %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation de %@"
+          }
+        }
+      }
+    },
+    "system.apps.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None yet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune pour l’instant"
+          }
+        }
+      }
+    },
+    "system.apps.open.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is not on this iPhone any more: renew it, or uninstall it here."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est plus sur cet iPhone : renouvelez-la, ou désinstallez-la ici."
+          }
+        }
+      }
+    },
+    "system.apps.removing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstalling %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstallation de %@"
+          }
+        }
+      }
+    },
+    "system.apps.renew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renew"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renouveler"
+          }
+        }
+      }
+    },
+    "system.apps.renewing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renewing %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renouvellement de %@"
+          }
+        }
+      }
+    },
+    "system.apps.soonest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the first expires in %lld days"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la première expire dans %lld jours"
+          }
+        }
+      }
+    },
+    "system.apps.soonest.today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the first expires today"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la première expire aujourd’hui"
+          }
+        }
+      }
+    },
+    "system.apps.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps on this iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps sur cet iPhone"
+          }
+        }
+      }
+    },
+    "system.apps.uninstall.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstaller"
+          }
+        }
+      }
+    },
+    "system.apps.uninstall.question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall %@ from this iPhone?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstaller %@ de cet iPhone ?"
+          }
+        }
+      }
+    },
     "system.auto" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11295,13 +11669,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche renews itself with LocalDevVPN on. Once expired, it no longer opens: install it again with the Cartouche Installer."
+            "value" : "Cartouche renews itself, and the apps it installed on this iPhone, with LocalDevVPN on. Once expired, it no longer opens: install it again with the Cartouche Installer."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche se renouvelle avec LocalDevVPN activé. Expiré, il ne s’ouvre plus : réinstallez-le avec l’Installeur Cartouche."
+            "value" : "Cartouche se renouvelle, ainsi que les apps qu’il a installées sur cet iPhone, avec LocalDevVPN activé. Expiré, il ne s’ouvre plus : réinstallez-le avec l’Installeur Cartouche."
           }
         }
       }
