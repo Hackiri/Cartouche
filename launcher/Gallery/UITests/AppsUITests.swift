@@ -34,15 +34,16 @@ final class AppsUITests: ConsoleTestCase {
         scrollTo(settings, "App settings on the sheet", in: console)
         tap(settings, "App settings on the sheet", in: console)
         expect(console.navigationBars[Words.appSettings].waitForExistence(timeout: 15), "App settings did not open", in: console)
-        // Needs JIT shows the JIT script's row, and hides it again.
+        // Needs JIT shows the JIT script's row, and hides it again: its
+        // switch itself is tapped, once the rows around it stand still.
         let needsJIT = element(in: console.switches, beginningWith: Words.needsJIT)
         expect(needsJIT.waitForExistence(timeout: 10), "App settings shows no Needs JIT", in: console)
-        let before = needsJIT.value as? String
-        needsJIT.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        expect(waitUntil(5) { (needsJIT.value as? String) != before }, "Needs JIT did not change: \(before ?? "no value")", in: console)
+        scrollTo(needsJIT, "Needs JIT in App settings", in: console)
+        flip(needsJIT, "Needs JIT", in: console)
         let choose = element(in: console.buttons, beginningWith: Words.jitScriptChoose)
         expect(choose.waitForExistence(timeout: 10), "Needs JIT did not show the JIT script's row", in: console)
-        needsJIT.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        expect(waitUntil(10) { choose.isHittable }, "The JIT script's row does not stand still", in: console)
+        flip(needsJIT, "Needs JIT, again", in: console)
         expect(waitForGone(choose), "The JIT script's row stayed once Needs JIT went off", in: console)
         back(from: Words.appSettings, in: console)
         let uninstall = element(in: console.buttons, beginningWith: Words.uninstall)
@@ -60,6 +61,33 @@ final class AppsUITests: ConsoleTestCase {
         expect(!console.navigationBars[Words.appSettings].exists, "App settings stayed open from the last sheet", in: console)
         closeSheet(in: console)
         expectMainThreadAnswered(console)
+    }
+
+    /// Flips the switch of TOGGLE, a row of a Form, and waits for its value
+    /// to change, tapping its switch again, up to three times, should it
+    /// not: the simulator drops a tap now and then, as the list under it
+    /// still settles after a push or after rows came or went.
+    @MainActor
+    private func flip(_ toggle: XCUIElement, _ what: String, in app: XCUIApplication,
+                      file: StaticString = #filePath, line: UInt = #line) {
+        let knob = toggle.switches.firstMatch
+        expect(waitUntil(10) { settled(knob) }, "\(what) cannot be tapped yet", in: app, file: file, line: line)
+        let before = toggle.value as? String
+        for _ in 0..<3 {
+            knob.tap()
+            if waitUntil(3, { (toggle.value as? String) != before }) { return }
+        }
+        expect(false, "\(what) did not change in three taps: \(before ?? "no value")", in: app, file: file, line: line)
+    }
+
+    /// Whether ELEMENT can be tapped and has stood still for a moment: a tap
+    /// on a switch that a row slides past can land beside it.
+    @MainActor
+    private func settled(_ element: XCUIElement) -> Bool {
+        guard element.isHittable else { return false }
+        let frame = element.frame
+        Thread.sleep(forTimeInterval: 0.3)
+        return element.isHittable && element.frame == frame
     }
 
     /// The app paused behind the console: the home offers Resume and Quit,
