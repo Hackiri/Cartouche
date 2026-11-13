@@ -232,8 +232,22 @@ struct GalleryScenario {
         let renewal = "{\"allApps\": [" + records.joined(separator: ",") + "]}"
         try? Data(renewal.utf8).write(to: GalleryState.appGroup.appendingPathComponent("widget_data.json"))
         UserDefaults.standard.set(listed, forKey: "CartoucheInstalledApps")
+        // With work: app-ids, the App IDs of an Apple ID that spent its ten
+        // in a week, on other stores' apps: what the page shows once the
+        // player fetched them, with no app of Cartouche's own.
+        if work == "app-ids" {
+            let week = 7 * 86_400.0
+            for (index, (name, identifier)) in [("LiveContainer", "io.github.clabeuhtegrite.cartouche"), ("RetroArch", "com.libretro.RetroArchiOS11"),
+                                                ("LemoNX", "com.ltchipotle.LemoNX"), ("UTM", "com.utmapp.UTM"), ("Delta", "com.rileytestut.Delta"),
+                                                ("SideStore", "com.SideStore.SideStore"), ("DolphiniOS", "me.oatmealdome.DolphiniOS")].enumerated() {
+                appIDs.append("""
+                {"name": "\(name)", "identifier": "GALLERY\(String(format: "%03d", index + 10))", "bundleIdentifier": "\(identifier).GALLERY1234",
+                 "expirationDate": \(Int(Date().addingTimeInterval(week - Double(index) * 86_400 + 3_600).timeIntervalSince1970))}
+                """)
+            }
+        }
         let appIDsFile = GalleryState.appGroup.appendingPathComponent("Cartouche/AppIDs.json")
-        if iphoneApps.isEmpty {
+        if iphoneApps.isEmpty && work != "app-ids" {
             try? FileManager.default.removeItem(at: appIDsFile)
         } else {
             let listing = "{\"date\": \(Int(Date().addingTimeInterval(-3_600).timeIntervalSince1970)), \"appIDs\": [" + appIDs.joined(separator: ",") + "]}"
@@ -514,7 +528,14 @@ struct GalleryScenario {
             let name = String(item[..<colon]), identifier = String(item[item.index(after: colon)...])
             let info = LCAppInfo(name: name, identifier: identifier, folder: name + ".app",
                                  icon: GalleryIcon.make(name: name, key: identifier))
-            return LCAppModel(appInfo: info)
+            let app = LCAppModel(appInfo: info)
+            // The sheet's app needs JIT, with a script for StikDebug (work:
+            // needs-jit, decision 89).
+            if work == "needs-jit", sheet == "app:" + identifier {
+                app.uiIsJITNeeded = true
+                app.jitLaunchScriptJs = Data("// Runs in StikDebug once the debugger is attached.\nlog(\"JIT enabled\");\n".utf8).base64EncodedString()
+            }
+            return app
         }
     }
 
@@ -634,6 +655,25 @@ struct CartoucheGalleryApp: App {
                             }
                         }
                 }
+            }
+        case "app-settings":
+            // The settings page of an app that is not a game (decision 88),
+            // as its sheet opens it.
+            if let sheet = scenario.sheet, sheet.hasPrefix("app:"),
+               let app = entries.apps.first(where: { $0.app?.appInfo.bundleIdentifier() == String(sheet.dropFirst(4)) })?.app {
+                NavigationStack {
+                    CartoucheAppSettingsView(app: app)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button(CartoucheText.done) {}
+                            }
+                        }
+                }
+            }
+        case "iphone-apps":
+            // Apps on this iPhone, as the System page opens it (decision 90).
+            NavigationStack {
+                CartoucheIPhoneAppsView()
             }
         case "setup":
             NavigationStack {
