@@ -166,9 +166,12 @@ screens: no page of SideStore's ever shows (decision 24).
 - `CartoucheIPhoneAppsView.swift`: the System page section **Apps on this
   iPhone**, under the signature and automatic renewal sections, with its
   page. The section shows the count and the soonest expiry, and opens the
-  page; the page lists each app with its name, **Expires** and **Days
-  left** as the signature section shows them (red once expired, orange at
-  two days), **Renewed**, and the buttons **Open** (`sidestore-<identifier>://`
+  page; the page lists each app with its name, its **App ID** (the
+  identifier SideStore registered it under with Apple, the bundle
+  identifier with the team's appended for a free Apple ID, as SideStore's
+  App IDs screen lists it), **Expires** and **Days left** as the signature
+  section shows them (red once expired, orange at two days), **Renewed**,
+  and the buttons **Open** (`sidestore-<identifier>://`
   through `UIApplication.open`, a failure saying the app is not on this
   iPhone any more), **Renew** and **Uninstall**, which asks first. Above the
   list, **Install an IPA on this iPhone** opens the Files picker on IPAs.

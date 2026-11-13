@@ -4,10 +4,11 @@
 //
 //  Apps on this iPhone, on the System page (decision 88): the apps
 //  Cartouche installed as apps of their own through its built-in SideStore,
-//  each with when its signature expires, Open, Renew and Uninstall, and
-//  Install an IPA on this iPhone, from Files. The actions and the list are
-//  CartoucheIPhoneApps'. One action at a time, its progress in its row as
-//  Renew now shows its own; a failure under the row, with its report.
+//  each with its App ID, when its signature expires, Open, Renew and
+//  Uninstall, and Install an IPA on this iPhone, from Files. The actions
+//  and the list are CartoucheIPhoneApps'. One action at a time, its
+//  progress in its row as Renew now shows its own; a failure under the
+//  row, with its report.
 //
 
 import SwiftUI
@@ -124,6 +125,15 @@ struct CartoucheIPhoneAppsView: View {
 
     @ViewBuilder
     private func appRows(_ app: CartoucheIPhoneApp) -> some View {
+        // The identifier SideStore registered the app under with Apple, as
+        // its App IDs screen lists it: the bundle identifier with the team's
+        // appended for a free Apple ID.
+        LabeledContent(CartoucheText.appsAppID) {
+            Text(app.resignedBundleIdentifier)
+                .font(.footnote)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
         if let expirationDate = app.expirationDate, let daysLeft = app.daysLeft {
             LabeledContent(CartoucheText.expires, value: expirationDate.formatted(date: .abbreviated, time: .shortened))
             LabeledContent(CartoucheText.daysLeft) {

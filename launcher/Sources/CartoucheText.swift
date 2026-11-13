@@ -329,6 +329,7 @@ enum CartoucheText {
 
     static var appsTitle: String { s("system.apps.title", "Apps on this iPhone") }
     static var appsNone: String { s("system.apps.none", "None yet") }
+    static var appsAppID: String { s("system.apps.appID", "App ID") }
     static func appsCount(_ count: Int) -> String { f("system.apps.count", "%lld apps", count) }
     static var appsCountOne: String { s("system.apps.count.one", "1 app") }
     static func appsSoonest(_ days: Int) -> String { f("system.apps.soonest", "the first expires in %lld days", days) }
