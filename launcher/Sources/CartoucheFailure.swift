@@ -453,6 +453,12 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         case device
         case refresh
         case update
+        /// The apps Cartouche installs on this iPhone (decision 88,
+        /// app/patches/sidestore/0022): an install, a renewal of some of
+        /// them, a removal.
+        case install
+        case apps
+        case remove
     }
 
     var action: Action
@@ -494,6 +500,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             case codeAsked, bundledCertificate, activeCertificate, certificates, teams, codeMode, teamType
             case service, retryAfter
             case reason, missing
+            case failed
         }
 
         var version: Int
@@ -513,7 +520,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             for key in [Key.seconds, .percent, .apple, .http, .network, .certificates, .teams, .retryAfter] {
                 if let value = try? values.decodeIfPresent(Int.self, forKey: key) { ints[key] = value }
             }
-            for key in [Key.stage, .trail, .family, .kind, .codes, .host, .codeMode, .teamType, .service, .reason, .missing] {
+            for key in [Key.stage, .trail, .family, .kind, .codes, .host, .codeMode, .teamType, .service, .reason, .missing, .failed] {
                 if let value = try? values.decodeIfPresent(String.self, forKey: key) { texts[key] = value }
             }
             for key in [Key.codeAsked, .bundledCertificate, .activeCertificate] {
@@ -564,6 +571,12 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         }
         for key in [Written.Key.codeMode, .teamType, .reason, .missing] {
             if let name = written.name(key) { facts[key.rawValue] = .text(name) }
+        }
+        // The apps that failed a renewal, by their bundle identifiers (patch
+        // 0022): those that read as one, none of the rest.
+        if let failed = written.texts[.failed] {
+            let identifiers = failed.split(separator: ",").map(String.init).filter(CartoucheFailure.isDomain)
+            if !identifiers.isEmpty, identifiers.count <= 50 { facts["failed"] = .text(identifiers.joined(separator: ",")) }
         }
         self.facts = facts
     }

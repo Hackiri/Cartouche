@@ -244,6 +244,10 @@ class SideStoreOutcomeTest(unittest.TestCase):
         self.sources = own_sources()
         self.sign_in = self.files["SideStore/Intents/CartoucheSignInIntent.swift"]
         self.device = patched("SideStore/Intents/CartoucheRegisterDeviceIntent.swift")
+        # The apps Cartouche installs on this iPhone (app/patches/sidestore/0022).
+        self.apps = {name: patched(f"SideStore/Intents/{name}.swift")
+                     for name in ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent")}
+        self.apps_request = patched("SideStore/Intents/CartoucheAppsRequest.swift")
 
     def test_both_sides_name_the_same_keychain_item(self):
         account = re.compile(r'static let account = "([^"]+)"')
@@ -255,7 +259,7 @@ class SideStoreOutcomeTest(unittest.TestCase):
     def test_each_action_leaves_the_one_cartouche_waits_for(self):
         theirs = cases(block(self.outcome, "enum Action: String", "SideStore's actions"))
         mine = cases(block(self.ours, "enum Action: String", "Cartouche's actions"))
-        self.assertEqual(theirs, {"signIn", "device", "refresh", "update"})
+        self.assertEqual(theirs, {"signIn", "device", "refresh", "update", "install", "apps", "remove"})
         self.assertEqual(theirs, mine)
         left = {
             "SideStore/Intents/CartoucheSignInIntent.swift": "signIn",
@@ -265,8 +269,11 @@ class SideStoreOutcomeTest(unittest.TestCase):
         for name, action in left.items():
             self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.files[name]), [action], name)
         self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.device), ["device"])
+        for name, action in (("CartoucheInstallAppIntent", "install"), ("CartoucheRefreshAppsIntent", "apps"),
+                             ("CartoucheRemoveAppIntent", "remove")):
+            self.assertEqual(re.findall(r"CartoucheOutcome\(action: \.(\w+)\)", self.apps[name]), [action], name)
         waited = {"CartoucheAccount.swift": ["signIn", "device"], "CartoucheRenewal.swift": ["refresh"],
-                  "CartoucheUpdates.swift": ["update"]}
+                  "CartoucheUpdates.swift": ["update"], "CartoucheIPhoneApps.swift": ["install", "apps", "remove"]}
         for name, actions in waited.items():
             text = (LAUNCHER / name).read_text(encoding="utf-8")
             self.assertEqual(re.findall(r"CartoucheSideStoreOutcome\(data: \$0, expecting: \.(\w+)", text), actions, name)
@@ -276,6 +283,10 @@ class SideStoreOutcomeTest(unittest.TestCase):
         written = set(re.findall(r'^\s*"(\w+)": ', save, re.M)) | set(re.findall(r'outcome\["(\w+)"\]', save))
         noted = set(re.findall(r'\.note\("(\w+)"', self.files["SideStore/Intents/CartoucheSignInIntent.swift"]))
         self.assertIn("codeAsked", noted)
+        # The apps that failed a renewal, which Cartouche shows under each.
+        for text in list(self.apps.values()) + [self.files["AltStore/Intents/App Intents/RefreshAllAppsIntent.swift"]]:
+            noted |= set(re.findall(r'\.note\("(\w+)"', text))
+        self.assertIn("failed", noted)
         keys = cases(block(self.ours, "enum Key: String, CodingKey", "the keys Cartouche reads"))
         self.assertEqual(written | noted, keys)
         # Each one read as a number, a name or a flag, apart from the four
@@ -353,11 +364,14 @@ class SideStoreOutcomeTest(unittest.TestCase):
         minimuxer = error_cases(SIDESTORE / "Dependencies" / "minimuxer" / "Sources" / "MinimuxerError.swift",
                                 "MinimuxerError")
         mine = block(self.files["SideStore/Intents/CartoucheSignInIntent.swift"], "enum Kind: String", "the sign-in's kinds")
+        # And the refusals of the apps Cartouche installs on this iPhone, by
+        # the kind each names (CartoucheAppsError.kind).
+        apps_kinds = set(re.findall(r'return "(\w+)"', block(self.apps_request, "var kind: String", "the apps' kinds")))
         self.assertLessEqual(found["portal"], portal)
         self.assertLessEqual(found["signer"], signer)
         self.assertLessEqual(found["operation"], operation | minimuxer)
         self.assertEqual(found["operation"], found["minimuxer"])
-        self.assertLessEqual(found["cartouche"], cases(mine))
+        self.assertLessEqual(found["cartouche"], cases(mine) | apps_kinds)
 
     def test_the_bridges_sentences_are_still_livecontainers(self):
         listed = re.search(r"static let bridgeSentences[^=]*= \[(.*?)\n    \]", FAILURE.read_text(encoding="utf-8"), re.S)

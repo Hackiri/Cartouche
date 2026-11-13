@@ -1,0 +1,543 @@
+From de9727f271f53efdd63fd99e66e790eada122ffc Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 11:17:15 -0500
+Subject: [PATCH] Install, renew and remove apps on the iPhone for Cartouche
+
+Cartouche installs an IPA as an app of its own on this iPhone through
+the SideStore built into it, lists those apps, renews them and
+uninstalls them, on its own screens (decision 88). SideStore gets three
+actions for it, headless, which Cartouche runs through LiveContainer's
+SideStoreSupport in LiveProcess as it runs Refresh All Apps:
+CartoucheInstallAppIntent, CartoucheRefreshAppsIntent and
+CartoucheRemoveAppIntent. Each takes its request from the app group
+(CartoucheAppsRequest), where Cartouche also keeps the list of the apps
+it installed (CartoucheInstalledApps), which Refresh All Apps renews
+with Cartouche (patch 0017).
+
+The install refuses, before anything goes to Apple, an app this
+database already holds that is not on the list, another store's, and
+an install that would pass the three active apps of a free Apple ID.
+The removal deletes the app from the iPhone, or clears its record alone
+when the iPhone has no such app any more. Refresh All Apps notes the
+apps that failed in its outcome (CartoucheOutcome, patch 0014), for
+Cartouche to show under each; CartoucheOutcome tells the refusals apart
+by their kind, as the sign-in's.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ .../App Intents/RefreshAllAppsIntent.swift    |  15 ++-
+ AltStore/Managing Apps/AppManager.swift       |   3 +-
+ SideStore/Intents/CartoucheAppsRequest.swift  | 100 ++++++++++++++++
+ .../Intents/CartoucheInstallAppIntent.swift   | 111 ++++++++++++++++++
+ SideStore/Intents/CartoucheOutcome.swift      |   9 ++
+ .../Intents/CartoucheRefreshAppsIntent.swift  |  83 +++++++++++++
+ .../Intents/CartoucheRemoveAppIntent.swift    | 101 ++++++++++++++++
+ 7 files changed, 419 insertions(+), 3 deletions(-)
+ create mode 100644 SideStore/Intents/CartoucheAppsRequest.swift
+ create mode 100644 SideStore/Intents/CartoucheInstallAppIntent.swift
+ create mode 100644 SideStore/Intents/CartoucheRefreshAppsIntent.swift
+ create mode 100644 SideStore/Intents/CartoucheRemoveAppIntent.swift
+
+diff --git a/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift b/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift
+index e2d775f..2ef2c12 100644
+--- a/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift	
++++ b/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift	
+@@ -149,7 +149,7 @@ struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Predictab
+             
+             try await withThrowingTaskGroup(of: Void.self) { taskGroup in
+                 taskGroup.addTask {
+-                    try await self.refreshAllApps()
++                    try await self.refreshAllApps(outcome: outcome)
+                 }
+                 
+                 taskGroup.addTask {
+@@ -192,7 +192,10 @@ struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Predictab
+ @available(iOS 17.0, tvOS 17.0, *)
+ private extension RefreshAllAppsIntent
+ {
+-    func refreshAllApps() async throws
++    /// OUTCOME learns which apps failed, for Cartouche to show under each
++    /// of the apps it installed on this iPhone (decision 88): the first
++    /// failure is what this throws, as before.
++    func refreshAllApps(outcome: CartoucheOutcome) async throws
+     {
+         try await DatabaseManager.shared.start()
+         
+@@ -205,6 +208,14 @@ private extension RefreshAllAppsIntent
+                 {
+                     let results = try result.get()
+                     
++                    let failed = results.compactMap { identifier, result -> String? in
++                        if case .failure = result { return identifier }
++                        return nil
++                    }
++                    if !failed.isEmpty
++                    {
++                        outcome.note("failed", failed.sorted().joined(separator: ","))
++                    }
+                     for (_, result) in results
+                     {
+                         guard case let .failure(error) = result else { continue }
+diff --git a/AltStore/Managing Apps/AppManager.swift b/AltStore/Managing Apps/AppManager.swift
+index 9397828..c8b9f97 100644
+--- a/AltStore/Managing Apps/AppManager.swift	
++++ b/AltStore/Managing Apps/AppManager.swift	
+@@ -485,7 +485,8 @@ final class AppManager: ObservableObject, @unchecked Sendable
+         }
+     }
+ 
+-    private static func readAppMetadata(from url: URL, packageType: PackageType) throws -> (bundleIdentifier: String, name: String) {
++    // Cartouche: what an IPA is, before it is installed (CartoucheInstallAppIntent).
++    static func readAppMetadata(from url: URL, packageType: PackageType) throws -> (bundleIdentifier: String, name: String) {
+         switch packageType {
+         case .ipa:
+             let reader = try Archive.Reader.open(at: url)
+diff --git a/SideStore/Intents/CartoucheAppsRequest.swift b/SideStore/Intents/CartoucheAppsRequest.swift
+new file mode 100644
+index 0000000..a8978e3
+--- /dev/null
++++ b/SideStore/Intents/CartoucheAppsRequest.swift
+@@ -0,0 +1,100 @@
++//
++//  CartoucheAppsRequest.swift
++//  SideStore
++//
++//  Cartouche: what the launcher asks of the built-in SideStore for the apps
++//  Cartouche installs on this iPhone (decision 88), and the list of those
++//  apps, both in the app group the two share. Cartouche writes the request
++//  before it runs an intent (CartoucheInstallAppIntent,
++//  CartoucheRefreshAppsIntent, CartoucheRemoveAppIntent); the intent takes
++//  it and keeps the list, which InstalledApp.fetchCartoucheApps reads to
++//  renew those apps with Cartouche (patch 0017).
++//
++
++import Foundation
++
++enum CartoucheAppsRequest
++{
++    static let requestKey = "CartoucheAppsRequest"
++    static let installedKey = "CartoucheInstalledApps"
++
++    static var defaults: UserDefaults?
++    {
++        guard let appGroup = Bundle.main.altstoreAppGroup else { return nil }
++        return UserDefaults(suiteName: appGroup)
++    }
++
++    /// The request the launcher left, taken: the next intent finds none.
++    static func take() -> [String: Any]?
++    {
++        guard let defaults, let request = defaults.dictionary(forKey: self.requestKey) else { return nil }
++        defaults.removeObject(forKey: self.requestKey)
++        return request
++    }
++
++    /// The apps Cartouche installed, as the launcher lists them: each one's
++    /// bundle identifier, the identifier SideStore signed it under, and its
++    /// name.
++    static var installed: [[String: String]]
++    {
++        get { self.defaults?.array(forKey: self.installedKey) as? [[String: String]] ?? [] }
++        set { self.defaults?.set(newValue, forKey: self.installedKey) }
++    }
++
++    static func isInstalled(_ bundleIdentifier: String) -> Bool
++    {
++        self.installed.contains { $0["bundleIdentifier"] == bundleIdentifier }
++    }
++
++    static func remember(bundleIdentifier: String, resignedBundleIdentifier: String, name: String)
++    {
++        var listed = self.installed.filter { $0["bundleIdentifier"] != bundleIdentifier }
++        listed.append(["bundleIdentifier": bundleIdentifier, "resignedBundleIdentifier": resignedBundleIdentifier, "name": name])
++        self.installed = listed
++    }
++
++    static func forget(bundleIdentifier: String)
++    {
++        self.installed = self.installed.filter { $0["bundleIdentifier"] != bundleIdentifier }
++    }
++}
++
++/// What refuses an action in Cartouche's own words, before SideStore starts
++/// it. CartoucheOutcome tells them apart by their kind, as it does the
++/// sign-in's (CartoucheSignInError).
++enum CartoucheAppsError: LocalizedError
++{
++    /// The launcher left no request, or not the one this intent takes.
++    case noRequest
++    /// The app is in this database, installed by another SideStore or
++    /// AltStore of the same Apple ID, which renews it: not Cartouche's to
++    /// take over.
++    case anotherStoresApp(String)
++    /// A free Apple ID signs that many apps at once on this iPhone, and they
++    /// are all taken.
++    case appLimit(Int)
++    /// The app is not on Cartouche's list: not its to renew or remove.
++    case notListed(String)
++
++    var kind: String
++    {
++        switch self
++        {
++        case .noRequest: return "noRequest"
++        case .anotherStoresApp: return "anotherStoresApp"
++        case .appLimit: return "appLimit"
++        case .notListed: return "notListed"
++        }
++    }
++
++    var errorDescription: String?
++    {
++        switch self
++        {
++        case .noRequest: return "Cartouche left no request for this action."
++        case .anotherStoresApp(let name): return "\(name) was installed by another SideStore or AltStore, which renews it."
++        case .appLimit(let limit): return "A free Apple ID signs \(limit) apps at once on this iPhone, and they are all taken."
++        case .notListed(let name): return "\(name) is not an app Cartouche installed."
++        }
++    }
++}
+diff --git a/SideStore/Intents/CartoucheInstallAppIntent.swift b/SideStore/Intents/CartoucheInstallAppIntent.swift
+new file mode 100644
+index 0000000..9ee4647
+--- /dev/null
++++ b/SideStore/Intents/CartoucheInstallAppIntent.swift
+@@ -0,0 +1,111 @@
++//
++//  CartoucheInstallAppIntent.swift
++//  SideStore
++//
++//  Cartouche: installs an IPA as an app of its own on this iPhone, signed
++//  with the player's Apple ID, as My Apps' sideloading would. Cartouche
++//  copies the IPA into the app group and leaves its path in the request
++//  (CartoucheAppsRequest), then runs this through LiveContainer's
++//  SideStoreSupport, in LiveProcess, as it runs Refresh All Apps, so that
++//  the player never sees SideStore. Shortcuts does not list it.
++//
++//  Two refusals come before anything goes to Apple: an app this database
++//  already holds that is not on Cartouche's list, another store's, and an
++//  install that would pass the three active apps of a free Apple ID, as
++//  SideStore itself only deactivates after the App ID is spent.
++//
++
++import AppIntents
++import CoreData
++import Foundation
++
++@available(iOS 17.0, tvOS 17.0, *)
++struct CartoucheInstallAppIntent: AppIntent, ProgressReportingIntent
++{
++    static var title: LocalizedStringResource = "Install an app for Cartouche"
++    static var description = IntentDescription("Installs an IPA on this iPhone for Cartouche.")
++    static var openAppWhenRun = false
++    static var isDiscoverable: Bool { false }
++
++    init()
++    {
++        self.progress.completedUnitCount = 0
++        self.progress.totalUnitCount = 100
++    }
++
++    func perform() async throws -> some IntentResult
++    {
++        let outcome = CartoucheOutcome(action: .install)
++        guard let request = CartoucheAppsRequest.take(), let path = request["ipa"] as? String else {
++            let error = CartoucheAppsError.noRequest
++            outcome.save(error: error, stage: "request", progress: self.progress)
++            throw IntentError(error)
++        }
++        let ipa = URL(fileURLWithPath: path)
++        // The copy is Cartouche's for this install alone.
++        defer { try? FileManager.default.removeItem(at: ipa) }
++        do
++        {
++            try await DatabaseManager.shared.start()
++            self.progress.completedUnitCount = 5
++
++            let (bundleIdentifier, name) = try AppManager.readAppMetadata(from: ipa, packageType: .ipa)
++            try await self.refuseWhatIsNotCartouchesToInstall(bundleIdentifier: bundleIdentifier, name: name)
++            self.progress.completedUnitCount = 10
++
++            let intentProgress = self.progress
++            let installedApp = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<InstalledApp, Error>) in
++                DispatchQueue.main.async {
++                    let group = AppManager.shared.install(.url(ipa), presentingViewController: nil) { result in
++                        continuation.resume(with: result)
++                    }
++                    intentProgress.addChild(group.progress, withPendingUnitCount: 90)
++                }
++            }
++            let (installed, resigned, installedName) = await installedApp.managedObjectContext?.perform {
++                (installedApp.bundleIdentifier, installedApp.resignedBundleIdentifier, installedApp.name)
++            } ?? (bundleIdentifier, bundleIdentifier, name)
++            CartoucheAppsRequest.remember(bundleIdentifier: installed, resignedBundleIdentifier: resigned, name: installedName)
++
++            outcome.save(error: nil, progress: self.progress)
++            return .result()
++        }
++        catch
++        {
++            outcome.save(error: error, progress: self.progress)
++            throw IntentError(error)
++        }
++    }
++
++    /// Another store's app, or the last of a free Apple ID's three: refused
++    /// here, in Cartouche's words, rather than after Apple registered the
++    /// App ID.
++    private func refuseWhatIsNotCartouchesToInstall(bundleIdentifier: String, name: String) async throws
++    {
++        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
++            DispatchQueue.main.async {
++                let context = DatabaseManager.shared.viewContext
++                let predicate = NSPredicate(format: "%K == %@", #keyPath(InstalledApp.bundleIdentifier), bundleIdentifier)
++                if let existing = InstalledApp.first(satisfying: predicate, in: context),
++                   !CartoucheAppsRequest.isInstalled(bundleIdentifier)
++                {
++                    continuation.resume(throwing: CartoucheAppsError.anotherStoresApp(existing.name))
++                    return
++                }
++                if let limit = UserDefaults.standard.activeAppsLimit, !CartoucheAppsRequest.isInstalled(bundleIdentifier)
++                {
++                    let taken = InstalledApp.fetch(InstalledApp.activeAppsFetchRequest(), in: context)
++                        .filter { ($0.team?.type ?? .unknown) == .free }
++                        .map { $0.requiredActiveSlots }
++                        .reduce(0, +)
++                    if taken + 1 > limit
++                    {
++                        continuation.resume(throwing: CartoucheAppsError.appLimit(limit))
++                        return
++                    }
++                }
++                continuation.resume()
++            }
++        }
++    }
++}
+diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
+index 444c6be..80f874d 100644
+--- a/SideStore/Intents/CartoucheOutcome.swift
++++ b/SideStore/Intents/CartoucheOutcome.swift
+@@ -49,6 +49,11 @@ final class CartoucheOutcome: @unchecked Sendable
+         case device
+         case refresh
+         case update
++        // Cartouche's apps on this iPhone (decision 88): an install, a renewal
++        // of some of them, a removal.
++        case install
++        case apps
++        case remove
+     }
+ 
+     static let account = "cartouche.outcome"
+@@ -321,6 +326,10 @@ final class CartoucheOutcome: @unchecked Sendable
+         {
+             return ("cartouche", error.kind.rawValue)
+         }
++        if let error = error as? CartoucheAppsError
++        {
++            return ("cartouche", error.kind)
++        }
+ 
+         let family: String
+         switch error
+diff --git a/SideStore/Intents/CartoucheRefreshAppsIntent.swift b/SideStore/Intents/CartoucheRefreshAppsIntent.swift
+new file mode 100644
+index 0000000..4bfa1ec
+--- /dev/null
++++ b/SideStore/Intents/CartoucheRefreshAppsIntent.swift
+@@ -0,0 +1,83 @@
++//
++//  CartoucheRefreshAppsIntent.swift
++//  SideStore
++//
++//  Cartouche: renews the apps Cartouche installed on this iPhone that the
++//  request names (CartoucheAppsRequest), one or several, as My Apps'
++//  Refresh would. Cartouche runs it through LiveContainer's
++//  SideStoreSupport, in LiveProcess, so that the player never sees
++//  SideStore; Renew now keeps running Refresh All Apps, which renews these
++//  apps with Cartouche (patch 0017). Shortcuts does not list it.
++//
++
++import AppIntents
++import CoreData
++import Foundation
++
++@available(iOS 17.0, tvOS 17.0, *)
++struct CartoucheRefreshAppsIntent: AppIntent, ProgressReportingIntent
++{
++    static var title: LocalizedStringResource = "Renew apps for Cartouche"
++    static var description = IntentDescription("Renews apps Cartouche installed on this iPhone.")
++    static var openAppWhenRun = false
++    static var isDiscoverable: Bool { false }
++
++    init()
++    {
++        self.progress.completedUnitCount = 0
++        self.progress.totalUnitCount = 100
++    }
++
++    func perform() async throws -> some IntentResult
++    {
++        let outcome = CartoucheOutcome(action: .apps)
++        guard let request = CartoucheAppsRequest.take(), let asked = request["apps"] as? [String] else {
++            let error = CartoucheAppsError.noRequest
++            outcome.save(error: error, stage: "request", progress: self.progress)
++            throw IntentError(error)
++        }
++        do
++        {
++            try await DatabaseManager.shared.start()
++            self.progress.completedUnitCount = 5
++
++            // Those on Cartouche's list alone: never another store's app.
++            let identifiers = asked.filter { CartoucheAppsRequest.isInstalled($0) }
++            let intentProgress = self.progress
++            let results = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Result<InstalledApp, Error>], Error>) in
++                DispatchQueue.main.async {
++                    let context = DatabaseManager.shared.viewContext
++                    let predicate = NSPredicate(format: "%K IN %@", #keyPath(InstalledApp.bundleIdentifier), identifiers)
++                    let apps = InstalledApp.all(satisfying: predicate, in: context)
++                    guard !apps.isEmpty else {
++                        continuation.resume(throwing: CartoucheAppsError.notListed(asked.joined(separator: ", ")))
++                        return
++                    }
++                    let group = AppManager.shared.refresh(apps, presentingViewController: nil)
++                    group.completionHandler = { results in
++                        continuation.resume(returning: results)
++                    }
++                    intentProgress.addChild(group.progress, withPendingUnitCount: 95)
++                }
++            }
++
++            let failed = results.compactMap { identifier, result -> (String, Error)? in
++                if case .failure(let error) = result { return (identifier, error) }
++                return nil
++            }
++            if let first = failed.first
++            {
++                outcome.note("failed", failed.map { $0.0 }.sorted().joined(separator: ","))
++                throw first.1
++            }
++
++            outcome.save(error: nil, progress: self.progress)
++            return .result()
++        }
++        catch
++        {
++            outcome.save(error: error, progress: self.progress)
++            throw IntentError(error)
++        }
++    }
++}
+diff --git a/SideStore/Intents/CartoucheRemoveAppIntent.swift b/SideStore/Intents/CartoucheRemoveAppIntent.swift
+new file mode 100644
+index 0000000..8480125
+--- /dev/null
++++ b/SideStore/Intents/CartoucheRemoveAppIntent.swift
+@@ -0,0 +1,101 @@
++//
++//  CartoucheRemoveAppIntent.swift
++//  SideStore
++//
++//  Cartouche: uninstalls an app Cartouche installed on this iPhone, the one
++//  the request names (CartoucheAppsRequest), as My Apps' Delete would: off
++//  the iPhone through minimuxer, then out of this database. An app the
++//  player already deleted from the home screen only leaves the database.
++//  Either way it leaves Cartouche's list. Cartouche runs it through
++//  LiveContainer's SideStoreSupport, in LiveProcess, so that the player
++//  never sees SideStore. Shortcuts does not list it.
++//
++
++import AppIntents
++import CoreData
++import Foundation
++import minimuxer
++
++@available(iOS 17.0, tvOS 17.0, *)
++struct CartoucheRemoveAppIntent: AppIntent, ProgressReportingIntent
++{
++    static var title: LocalizedStringResource = "Uninstall an app for Cartouche"
++    static var description = IntentDescription("Uninstalls an app Cartouche installed on this iPhone.")
++    static var openAppWhenRun = false
++    static var isDiscoverable: Bool { false }
++
++    init()
++    {
++        self.progress.completedUnitCount = 0
++        self.progress.totalUnitCount = 100
++    }
++
++    func perform() async throws -> some IntentResult
++    {
++        let outcome = CartoucheOutcome(action: .remove)
++        guard let request = CartoucheAppsRequest.take(), let identifier = request["app"] as? String else {
++            let error = CartoucheAppsError.noRequest
++            outcome.save(error: error, stage: "request", progress: self.progress)
++            throw IntentError(error)
++        }
++        do
++        {
++            guard CartoucheAppsRequest.isInstalled(identifier) else { throw CartoucheAppsError.notListed(identifier) }
++            try await DatabaseManager.shared.start()
++            self.progress.completedUnitCount = 5
++
++            let installedApp = try await self.installedApp(identifier)
++            var stage: String? = nil
++            do
++            {
++                try await self.run { completion in AppManager.shared.deleteApp(installedApp, presentingViewController: nil, completionHandler: completion) }
++            }
++            catch let error as MinimuxerError
++            {
++                // The iPhone has no such app any more, deleted from the home
++                // screen: the record alone goes. Any other failure of
++                // minimuxer, the VPN or the pairing file, stops here.
++                guard case .uninstallApp = error else { throw error }
++                stage = "recordOnly"
++                try await self.run { completion in AppManager.shared.removeApp(installedApp, presentingViewController: nil, completionHandler: completion) }
++            }
++            CartoucheAppsRequest.forget(bundleIdentifier: identifier)
++
++            self.progress.completedUnitCount = 100
++            outcome.save(error: nil, stage: stage, progress: self.progress)
++            return .result()
++        }
++        catch
++        {
++            outcome.save(error: error, progress: self.progress)
++            throw IntentError(error)
++        }
++    }
++
++    private func installedApp(_ identifier: String) async throws -> InstalledApp
++    {
++        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<InstalledApp, Error>) in
++            DispatchQueue.main.async {
++                let predicate = NSPredicate(format: "%K == %@", #keyPath(InstalledApp.bundleIdentifier), identifier)
++                if let app = InstalledApp.first(satisfying: predicate, in: DatabaseManager.shared.viewContext)
++                {
++                    continuation.resume(returning: app)
++                }
++                else
++                {
++                    continuation.resume(throwing: CartoucheAppsError.notListed(identifier))
++                }
++            }
++        }
++    }
++
++    /// Runs one of AppManager's removals on the main queue, as My Apps does.
++    private func run<T>(_ action: @escaping (@escaping (Result<T, Error>) -> Void) -> Void) async throws
++    {
++        _ = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
++            DispatchQueue.main.async {
++                action { result in continuation.resume(with: result) }
++            }
++        }
++    }
++}
+-- 
+2.54.0
+
