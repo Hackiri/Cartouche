@@ -50,7 +50,7 @@ final class SystemUITests: ConsoleTestCase {
     }
 
     /// Apps on this iPhone lists each app Cartouche installed with its days
-    /// left, and Uninstall asks first (decision 88).
+    /// left, and Uninstall asks first (decision 90).
     @MainActor
     func testAppsOnThisIPhoneListsEachAppAndAsksBeforeUninstalling() {
         let app = openConsole(Launch(iphoneApps: ["UTM:com.utmapp.UTM:3", "Delta:com.rileytestut.Delta:0"]))

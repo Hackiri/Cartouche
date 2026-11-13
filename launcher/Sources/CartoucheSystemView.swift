@@ -301,7 +301,7 @@ struct CartoucheSystemView: View {
             .padding(.vertical, 4)
         } else {
             Button(CartoucheText.renewNow, systemImage: "arrow.triangle.2.circlepath", action: renew)
-                // One action of the built-in SideStore at a time (decision 88).
+                // One action of the built-in SideStore at a time (decision 90).
                 .disabled(apps.work != nil)
         }
         if let renewalReport {

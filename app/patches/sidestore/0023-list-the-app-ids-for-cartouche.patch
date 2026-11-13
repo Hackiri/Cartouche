@@ -5,7 +5,7 @@ Subject: [PATCH] List the App IDs for Cartouche
 
 Cartouche shows, under the apps it installed on this iPhone, the App IDs
 Apple keeps for the player's Apple ID, as SideStore's own App IDs page
-lists them (decision 88): each app ever signed with the Apple ID, by any
+lists them (decision 90): each app ever signed with the Apple ID, by any
 SideStore or AltStore, has one, and a free Apple ID registers ten in
 seven days, so that an install refused for the limit shows which ones
 hold it. SideStore gets a fourth headless action for it,
@@ -32,7 +32,7 @@ index 0000000..ea7c9c5
 +//
 +//  Cartouche: lists the App IDs Apple keeps for the player's Apple ID, as
 +//  SideStore's own App IDs page does, for Cartouche's System page to show
-+//  under the apps it installed on this iPhone (decision 88). Each app ever
++//  under the apps it installed on this iPhone (decision 90). Each app ever
 +//  signed with the Apple ID, by any SideStore or AltStore, has one; a free
 +//  Apple ID registers ten in seven days, and once they are spent no new app
 +//  installs until the oldest expires, which is what the player wants to see

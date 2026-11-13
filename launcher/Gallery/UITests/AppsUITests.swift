@@ -2,10 +2,10 @@
 //  AppsUITests.swift
 //  CartoucheGalleryUITests
 //
-//  An app that is not a game, installed in Cartouche (decision 86): on the
+//  An app that is not a game, installed in Cartouche (decision 88): on the
 //  home's shelf after the games, with Open and Details; its sheet, with App
 //  settings, which opens and comes back, whose Needs JIT switch shows the
-//  JIT script's row (decision 87), and Uninstall; and the app paused behind
+//  JIT script's row (decision 89), and Uninstall; and the app paused behind
 //  the console, which the home offers to resume or to quit.
 //
 

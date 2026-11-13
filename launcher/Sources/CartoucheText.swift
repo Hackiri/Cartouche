@@ -31,7 +31,7 @@ enum CartoucheText {
     static var noSheet: String { s("games.noSheet", "No sheet yet") }
     static var importCopy: String { s("action.import", "Import my copy") }
     static var play: String { s("action.play", "Play") }
-    /// An app that is not a game starts with Open (decision 86).
+    /// An app that is not a game starts with Open (decision 88).
     static var open: String { s("action.open", "Open") }
     static var done: String { s("action.done", "Done") }
 
@@ -291,7 +291,7 @@ enum CartoucheText {
     static var sheets: String { s("system.cartouche.sheets", "Game sheets") }
     static var coversCredit: String { s("system.covers.credit", "Covers, artworks and descriptions of the games: IGDB.com.") }
 
-    // MARK: An app that is not a game (decision 86)
+    // MARK: An app that is not a game (decision 88)
 
     static var appInstalled: String { s("status.app.installed", "Installed") }
     static var appSettingsTitle: String { s("app.settings.title", "App settings") }
@@ -307,7 +307,7 @@ enum CartoucheText {
     static var appOrientationPortrait: String { s("app.settings.orientation.portrait", "Portrait") }
     static var appOrientationLandscape: String { s("app.settings.orientation.landscape", "Landscape") }
     static var appSettingsFooter: String { s("app.settings.footer", "LiveContainer applies them the next time the app starts.") }
-    // JIT for such an app, through StikDebug (decision 87).
+    // JIT for such an app, through StikDebug (decision 89).
     static var appNeedsJIT: String { s("app.settings.jit", "Needs JIT") }
     static var appJITScript: String { s("app.settings.jit.script", "JIT script") }
     static var appJITScriptNone: String { s("app.settings.jit.script.none", "None") }
@@ -325,7 +325,7 @@ enum CartoucheText {
     static var uninstallAppKeep: String { s("uninstall.app.keep", "Uninstall, keep its data") }
     static var uninstallAppErase: String { s("uninstall.app.erase", "Uninstall and erase its data") }
 
-    // MARK: Apps on this iPhone (decision 88)
+    // MARK: Apps on this iPhone (decision 90)
 
     static var appsTitle: String { s("system.apps.title", "Apps on this iPhone") }
     static var appsNone: String { s("system.apps.none", "None yet") }

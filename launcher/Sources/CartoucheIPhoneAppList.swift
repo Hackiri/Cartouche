@@ -3,7 +3,7 @@
 //  Cartouche
 //
 //  The apps Cartouche installed on this iPhone through the built-in
-//  SideStore, as apps of their own (decision 88): the list Cartouche keeps
+//  SideStore, as apps of their own (decision 90): the list Cartouche keeps
 //  in the app group (CartoucheInstalledApps, which SideStore's patch 0022
 //  writes), joined with what SideStore records of every installed app for
 //  its widget (widget_data.json), as CartoucheSignature reads Cartouche's

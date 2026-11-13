@@ -173,7 +173,7 @@ struct Launch {
     var holdMainThread: Double?
     /// The apps Cartouche installed on this iPhone through the built-in
     /// SideStore, as "Name:bundle.identifier:daysLeft" (-GalleryIPhoneApps,
-    /// GalleryApp.swift, decision 88).
+    /// GalleryApp.swift, decision 90).
     var iphoneApps: [String] = []
     /// A test that types: the keyboard shown once and put away as the
     /// gallery opens, before the watch counts, as its first showing in a

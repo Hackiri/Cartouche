@@ -5,7 +5,7 @@ Subject: [PATCH] Install, renew and remove apps on the iPhone for Cartouche
 
 Cartouche installs an IPA as an app of its own on this iPhone through
 the SideStore built into it, lists those apps, renews them and
-uninstalls them, on its own screens (decision 88). SideStore gets three
+uninstalls them, on its own screens (decision 90). SideStore gets three
 actions for it, headless, which Cartouche runs through LiveContainer's
 SideStoreSupport in LiveProcess as it runs Refresh All Apps:
 CartoucheInstallAppIntent, CartoucheRefreshAppsIntent and
@@ -57,7 +57,7 @@ index e2d775f..2ef2c12 100644
  {
 -    func refreshAllApps() async throws
 +    /// OUTCOME learns which apps failed, for Cartouche to show under each
-+    /// of the apps it installed on this iPhone (decision 88): the first
++    /// of the apps it installed on this iPhone (decision 90): the first
 +    /// failure is what this throws, as before.
 +    func refreshAllApps(outcome: CartoucheOutcome) async throws
      {
@@ -103,7 +103,7 @@ index 0000000..a8978e3
 +//  SideStore
 +//
 +//  Cartouche: what the launcher asks of the built-in SideStore for the apps
-+//  Cartouche installs on this iPhone (decision 88), and the list of those
++//  Cartouche installs on this iPhone (decision 90), and the list of those
 +//  apps, both in the app group the two share. Cartouche writes the request
 +//  before it runs an intent (CartoucheInstallAppIntent,
 +//  CartoucheRefreshAppsIntent, CartoucheRemoveAppIntent); the intent takes
@@ -323,7 +323,7 @@ index 444c6be..80f874d 100644
          case device
          case refresh
          case update
-+        // Cartouche's apps on this iPhone (decision 88): an install, a renewal
++        // Cartouche's apps on this iPhone (decision 90): an install, a renewal
 +        // of some of them, a removal.
 +        case install
 +        case apps

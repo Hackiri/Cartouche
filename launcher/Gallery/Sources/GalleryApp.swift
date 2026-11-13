@@ -127,7 +127,7 @@ struct GalleryScenario {
     /// The player's apps that are not games, "Name:bundle.identifier" each.
     var otherApps: [String] = []
     /// The apps Cartouche installed on this iPhone through the built-in
-    /// SideStore, as "Name:bundle.identifier:daysLeft" (decision 88).
+    /// SideStore, as "Name:bundle.identifier:daysLeft" (decision 90).
     var iphoneApps: [String] = []
     var work: String?
     var landscape = false

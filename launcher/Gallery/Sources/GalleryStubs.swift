@@ -87,7 +87,7 @@ final class LCAppModel: ObservableObject, Identifiable, Hashable {
     @Published var uiSelectedLanguage = ""
     @Published var uiOrientationLock: LCOrientationLock = .Disabled
     /// Whether the app needs JIT, and the script StikDebug runs for it,
-    /// base64 as LiveContainer keeps it (decision 87).
+    /// base64 as LiveContainer keeps it (decision 89).
     @Published var uiIsJITNeeded = false
     @Published var jitLaunchScriptJs: String?
 
