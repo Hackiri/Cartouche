@@ -174,6 +174,8 @@ def arguments(scenario):
         args += ["-GalleryWork", scenario["work"]]
     if scenario.get("category"):
         args += ["-GalleryCategory", scenario["category"]]
+    if scenario.get("signing"):
+        args += ["-GallerySigning", scenario["signing"]]
     return args
 
 
