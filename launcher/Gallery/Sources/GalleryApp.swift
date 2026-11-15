@@ -247,6 +247,9 @@
 //                                        build
 //        reset                           on the System page, the page at its
 //                                        end, on Reset Cartouche
+//        results                         on a game's sheet, the testers'
+//                                        results, what they wrote in French
+//                                        as the iPhone translates it
 //        signature                       on the System page, the page
 //                                        scrolled down to its signature
 //        update                          on the System page, the page
@@ -397,6 +400,7 @@ struct GalleryScenario {
         GalleryState.certificateRefused = work == "certificate"
         GalleryState.appGroupMissing = work == "signed-elsewhere"
         GalleryState.signInUnfinished = work == "sign-in-unfinished"
+        GalleryState.sheetSection = screen == "sheet" ? category : nil
         GalleryState.vpnConnected = work.map { Self.deviceChecks[$0] != nil || $0 == "sidestore-quit" } ?? false
         let pairing = GalleryState.documents.appendingPathComponent("SideStore/Documents", isDirectory: true)
         try? FileManager.default.removeItem(at: pairing)
@@ -412,6 +416,7 @@ struct GalleryScenario {
             GalleryState.recordSignature(expiringIn: 6 * 86_400 + 3_600, renewedAgo: 86_400)
         }
         MainActor.assumeIsolated {
+            showTranslations()
             if work == "updated" {
                 // What an update started from Cartouche leaves as it opens
                 // again, before Cartouche reads it: the version it
@@ -716,6 +721,19 @@ struct GalleryScenario {
         guard work == "paused", let titleId = sheet ?? ownedTitles.first,
               let app = apps.first(where: { $0.appInfo.relativeBundlePath == titleId + ".app" }) else { return }
         CartoucheGameActions.shared.showRunningForGallery(app)
+    }
+
+    /// The iPhone's translations of what testers wrote on the sheet of the
+    /// testers' results, as it makes them in French, which the simulator
+    /// cannot; none kept for the other scenarios.
+    @MainActor
+    private func showTranslations() {
+        try? FileManager.default.removeItem(at: CartoucheTranslations.defaultFile)
+        guard screen == "sheet", category == "results",
+              let language = CartoucheGameSummaryView.language?.minimalIdentifier, language == "fr" else { return }
+        for (text, translation) in GalleryTranslations.french {
+            CartoucheTranslations.shared.keep(translation, of: text, into: language)
+        }
     }
 
     /// What capture.sh needs to cut the screen out of the simulator's
