@@ -53,6 +53,7 @@ let package = Package(
                 "CartouchePlayerInfo.swift",
                 "CartoucheProblemReport.swift",
                 "CartoucheRelease.swift",
+                "CartoucheReleaseNotes.swift",
                 "CartoucheRenewalRules.swift",
                 "CartoucheReport.swift",
                 "CartoucheResetPlan.swift",

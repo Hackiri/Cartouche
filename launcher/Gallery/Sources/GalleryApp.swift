@@ -29,6 +29,9 @@
 //                                        opens them (work: mac-builds)
 //        nightly                         Renew every night, its steps, from
 //                                        the System page
+//        release-notes                   the System page's What's new, the
+//                                        notes of the last versions the
+//                                        gallery carries
 //        report                          Report a problem
 //        reset                           Reset Cartouche's page, as the
 //                                        System page opens it
@@ -128,6 +131,8 @@
 //        install-failed                  the install of the sheet's game,
 //                                        which the network dropped halfway,
 //                                        with its report to copy
+//        installed                       the word an update leaves when
+//                                        What's new has no notes to show
 //        installing                      a game being installed, over the
 //                                        console
 //        iphone-step                     a sign-in Apple accepted that
@@ -204,7 +209,19 @@
 //        update                          a new version of Cartouche on offer,
 //                                        over the console, or on the System
 //                                        page (screen system)
+//        updated                         Cartouche opening after an update
+//                                        started from it, from 0.2.0 to the
+//                                        gallery's own version (project.yml),
+//                                        which What's new shows as Cartouche
+//                                        does
 //        vpn-wait                        the sign-in waiting for LocalDevVPN
+//        whats-new                       What's new over the console, as
+//                                        after an update to the newest
+//                                        version the gallery carries notes
+//                                        for (app/releases)
+//        whats-new-several               the same, to the newest two,
+//                                        scrolled to where the older one's
+//                                        notes begin
 //      -GalleryOrientation landscape     the gallery turns itself sideways,
 //                                        as a game does; the simulator
 //                                        stays upright
@@ -388,6 +405,15 @@ struct GalleryScenario {
             GalleryState.recordSignature(expiringIn: 6 * 86_400 + 3_600, renewedAgo: 86_400)
         }
         MainActor.assumeIsolated {
+            if work == "updated" {
+                // What an update started from Cartouche leaves as it opens
+                // again, before Cartouche reads it: the version it
+                // installed, and the version whose notes the player saw.
+                UserDefaults.standard.set("0.2.0", forKey: CartoucheWhatsNewRecord.seenKey)
+                CartoucheUpdates.leavePendingForGallery(CartoucheUpdates.runningVersion)
+                // The UI tests' start decides as Cartouche does already.
+                if !GalleryTest.isOn { CartoucheWhatsNew.shared.decideForGallery() }
+            }
             CartoucheMacBuildsWatch.galleryScrolls = screen == "sheet-mac"
             // The System page down to the scenario's section, or on the
             // Mac's builds, down to theirs.
@@ -440,6 +466,16 @@ struct GalleryScenario {
                 } else {
                     CartoucheUpdates.shared.offerForGallery(release)
                 }
+            }
+            if work == "whats-new" || work == "whats-new-several" {
+                let newest = Array(CartoucheWhatsNew.carried.prefix(work == "whats-new" ? 1 : 2))
+                // After two versions, scrolled to the last item of the newer
+                // one, the older one's name under it.
+                let scrolled = work == "whats-new-several" ? max((newest.first?.items.count ?? 0) - 1, 0) : 0
+                CartoucheWhatsNew.shared.showForGallery(newest, scrolledTo: scrolled)
+            }
+            if work == "installed" {
+                CartoucheUpdates.shared.showInstalledForGallery()
             }
             if work == "code" {
                 CartoucheAccount.shared.requestCodeForGallery(.init(
@@ -948,6 +984,12 @@ struct CartoucheGalleryApp: App {
             NavigationStack {
                 CartoucheReportView()
             }
+        case "release-notes":
+            // As the System page opens it.
+            NavigationStack {
+                CartoucheReleaseNotesView(notes: Array(CartoucheWhatsNew.carried.prefix(CartoucheWhatsNew.listed)))
+            }
+            .preferredColorScheme(.dark)
         case "reset", "reset-end":
             // As the System page opens it, or at its end.
             NavigationStack {

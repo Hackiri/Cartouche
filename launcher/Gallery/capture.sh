@@ -151,7 +151,8 @@ def simulator(wanted):
 
 def arguments(scenario):
     """The gallery's launch arguments (Sources/GalleryApp.swift)."""
-    language = document["language"]
+    # A scenario with a language of its own is shown in it, the gallery's otherwise.
+    language = scenario.get("language", document["language"])
     args = ["-AppleLanguages", f"({language})", "-AppleLocale", "fr_FR" if language == "fr" else "en_US",
             "-GalleryScreen", scenario["screen"],
             "-GallerySetup", "1" if scenario["setup"] else "0",

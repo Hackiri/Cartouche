@@ -579,6 +579,133 @@
       ]
     },
     {
+      "name": "iphone-update-installed",
+      "comment": "Before What's new: the word an update leaves as Cartouche opens again, Cartouche 0.3.0 is installed (work: installed).",
+      "screen": "games",
+      "work": "installed",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ]
+    },
+    {
+      "name": "iphone-whats-new",
+      "comment": "What's new over the console, as after an update to the newest version the gallery carries notes for (app/releases), in the gallery's French: notes written in English only show in English.",
+      "screen": "games",
+      "work": "whats-new",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ]
+    },
+    {
+      "name": "iphone-whats-new-english",
+      "comment": "The same in English: a scenario with a language is shown in that language rather than the gallery's.",
+      "language": "en",
+      "screen": "games",
+      "work": "whats-new",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ]
+    },
+    {
+      "name": "iphone-whats-new-several",
+      "comment": "What's new after an update over two versions: the newest two, the older under its name, scrolled to where the newer one's notes end (work: whats-new-several).",
+      "screen": "games",
+      "work": "whats-new-several",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": false,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ]
+    },
+    {
+      "name": "iphone-whats-new-landscape",
+      "comment": "What's new on an iPhone held sideways: the title on the left, the notes beside it.",
+      "screen": "games",
+      "work": "whats-new",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": true,
+      "width": 874,
+      "height": 402,
+      "widthClass": "compact",
+      "insets": [
+        0,
+        62,
+        21,
+        62
+      ]
+    },
+    {
+      "name": "iphone-release-notes",
+      "comment": "The System page's What's new: the notes of the last versions the gallery carries (screen: release-notes).",
+      "screen": "release-notes",
+      "owned": [
+        "0400C3F00006E000",
+        "040074A01BF12000",
+        "01006BB00C6F0000"
+      ],
+      "setup": true,
+      "controller": false,
+      "width": 402,
+      "height": 874,
+      "insets": [
+        62,
+        0,
+        34,
+        0
+      ]
+    },
+    {
       "name": "iphone-home-newer-build",
       "screen": "games",
       "owned": [
