@@ -9,9 +9,13 @@
 //  built for this Mac, by their apps, and those its games folder keeps on
 //  a NAS without having installed them here, as the iPhone's console knows
 //  the IPAs of its games folder; it does what the player asks of them:
-//  Play starts a game's app, Game settings starts it on nxnative's
-//  settings window, Install installs a game from the NAS, how far it is
-//  over the console, Import and System lead to the app's own pages.
+//  Play starts a game's app, Install installs a game from the NAS, how far
+//  it is over the console, Import and System lead to the app's own pages.
+//  Game settings opens the game's settings page in place of its sheet, the
+//  way back to the sheet above it, where the controller's L and R change
+//  the category and B goes back, as on the iPhone; the page's last button
+//  starts the game on nxnative's settings window. The game's info, its
+//  name, platform, genre, summary and cover, opens over the console.
 //
 //  This is the console's only public part: the app imports it in one file,
 //  so that its names never meet those of the launcher's other library,
@@ -73,6 +77,14 @@ public final class CartoucheMacConsole: ObservableObject {
     /// does: not for the app's gallery, which shows the covers it carries.
     public var asksServer = true
 
+    /// Whether the games' settings pages keep the player's choices in
+    /// memory, reading none of the games' preferences and writing none:
+    /// the app's gallery's.
+    public var keepsChoicesInMemory: Bool {
+        get { CartoucheGameActions.shared.keepsChoicesInMemory }
+        set { CartoucheGameActions.shared.keepsChoicesInMemory = newValue }
+    }
+
     private init() {
         CartoucheGameActions.shared.onQuit = { [weak self] app in self?.onQuit(app.appInfo.url) }
     }
@@ -82,6 +94,17 @@ public final class CartoucheMacConsole: ObservableObject {
     public var dataFolder: URL {
         get { CartoucheGameActions.shared.dataRoot }
         set { CartoucheGameActions.shared.dataRoot = newValue }
+    }
+
+    /// The play time and the size on this Mac, of the app and of its data,
+    /// of the games the app's gallery shows, by title ID, in place of what
+    /// the console reads and measures: from then on, nothing of the
+    /// player's is read again or kept.
+    public func showForGallery(playTimes: [String: CartouchePlayTime], sizes: [String: (app: UInt64, data: UInt64)]) {
+        func bundleID(_ titleID: String) -> String { "org.nxnative." + titleID.lowercased() }
+        CartoucheGameStats.shared.showForGallery(
+            sizes: Dictionary(uniqueKeysWithValues: sizes.map { (bundleID($0.key), CartoucheGameSize(bundle: $0.value.app, data: $0.value.data)) }),
+            playTimes: Dictionary(uniqueKeysWithValues: playTimes.map { (bundleID($0.key), $0.value) }))
     }
 
     /// The games built for this Mac, by their apps, and KEPT, those the
@@ -166,11 +189,13 @@ public final class CartoucheMacConsole: ObservableObject {
     }
 
     /// Speaks LANGUAGE with the words in RESOURCES/Console/<language>, which
-    /// holds that language alone (bundle.sh, console/strings.py).
+    /// holds that language alone (bundle.sh, console/strings.py), and names
+    /// the games' languages in it.
     func speak(_ language: String?, from resources: URL?) {
         let chosen = language.flatMap { ["fr", "en"].contains($0) ? $0 : nil }
         let folder = chosen.flatMap { resources?.appendingPathComponent("Console/" + $0, isDirectory: true) }
         CartoucheText.bundle = folder.flatMap { Bundle(url: $0) } ?? Bundle(for: CartoucheCatalog.self)
+        CartoucheText.locale = chosen.map { Locale(identifier: $0) } ?? Locale.current
         self.language = chosen
     }
 
@@ -199,17 +224,39 @@ public struct CartoucheMacConsoleView: View {
     /// The game in focus, or the last one whose sheet opened: the game of
     /// the sheet beside the console.
     @State private var paneID: String?
+    /// The settings page open in place of the sheet, and its game's ID.
+    @State private var gameSettings: CartoucheGameSettingsModel?
+    @State private var settingsID: String?
+    /// The game whose info the player changes, over the console.
+    @State private var editingInfo: CartoucheEntry?
+    /// Whether the console opens on the settings page of its first game on
+    /// this Mac, or with that game's info over it, or with the sheet of the
+    /// game of that title ID beside it: the app's gallery's.
+    private let opensSettings: Bool
+    private let opensInfo: Bool
+    private let opensSheetOf: String?
     @Namespace private var zoom
 
     enum Route: Hashable {
         case library
     }
 
-    /// The console on its home, or with every game open, as the app's
-    /// gallery shows it.
-    public init(showingLibrary: Bool = false) {
+    /// The console on its home, or with every game open (SHOWINGLIBRARY),
+    /// or with the settings page of its first game on this Mac beside it
+    /// (SHOWINGSETTINGS), or that game's info over it (SHOWINGINFO), or the
+    /// sheet of the game of the title ID SHOWINGSHEETOF beside it, as the
+    /// app's gallery shows it.
+    public init(showingLibrary: Bool = false, showingSettings: Bool = false, showingInfo: Bool = false,
+                showingSheetOf titleID: String? = nil) {
         _path = State(initialValue: showingLibrary ? [.library] : [])
+        opensSettings = showingSettings
+        opensInfo = showingInfo
+        opensSheetOf = titleID
     }
+
+    /// Nothing open beside the console or over it that takes the
+    /// controller: the settings page, the game's info.
+    private var nothingOver: Bool { gameSettings == nil && editingInfo == nil }
 
     public var body: some View {
         let entries = catalog.entries(for: console.apps, stored: console.stored)
@@ -238,6 +285,13 @@ public struct CartoucheMacConsoleView: View {
         .animation(.easeInOut(duration: 0.25), value: entries.owned.isEmpty)
         .preferredColorScheme(.dark)
         .onAppear {
+            if let entry = entries.owned.first(where: { $0.app != nil }), let app = entry.app {
+                if opensSettings { openSettings(app, of: entry) }
+                if opensInfo { editingInfo = entry }
+            }
+            if let titleID = opensSheetOf, let entry = entries.owned.first(where: { $0.titleId == titleID }) {
+                paneID = entry.id
+            }
             guard console.asksServer else { return }
             catalog.refreshCoversIfDue()
             catalog.lookUpGamesIfDue(among: entries)
@@ -261,7 +315,7 @@ public struct CartoucheMacConsoleView: View {
             CartoucheHomeView(
                 entries: entries,
                 gameCount: entries.all.count,
-                isActive: path.isEmpty,
+                isActive: path.isEmpty && nothingOver,
                 onPlay: { play($0) },
                 onImport: { console.onImport() },
                 onInstall: { console.install($0) },
@@ -275,6 +329,7 @@ public struct CartoucheMacConsoleView: View {
                 zoom: path.isEmpty ? zoom : nil,
                 // Beside the console, the sheet describes the game in focus.
                 showsHero: entries.owned.isEmpty,
+                focusing: galleryFocus(in: entries),
                 onFocus: { item in
                     if case .game(let entry) = item { focus(entry) }
                 })
@@ -283,7 +338,7 @@ public struct CartoucheMacConsoleView: View {
                     case .library:
                         CartoucheLibraryView(
                             entries: entries,
-                            isActive: path.last == .library,
+                            isActive: path.last == .library && nothingOver,
                             onPlay: { play($0) },
                             onSheet: { focus($0) },
                             onBack: { if !path.isEmpty { path.removeLast() } },
@@ -294,19 +349,84 @@ public struct CartoucheMacConsoleView: View {
         }
     }
 
-    /// A game's sheet, beside the console.
+    /// A game's sheet, beside the console, or its settings page in its
+    /// place.
     private func gameSheet(_ entry: CartoucheEntry) -> some View {
         NavigationStack {
-            CartoucheGameSheetView(
-                entry: entry,
-                memory: nil,
-                onPlay: { play($0) },
-                onSettings: { play($0, showingSettings: true) },
-                onImport: { console.onImport() },
-                onUninstall: { console.onUninstall($0.appInfo.url) },
-                onInstallStored: { console.install($0) })
-                .id(entry.id)
+            if let settings = gameSettings, settingsID == entry.id {
+                settingsPage(settings, of: entry)
+            } else {
+                CartoucheGameSheetView(
+                    entry: entry,
+                    memory: nil,
+                    onPlay: { play($0) },
+                    onSettings: { openSettings($0, of: entry) },
+                    onImport: { console.onImport() },
+                    onUninstall: { console.onUninstall($0.appInfo.url) },
+                    onInstallStored: { console.install($0) },
+                    onEditInfo: { editingInfo = entry })
+                    .id(entry.id)
+            }
         }
+        // The settings page takes the controller: L and R change the
+        // category, B goes back to the sheet.
+        .onReceive(CartoucheGamepad.shared.inputs) { input in
+            guard editingInfo == nil, let settings = gameSettings else { return }
+            switch input {
+            case .b: closeSettings()
+            case .previous: settings.moveCategory(by: -1)
+            case .next: settings.moveCategory(by: 1)
+            default: break
+            }
+        }
+        // What the player says of their game, over the console, which B
+        // closes as Cancel does (CartoucheGameInfoView).
+        .sheet(item: $editingInfo) { edited in
+            NavigationStack {
+                CartoucheGameInfoView(entry: edited) { editingInfo = nil }
+            }
+            .frame(minWidth: 520, idealWidth: 560, minHeight: 620, idealHeight: 700)
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    /// A game's settings page, in place of its sheet: the way back to the
+    /// sheet above it, which Escape takes too, and its switches as the
+    /// iPhone's.
+    private func settingsPage(_ settings: CartoucheGameSettingsModel, of entry: CartoucheEntry) -> some View {
+        CartoucheGameSettingsView(model: settings) {
+            if let app = entry.app { play(app, showingSettings: true) }
+        }
+        .toggleStyle(.switch)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ZStack {
+                Text(CartoucheText.gameSettings)
+                    .font(.headline)
+                    .lineLimit(1)
+                HStack {
+                    Button(action: closeSettings) {
+                        Label(CartoucheText.backToSheet, systemImage: "chevron.backward")
+                    }
+                    .buttonStyle(.borderless)
+                    .keyboardShortcut(.cancelAction)
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .background(.bar)
+        }
+    }
+
+    private func openSettings(_ app: LCAppModel, of entry: CartoucheEntry) {
+        paneID = entry.id
+        settingsID = entry.id
+        gameSettings = actions.settings(for: app, tileKey: entry.tileKey)
+    }
+
+    private func closeSettings() {
+        gameSettings = nil
+        settingsID = nil
     }
 
     /// The game of the sheet beside the console: the game in focus, or the
@@ -316,7 +436,20 @@ public struct CartoucheMacConsoleView: View {
         return entries.entry(id: paneID) ?? entries.owned.first
     }
 
+    /// The game the gallery's pages open the console on: the one whose
+    /// sheet is beside it, or the first on this Mac, whose settings or info
+    /// they show.
+    private func galleryFocus(in entries: CartoucheCatalog.Entries) -> String? {
+        if let titleID = opensSheetOf { return entries.owned.first { $0.titleId == titleID }?.id }
+        guard opensSettings || opensInfo else { return nil }
+        return entries.owned.first { $0.app != nil }?.id
+    }
+
+    /// Another game in focus closes the settings page of the last; the
+    /// gallery's pages of the settings and of a sheet stay as they opened.
     private func focus(_ entry: CartoucheEntry) {
+        guard !opensSettings, opensSheetOf == nil else { return }
+        if paneID != entry.id { closeSettings() }
         paneID = entry.id
     }
 
