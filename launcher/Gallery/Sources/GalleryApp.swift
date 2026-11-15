@@ -185,6 +185,9 @@
 //                                        folder in Files as the saves folder,
 //                                        which Cartouche's own sync uses
 //                                        (GallerySaves)
+//        sidestore-quit                  a sign-in whose built-in SideStore
+//                                        quit as it launched, LocalDevVPN
+//                                        connected
 //        sign-in-unfinished              the setup after a sign-in that
 //                                        stopped before the certificate,
 //                                        with why and its report to copy
@@ -394,7 +397,7 @@ struct GalleryScenario {
         GalleryState.certificateRefused = work == "certificate"
         GalleryState.appGroupMissing = work == "signed-elsewhere"
         GalleryState.signInUnfinished = work == "sign-in-unfinished"
-        GalleryState.vpnConnected = work.map { Self.deviceChecks[$0] != nil } ?? false
+        GalleryState.vpnConnected = work.map { Self.deviceChecks[$0] != nil || $0 == "sidestore-quit" } ?? false
         let pairing = GalleryState.documents.appendingPathComponent("SideStore/Documents", isDirectory: true)
         try? FileManager.default.removeItem(at: pairing)
         if setupDone || GalleryState.signInUnfinished {
@@ -497,6 +500,9 @@ struct GalleryScenario {
             if let check = work.flatMap({ Self.deviceChecks[$0] }) {
                 CartoucheAccount.shared.showDeviceCheckForGallery(kind: check.kind, reason: check.reason, detail: check.detail,
                                                                   pairingKind: check.pairingKind, sentence: check.sentence)
+            }
+            if work == "sidestore-quit" {
+                CartoucheAccount.shared.showSideStoreQuitForGallery()
             }
             if work == "sign-in-unfinished" {
                 CartoucheAccount.shared.showUnfinishedForGallery()
