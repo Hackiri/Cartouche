@@ -193,7 +193,9 @@
 //        too-many                        Apple refused the sign-in for too
 //                                        many requests, with the wait under
 //                                        way
-//        update                          a new version of Cartouche on offer
+//        update                          a new version of Cartouche on offer,
+//                                        over the console, or on the System
+//                                        page (screen system)
 //        vpn-wait                        the sign-in waiting for LocalDevVPN
 //      -GalleryOrientation landscape     the gallery turns itself sideways,
 //                                        as a game does; the simulator
@@ -214,6 +216,8 @@
 //                                        build
 //        signature                       on the System page, the page
 //                                        scrolled down to its signature
+//        update                          on the System page, the page
+//                                        scrolled down to its updates
 //
 //  The UI tests (launcher/Gallery/UITests) open the whole console, as
 //  Cartouche shows it, and drive it (GalleryTesting.swift):
@@ -415,10 +419,17 @@ struct GalleryScenario {
                 CartoucheGameActions.shared.notice = notice
             }
             if work == "update" {
-                // A higher version than the gallery's own (project.yml).
-                CartoucheUpdates.shared.offerForGallery(CartoucheRelease(
+                // A higher version than the gallery's own (project.yml): on
+                // offer over the console, or on the System page, which opens
+                // on its updates.
+                let release = CartoucheRelease(
                     version: "0.4.0", notes: "", size: 36_802_806,
-                    ownCertificateURL: URL(string: "https://github.com/clabeuhtegrite/Cartouche/releases/download/v0.4.0/Cartouche-0.4.0-Own-Certificate.ipa")))
+                    ownCertificateURL: URL(string: "https://github.com/clabeuhtegrite/Cartouche/releases/download/v0.4.0/Cartouche-0.4.0-Own-Certificate.ipa"))
+                if screen == "system" {
+                    CartoucheUpdates.shared.showOnSystemPageForGallery(release)
+                } else {
+                    CartoucheUpdates.shared.offerForGallery(release)
+                }
             }
             if work == "code" {
                 CartoucheAccount.shared.requestCodeForGallery(.init(
