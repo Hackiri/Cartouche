@@ -1,4 +1,4 @@
-From 5c2c3820f452491eed7cce9dbc764ada8a7c1895 Mon Sep 17 00:00:00 2001
+From ea399102eb56f38cd3a289085efce4c9b5e91b91 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 14:34:27 -0500
 Subject: [PATCH] List the App IDs for Cartouche
@@ -22,7 +22,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 
 diff --git a/SideStore/Intents/CartoucheAppIDsIntent.swift b/SideStore/Intents/CartoucheAppIDsIntent.swift
 new file mode 100644
-index 0000000..ea7c9c5
+index 0000000..f083630
 --- /dev/null
 +++ b/SideStore/Intents/CartoucheAppIDsIntent.swift
 @@ -0,0 +1,93 @@
@@ -120,10 +120,10 @@ index 0000000..ea7c9c5
 +    }
 +}
 diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
-index 80f874d..a127725 100644
+index a6c1186..53865dc 100644
 --- a/SideStore/Intents/CartoucheOutcome.swift
 +++ b/SideStore/Intents/CartoucheOutcome.swift
-@@ -54,6 +54,8 @@ final class CartoucheOutcome: @unchecked Sendable
+@@ -69,6 +69,8 @@ final class CartoucheOutcome: @unchecked Sendable
          case install
          case apps
          case remove

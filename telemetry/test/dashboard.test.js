@@ -480,7 +480,8 @@ test("the page sums up the reports Cartouche makes", () => {
   assert.deepEqual(model.memory.byGame.map((item) => [item.id, item.peak, item.limit]), [["0400C3F00006E000", session.memory.peakMiB, session.memoryLimitMiB]]);
   assert.equal(game.build, session.nxnative);
   assert.equal(game.ends.crash, 1);
-  assert.deepEqual(model.endings.crashes.map((crash) => [crash.signal, crash.pc, crash.lr, crash.count]), [[11, "main+0x1a2b3c", "main+0x1a2b00", 1]]);
+  assert.deepEqual(model.endings.crashes.map((crash) => [crash.signal, crash.pc, crash.lr, crash.cause, crash.count]), [[6, "__pthread_kill+0x8", "pthread_kill+0x10c", "gpuLost", 1]]);
+  assert.deepEqual(model.endings.gpuLost, { count: 1, read: 1 });
   assert.deepEqual(model.fluidity.frameMs.map((item) => item.value), [session.frameMs.p50, session.frameMs.p95, session.frameMs.p99]);
   assert.deepEqual(model.fluidity.settings.map((item) => item.key), ["DM_OPMODE=0", "DM_RENDER_SCALE=1.0"]);
   assert.equal(model.fluidity.upscaler[0].key, "metalfx");
@@ -628,6 +629,35 @@ test("the slowest 5% counts only from the reading of the log that takes pauses o
   assert.equal(older.games[0].verdict.status, "playable");
 });
 
+test("the Duo's fold counts only from the reading of the log that ties it to the fold", () => {
+  assert.equal(M.FOLD_READER, 3);
+  // Read before, any iPhone upright said its picture and its controls were apart.
+  const before = sessionOf(1, { reader: 2, display: { tv: false, foldSplit: true } });
+  const upright = sessionOf(2, { reader: 3, display: { tv: false, foldSplit: false } });
+  const unfolded = sessionOf(3, { reader: 3, display: { tv: false, foldSplit: true } });
+  assert.deepEqual(build([before, upright, unfolded]).fluidity.fold, { share: 0.5, yes: 1, known: 2 });
+  assert.equal(build([before]).fluidity.fold, null);
+});
+
+test("a lost GPU is a crash of its own, counted from the reading of the log that tells it", () => {
+  assert.equal(M.GPU_LOST_READER, 4);
+  const abort = { kind: "crash", signal: 6, pc: "__pthread_kill+0x8", lr: "pthread_kill+0x10c" };
+  const lost = sessionOf(1, { reader: 4, end: { ...abort, cause: "gpuLost" } });
+  // A Mac quits the game itself: no signal.
+  const onMac = sessionOf(2, { reader: 4, end: { kind: "crash", cause: "gpuLost" } });
+  const other = sessionOf(3, { reader: 4, end: abort });
+  // Read before, a lost GPU was an abort like this one.
+  const before = sessionOf(4, { reader: 3, end: abort });
+  const model = build([lost, onMac, other, before]);
+  assert.equal(model.endings.ends.crash, 4);
+  assert.deepEqual(model.endings.gpuLost, { count: 2, read: 3 });
+  assert.deepEqual(
+    model.endings.crashes.map((crash) => [crash.signal, crash.cause, crash.count]).sort((a, b) => String(a).localeCompare(String(b))),
+    [[6, "gpuLost", 1], [6, null, 2], [null, "gpuLost", 1]].sort((a, b) => String(a).localeCompare(String(b))),
+  );
+  assert.deepEqual(build([before]).endings.gpuLost, { count: 0, read: 0 });
+});
+
 test("a game's verdict follows the game sheets' rules, each iPhone counting once", () => {
   const status = (sessions) => {
     const { verdict } = build(sessions).games[0];
@@ -668,13 +698,15 @@ test("the players' journey: a step reached counts those before it, even unsaid",
     // 4 ran a version that said neither its sign-in nor its set-up, and played.
     eventOf(4, "game.installed", {}, { game: "0400C3F00006E000" }),
     sessionOf(4),
-    // 5 was installed with the player's own certificate.
+    // 5 was installed with the player's own certificate, by the Cartouche
+    // Installer; 6 too, signed by a signing app on the iPhone.
     eventOf(5, "app.opened", { setUp: false, signedIn: false, signing: "imported" }),
+    eventOf(6, "app.opened", { setUp: false, signedIn: false, signing: "iphone", iml: "leftOut", gameKeychains: "leftOut" }),
   ]).journey;
-  assert.equal(journey.copies, 5);
-  assert.deepEqual(journey.steps.map((step) => [step.key, step.copies]), [["opened", 5], ["signedIn", 3], ["setUp", 2], ["installed", 2], ["played", 2], ["returned", 1]]);
-  assert.equal(journey.stuckCopies, 3);
-  assert.deepEqual(journey.stuck.map((step) => [step.key, step.copies]), [["opened", 2], ["signedIn", 1], ["setUp", 0], ["installed", 0]]);
+  assert.equal(journey.copies, 6);
+  assert.deepEqual(journey.steps.map((step) => [step.key, step.copies]), [["opened", 6], ["signedIn", 4], ["setUp", 2], ["installed", 2], ["played", 2], ["returned", 1]]);
+  assert.equal(journey.stuckCopies, 4);
+  assert.deepEqual(journey.stuck.map((step) => [step.key, step.copies]), [["opened", 2], ["signedIn", 2], ["setUp", 0], ["installed", 0]]);
   assert.deepEqual(journey.blockers, [{ origin: "signIn", cause: "appleServer", copies: 1 }]);
   assert.equal(journey.neverSignedIn, 1);
 });
@@ -825,6 +857,8 @@ test("the sample data fills every section, and is the same each time", () => {
     causes: model.errors.byCause.length,
     issues: model.problems.github.issues.length,
     slowest: model.fluidity.low5Measured,
+    fold: model.fluidity.fold?.known ?? 0,
+    gpuLost: model.endings.gpuLost.count,
     stuck: model.journey.stuckCopies,
     blockers: model.journey.blockers.length,
     versions: model.versions.length,

@@ -11,8 +11,8 @@
 # app/scripts/brand.py).
 #
 # usage: package.sh --archive LiveContainer.xcarchive --sidestore SideStore.ipa
-#                   --dylibify PATH --resources DIR --catalog DIR --bundle-id ID
-#                   --name NAME --url-scheme SCHEME --version X.Y.Z
+#                   --dylibify PATH --resources DIR --catalog DIR --releases DIR
+#                   --bundle-id ID --name NAME --url-scheme SCHEME --version X.Y.Z
 #                   --source-url URL --covers-url URL [--telemetry-url URL]
 #                   --commit SHA --out OUT.ipa
 set -euo pipefail
@@ -24,6 +24,7 @@ while [ $# -gt 0 ]; do
     --dylibify) DYLIBIFY="$2" ;;
     --resources) RESOURCES="$2" ;;   # LiveContainer's .github/sidelc
     --catalog) CATALOG="$2" ;;       # Cartouche's catalog/
+    --releases) RELEASES="$2" ;;     # app/releases/, each version's notes
     --bundle-id) BUNDLE_ID="$2" ;;
     --name) NAME="$2" ;;
     --url-scheme) URL_SCHEME="$2" ;;
@@ -37,7 +38,7 @@ while [ $# -gt 0 ]; do
   esac
   shift 2
 done
-: "${ARCHIVE:?} ${SIDESTORE_IPA:?} ${DYLIBIFY:?} ${RESOURCES:?} ${CATALOG:?} ${BUNDLE_ID:?} ${NAME:?} ${URL_SCHEME:?} ${VERSION:?} ${SOURCE_URL:?} ${COVERS_URL:?} ${COMMIT:?} ${OUT_IPA:?}"
+: "${ARCHIVE:?} ${SIDESTORE_IPA:?} ${DYLIBIFY:?} ${RESOURCES:?} ${CATALOG:?} ${RELEASES:?} ${BUNDLE_ID:?} ${NAME:?} ${URL_SCHEME:?} ${VERSION:?} ${SOURCE_URL:?} ${COVERS_URL:?} ${COMMIT:?} ${OUT_IPA:?}"
 # LiveContainer+SideStore's: iloader gives it, with the team identifier, to
 # any app that carries a com.SideStore.SideStore framework.
 APP_GROUP="group.com.SideStore.SideStore"
@@ -50,6 +51,7 @@ TELEMETRY_URL="${TELEMETRY_URL:-}"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 PB=/usr/libexec/PlistBuddy
+HERE="$(cd "$(dirname "$0")" && pwd)"
 
 mkdir -p "$STAGE/Payload"
 cp -R "$ARCHIVE/Products/Applications/LiveContainer.app" "$STAGE/Payload/"
@@ -61,6 +63,13 @@ FW="$APP/Frameworks"
 mkdir -p "$APP/CartoucheCatalog/games"
 cp "$CATALOG/devices.json" "$CATALOG/nxnative.json" "$CATALOG/covers.json" "$APP/CartoucheCatalog/"
 cp "$CATALOG"/games/*.json "$APP/CartoucheCatalog/games/"
+
+# Each version's release notes, in English (<version>.md) and in the other
+# languages they are written in (<version>.fr.md), not the folder's README:
+# What's new shows those of the version installed after an update, and the
+# System page lists them (launcher/Sources/CartoucheReleaseNotes.swift).
+mkdir -p "$APP/CartoucheReleases"
+cp "$RELEASES"/[0-9]*.md "$APP/CartoucheReleases/"
 
 # Names. iloader's Pairing page lists the apps it can place a pairing file
 # in by the CFBundleDisplayName of their Info.plist, and gives the one named
@@ -233,6 +242,16 @@ cp "$SS/Intents.intentdefinition" "$SS/ViewApp.intentdefinition" "$APP/"
 cp -R "$SS/Metadata.appintents" "$APP/Metadata.appintents"
 sed -i '' 's/9SideStore20RefreshAllAppsIntentV/16SideStoreSupport20RefreshAllAppsIntentV/g' "$APP/Metadata.appintents/extract.actionsdata"
 sed -i '' 's/9SideStore26RefreshAllAppsWidgetIntentV/16SideStoreSupport26RefreshAllAppsWidgetIntentV/g' "$APP/Metadata.appintents/extract.actionsdata"
+# The launcher's own, which start a game for Siri and Shortcuts
+# (launcher/Sources/CartoucheShortcuts.swift): Xcode wrote them into the
+# framework the launcher is built into, whose metadata iOS never reads. They
+# join SideStore's, with their French (docs/decisions.md, 90).
+python3 "$HERE/app_intents.py" "$APP" --french "$HERE/../../launcher/AppIntents/fr.json"
+# Then the app as it will ship: the built-in SideStore's intents as above,
+# each under the same identifier and type, Refresh All Apps among them, which
+# the nightly renewal runs from Shortcuts; the strings the merge wrote
+# through plutil -lint. Any difference stops the build.
+python3 "$HERE/app_intents.py" "$APP" --french "$HERE/../../launcher/AppIntents/fr.json" --check
 
 # SideStore's widget becomes the app's widget.
 WIDGET="$APP/PlugIns/LiveWidgetExtension.appex"

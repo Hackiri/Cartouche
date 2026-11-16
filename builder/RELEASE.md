@@ -1,12 +1,10 @@
-Cartouche Builder 0.5.0 completes an IPA built without its game files with its romfs.img, and goes on building when nxnative's newest commit does not.
+Cartouche Builder 0.6.1 no longer waits forever after a build's step has ended, and always finds its updates.
 
-- **An IPA and its romfs.img.** **Import IPA + ROMFS…** in the library adds the matching `romfs.img` to an nxnative IPA built without its game data, once its size and index match the IPA's, without compiling, and puts the complete IPA in your games folder. Your own files stay as they are. Thanks to javi11, who wrote it.
-- **What lies in your dumps folder.** An IPA or a `romfs.img` left in your dumps folder is explained in the library, instead of being counted as nothing, and the app reads your dumps and your games folder again when it comes to the front.
-- **When nxnative's newest commit does not build.** A game that nxnative's newest commit cannot build is built again from the last commit that built on this Mac, and the next batches stay there until a newer commit. Each game not built says why; a full disk says which disk and what is left on it; damaged game files say to copy the game again.
-- **Pairing an iPhone.** The Mac keeps a new iPhone before it tells it that it is paired, so the iPhone's first visit, right after the pairing, no longer finds a Mac that does not know it yet.
-- **What the new end-to-end tests found.** A zipped dump beside another game's files is found; a build that says nothing no longer shows the step before it; a full disk is named as such, not by nxnative's error; and **Stop** keeps the IPA you had, which the app now hears about.
-- **From 0.4.2, 0.4.1 or 0.4.0**, which update themselves to 0.5.0: your settings, your games and their builds stay.
+- **A build that never ended.** A build no longer waits forever after one of its steps has ended: the builder now starts each program it runs, nxnative's, Xcode's and Homebrew's, and waits for its end in a way that cannot miss it.
+- **Updates, always found.** Updates are found however many of Cartouche's releases come before the builder's: the app reads GitHub's answers one after the other until it finds its own.
+- **From 0.6.0**, which updates itself to 0.6.1: your settings, your games and their builds stay.
+- **From 0.5.0 or older**, which do not find this version by themselves since Cartouche's repository moved to its own organization on GitHub: download it once, and it updates itself again after that. Your settings, your games and their builds stay, and you also get 0.6.0's changes: Cartouche's console on the Mac, your games built and played on this Mac with your iPhone's saves, and their builds followed and started from your iPhone.
 
-Download `Cartouche-Builder-0.5.0.dmg`, for a Mac with Apple silicon (nxnative builds on macOS 26.6 or later), open it and drag **Cartouche Builder** onto **Applications**. The app is not notarized: the first time, open **System Settings › Privacy & Security** and click **Open Anyway**. Its updates then open without asking.
+Download `Cartouche-Builder-0.6.1.dmg`, for a Mac with Apple silicon (nxnative builds on macOS 26.6 or later), open it and drag **Cartouche Builder** onto **Applications**. The app is not notarized: the first time, open **System Settings › Privacy & Security** and click **Open Anyway**. Its updates then open without asking.
 
-Your games are yours: the builder builds the dumps of your own Switch, and shares nothing. How it works: [builder/README.md](https://github.com/clabeuhtegrite/Cartouche/blob/main/builder/README.md).
+Your games are yours: the builder builds the dumps of your own Switch, and shares nothing. How it works: [builder/README.md](https://github.com/cartouche-app/Cartouche/blob/main/builder/README.md).

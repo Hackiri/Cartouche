@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import copy
 import io
+import subprocess
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -166,14 +168,6 @@ class WiringTests(unittest.TestCase):
         workflows["full-pass.yml"]["jobs"]["app"]["secrets"] = "inherit"
         self.assertEqual(self.problems(workflows), [])
 
-    def test_a_secret_the_pass_does_not_need(self):
-        # The token that finds Ad's Mac: the pass's Mac jobs run on GitHub's.
-        workflows = repository()
-        workflows["app.yml"]["jobs"]["route"] = {"name": "Ad's Mac or GitHub", "runs-on": "ubuntu-latest",
-                                                 "steps": [{"env": {"RUNNERS_TOKEN": "${{ secrets.MAC_RUNNER_TOKEN }}"},
-                                                            "run": "python3 .github/mac/route.py"}]}
-        self.assertEqual(self.problems(workflows), [])
-
     def test_the_secrets_of_jobs_the_pass_skips_are_theirs(self):
         workflows = repository()
         workflows["site.yml"]["jobs"]["publish"]["env"] = {"TOKEN": "${{ secrets.DEPLOY_TOKEN }}"}
@@ -287,12 +281,16 @@ class RepositoryTests(unittest.TestCase):
 class Api:
     """GitHub, as wait_for_pass.py asks it, from a script of answers."""
 
-    def __init__(self, runs=(), passed_on_main=(), heads=None):
+    def __init__(self, runs=(), passed_on_main=(), heads=None, reruns=True):
         # Each call to runs_of takes the next list; the last one stays.
         self.runs = [list(answer) for answer in runs] or [[]]
         self.main = list(passed_on_main)
         self.heads = heads or {}
         self.started: list[str] = []
+        self.reran: list[int] = []
+        # Whether GitHub runs a run again when asked: not one that another
+        # job has run again already.
+        self.reruns = reruns
         self.calls = 0
 
     def runs_of(self, sha):
@@ -308,6 +306,10 @@ class Api:
 
     def start(self, ref):
         self.started.append(ref)
+
+    def rerun(self, run_id):
+        self.reran.append(run_id)
+        return self.reruns
 
 
 class Git:
@@ -344,8 +346,8 @@ SHA = "a" * 40
 EARLIER = "b" * 40
 
 
-def run(id, status="completed", conclusion="success", sha=SHA):
-    return Run(id, sha, status, conclusion, f"https://github.com/o/r/actions/runs/{id}")
+def run(id, status="completed", conclusion="success", sha=SHA, attempt=1):
+    return Run(id, sha, status, conclusion, f"https://github.com/o/r/actions/runs/{id}", attempt=attempt)
 
 
 class WaitTests(unittest.TestCase):
@@ -422,19 +424,69 @@ class WaitTests(unittest.TestCase):
         self.assertTrue(self.wait(api, ref="refs/tags/v0.12.0").passed)
         self.assertEqual(api.started, ["v0.12.0"])
 
-    def test_starts_again_after_passes_that_were_cancelled(self):
-        cancelled = run(10, conclusion="cancelled")
-        api = Api(runs=[[cancelled], [cancelled, run(11, "queued", None)], [cancelled, run(11)]], heads={"main": SHA})
-        self.assertTrue(self.wait(api).passed)
-        self.assertEqual(api.started, ["main"])
+    def test_runs_a_cancelled_pass_again_rather_than_start_another(self):
+        # 13 November, 18:20Z: the pass of 0.12.1 was cancelled while Release,
+        # Builder and Installer waited for it, and each would have started one
+        # of its own, when the same one, run again, does for all of them.
+        api = Api(runs=[[run(10, conclusion="cancelled")], [run(10, "queued", None, attempt=2)], [run(10, attempt=2)]],
+                  heads={"main": SHA})
+        outcome = self.wait(api)
+        self.assertTrue(outcome.passed)
+        self.assertEqual(api.reran, [10])
+        self.assertEqual(api.started, [])
+        self.assertIn("The full test pass of aaaaaaaaaaaa was cancelled: running it again, once: "
+                      "https://github.com/o/r/actions/runs/10", self.said)
         # No wait for a push: a pass of this commit ran already.
         self.assertEqual(self.clock.slept[0], 15)
 
-    def test_the_pass_started_was_cancelled(self):
-        api = Api(runs=[[]] * 13 + [[run(12, conclusion="cancelled")]], heads={"main": SHA})
+    def test_waits_for_the_pass_another_job_ran_again(self):
+        api = Api(runs=[[run(10, conclusion="cancelled")], [run(10, conclusion="cancelled")],
+                        [run(10, "in_progress", None, attempt=2)], [run(10, attempt=2)]], heads={"main": SHA}, reruns=False)
+        self.assertTrue(self.wait(api).passed)
+        self.assertEqual(api.reran, [10])
+        self.assertEqual(api.started, [])
+
+    def test_a_pass_cancelled_again_once_run_again_blocks(self):
+        api = Api(runs=[[run(10, conclusion="cancelled")], [run(10, "queued", None, attempt=2)],
+                        [run(10, conclusion="cancelled", attempt=2)]], heads={"main": SHA})
         outcome = self.wait(api)
         self.assertFalse(outcome.passed)
-        self.assertIn("The full test pass started on main was cancelled", outcome.message)
+        self.assertIn("The full test pass of aaaaaaaaaaaa was cancelled again once run again", outcome.message)
+        self.assertEqual(outcome.url, "https://github.com/o/r/actions/runs/10")
+        self.assertEqual((api.reran, api.started), ([10], []))
+        # Run again by another job, or from the Actions tab, then cancelled.
+        api = Api(runs=[[run(10, conclusion="cancelled", attempt=2)]], heads={"main": SHA})
+        self.assertIn("was cancelled again once run again", self.wait(api).message)
+        self.assertEqual((api.reran, api.started), ([], []))
+
+    def test_a_cancelled_pass_that_does_not_run_again(self):
+        api = Api(runs=[[run(10, conclusion="cancelled")]], heads={"main": SHA})
+        outcome = self.wait(api)
+        self.assertFalse(outcome.passed)
+        self.assertIn("was cancelled, and does not run again", outcome.message)
+        self.assertEqual((api.reran, api.started), ([10], []))
+        self.assertGreaterEqual(self.clock.time, wait_for_pass.STARTED_SHOWS_WITHIN)
+
+    def test_a_cancelled_pass_and_nothing_to_run_it_again(self):
+        api = Api(runs=[[run(10, conclusion="cancelled")]], heads={"main": SHA})
+        outcome = self.wait(api, start=False)
+        self.assertFalse(outcome.passed)
+        self.assertIn("The full test pass of aaaaaaaaaaaa was cancelled: run it again from the Actions tab",
+                      outcome.message)
+        self.assertEqual(outcome.url, "https://github.com/o/r/actions/runs/10")
+        self.assertEqual((api.reran, api.started), ([], []))
+
+    def test_the_pass_started_was_cancelled(self):
+        api = Api(runs=[[]] * 13 + [[run(12, conclusion="cancelled")], [run(12, "queued", None, attempt=2)],
+                                    [run(12, attempt=2)]], heads={"main": SHA})
+        self.assertTrue(self.wait(api).passed)
+        self.assertEqual((api.started, api.reran), (["main"], [12]))
+
+    def test_the_pass_started_ended_otherwise(self):
+        api = Api(runs=[[]] * 13 + [[run(12, conclusion="skipped")]], heads={"main": SHA})
+        outcome = self.wait(api)
+        self.assertFalse(outcome.passed)
+        self.assertIn("The full test pass started on main was skipped", outcome.message)
         self.assertEqual(api.started, ["main"])
 
     def test_the_pass_started_does_not_show(self):
@@ -478,6 +530,35 @@ class WaitTests(unittest.TestCase):
         self.assertTrue(found.passed)
         self.assertFalse(found.running)
         self.assertTrue(Run.of({"id": 2, "head_sha": SHA, "status": "waiting", "html_url": "u"}).running)
+        again = Run.of({"id": 3, "head_sha": SHA, "status": "completed", "conclusion": "cancelled",
+                        "html_url": "u", "run_attempt": 2})
+        self.assertEqual((again.attempt, again.cancelled, again.failed), (2, True, False))
+
+    def test_runs_again_only_the_jobs_that_did_not_pass(self):
+        # 15 November: the whole pass of 0.13.0 ran again for one iPad job
+        # GitHub cut, half an hour more than that job alone.
+        asked = []
+
+        def gh(answers):
+            def run(command, **kwargs):
+                asked.append(command[-1])
+                return subprocess.CompletedProcess(command, answers.pop(0))
+            return run
+
+        github = wait_for_pass.GitHub("o/r")
+        with mock.patch.object(wait_for_pass.subprocess, "run", gh([0])):
+            self.assertTrue(github.rerun(10))
+        self.assertEqual(asked, ["repos/o/r/actions/runs/10/rerun-failed-jobs"])
+        # GitHub will not run them alone: the whole run, as before.
+        asked.clear()
+        with mock.patch.object(wait_for_pass.subprocess, "run", gh([1, 0])):
+            self.assertTrue(github.rerun(10))
+        self.assertEqual(asked, ["repos/o/r/actions/runs/10/rerun-failed-jobs", "repos/o/r/actions/runs/10/rerun"])
+        # Nor the whole run: another job ran it again already.
+        asked.clear()
+        with mock.patch.object(wait_for_pass.subprocess, "run", gh([1, 1])):
+            self.assertFalse(github.rerun(10))
+        self.assertEqual(len(asked), 2)
 
     def test_prints_the_outcome_for_the_run(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -582,6 +663,20 @@ class VerdictTests(unittest.TestCase):
         self.assertFalse(alone.matches("Storage / Storage against real servers (smb, 3)"))
         build = self.verdict.Expected("Installer", "Build for ${{ matrix.name }}", False, matrix=True)
         self.assertTrue(build.matches("Installer / Build for macOS"))
+        # A part of the screenshots, each on a Mac of its own (screens.yml).
+        shots = self.verdict.Expected("Launcher screens", "Screenshots", False, matrix=True)
+        self.assertTrue(shots.matches("Launcher screens / Screenshots (3)"))
+        self.assertFalse(shots.matches("Launcher screens / UI tests on an iPhone (1)"))
+
+    def test_a_part_of_a_matrix_that_failed(self):
+        self.expected.append(self.verdict.Expected("Launcher screens", "Screenshots", False, matrix=True))
+        self.calls["screens"] = "Launcher screens"
+        self.needs["screens"] = {"result": "success"}
+        parts = {f"Launcher screens / Screenshots ({part})": "success" for part in (1, 2, 3)}
+        self.assertTrue(self.judge(self.jobs(**parts)).passed)
+        parts["Launcher screens / Screenshots (2)"] = "failure"
+        self.assertIn("Launcher screens / Screenshots (2): failure", self.judge(self.jobs(**parts)).problems)
+        self.assertEqual(self.judge(self.jobs()).problems, ["Launcher screens / Screenshots is not in the run"])
 
     def test_a_call_missing_from_the_needs(self):
         self.assertIn("Installer: missing", self.judge(self.jobs(), {"app": {"result": "success"}}).problems)
@@ -592,17 +687,22 @@ class VerdictTests(unittest.TestCase):
         self.assertIs(names[("App", "Build Cartouche.ipa")], False)
         self.assertIs(names[("Storage", "Storage against real servers")], False)
         self.assertIs(names[("Installer", "Build for ${{ matrix.name }}")], False)
-        self.assertEqual({one.name for one in found if one.matrix}, {"Build for ${{ matrix.name }}"})
+        self.assertEqual({one.name for one in found if one.matrix},
+                         {"Build for ${{ matrix.name }}", "UI tests on an iPhone", "Screenshots"})
         self.assertIs(names[("Builder", "Mac app")], False)
         self.assertIs(names[("Telemetry", "Telemetry server")], False)
         self.assertIs(names[("CI", "Workflow audit")], False)
-        self.assertIs(names[("App", "Ad's Mac or GitHub")], False)
-        self.assertIs(names[("Launcher screens", "UI tests and screenshots")], False)
+        self.assertIs(names[("Launcher screens", "UI tests on an iPhone")], False)
+        self.assertIs(names[("Launcher screens", "UI tests on an iPad")], False)
+        self.assertIs(names[("Launcher screens", "Screenshots")], False)
+        self.assertIs(names[("Launcher harness", "Harness tests")], False)
+        self.assertIs(names[("Launcher harness", "Harness tests on an iPad")], False)
         self.assertIs(names[("Showcase site", "Check the page")], False)
         for skipped in (("Telemetry", "Deploy the telemetry server"), ("Builder", "Publish Cartouche Builder"),
                         ("Builder", "Full test pass on this commit"), ("Installer", "Publish the installer"),
                         ("Launcher screens", "Keep the screenshots on a branch"), ("Showcase site", "Publish it on gh-pages"),
-                        ("App", "Watch Ad's Mac"), ("Launcher screens", "Watch Ad's Mac")):
+                        ("Launcher screens", "Note that the UI tests and screenshots are done"),
+                        ("Launcher harness", "Note that the harness passed")):
             self.assertIs(names[skipped], True, skipped)
 
     def test_the_summary_names_each_part(self):

@@ -20,6 +20,10 @@ import XCTest
 /// arguments ask: each is the English of the key beside it in
 /// launcher/Sources/CartoucheText*.swift, or its beginning, which
 /// app/tests/test_launcher_ui_tests.py checks.
+///
+/// The words of a new feature go in an extension of Words in the file of
+/// its tests, which that check reads too, rather than at the end of this
+/// list, where pull requests that each added some met.
 enum Words {
     static let allGames = "All games"                       // home.all
     static let importGame = "Import"                        // dock.import
@@ -42,6 +46,7 @@ enum Words {
     static let code = "6-digit code"                        // signIn.code.placeholder
     static let signInFailed = "The sign-in did not go through" // signIn.failed.title
     static let tooManyRequests = "Apple is refusing new sign-ins for now" // signIn.tooManyRequests
+    static let otherCertificate = "This Apple ID already has a certificate that Cartouche does not hold" // signIn.otherCertificate
     static let tryAgainIn = "Try again in "                 // signIn.wait
     static let copyReport = "Copy the report"               // errorReport.copy
     static let reportCopied = "Report copied"               // errorReport.copied
@@ -118,6 +123,12 @@ enum Words {
     static let putBack = "Put back a copy"                  // saves.putBack
     static let putBackCopy = "Put back the copy of "        // saves.putBack.action
     static let putBackDone = "The copy of "                 // saves.putBack.done
+    static let siriAndHomeScreen = "Siri and Home Screen"   // shortcuts.title
+    static let sayToSiri = "Say to Siri"                    // shortcuts.siri
+    static let siriPhrase = "“Play %@ in Cartouche”"        // shortcuts.phrase
+    static let siriShorter = "“Play %@ in Cartouche” works too." // shortcuts.shorter
+    static let homeScreenIcon = "An icon on the Home Screen" // shortcuts.home
+    static let noLongerInstalled = "%@ is no longer installed in Cartouche." // shortcut.notInstalled
 }
 
 /// The gallery's own words (GalleryTesting.swift).
@@ -133,6 +144,13 @@ enum GalleryWords {
     static let signedInAs = "player@icloud.com"
     /// The folder in Files the saves are kept in (GallerySaves).
     static let savesFolder = "Gallery saves"
+    /// The stand-in start's alert, and what Siri would say, over the
+    /// console (GalleryTesting.swift).
+    static let play = "Gallery play"
+    static let shortcutFailed = "Gallery shortcut"
+    /// What a test posts for Siri to ask for the game of
+    /// Launch.siriOnPost (GalleryShortcut.posted).
+    static let siriAsks = "io.github.clabeuhtegrite.cartouche.gallery.shortcut"
 }
 
 /// The player's games, as nxnative.json names them.
@@ -157,14 +175,9 @@ struct Launch {
     /// The player's apps that are not games, installed in Cartouche, as
     /// "Name:bundle.identifier" (-GalleryApps, GalleryApp.swift).
     var apps: [String] = []
-    /// What goes on as the gallery opens (-GalleryWork, GalleryApp.swift):
-    /// "update", a new version of Cartouche on offer; "paused", the first
-    /// game paused behind the console; "installing" or "install-failed",
-    /// the game of SHEET; "offline", the NAS out of reach; "mac", the
-    /// player's Mac paired; "mac-nearby", "mac-code" or "mac-refused", what
-    /// Add your Mac finds; "saves", the first game's saves and a folder in
-    /// Files as the saves folder; "drive-signed-out", the player's Google
-    /// Drive, whose sign-in Google ended, with two games' saves waiting.
+    /// What goes on as the gallery opens: a value of -GalleryWork, each of
+    /// which GalleryApp.swift says on a line of its own, such as "update",
+    /// a new version of Cartouche on offer.
     var work: String?
     /// The game being installed, or whose install failed.
     var sheet: String?
@@ -175,11 +188,23 @@ struct Launch {
     /// SideStore, as "Name:bundle.identifier:daysLeft" (-GalleryIPhoneApps,
     /// GalleryApp.swift, decision 125).
     var iphoneApps: [String] = []
+    /// The device of catalog/devices.json the gallery draws the console
+    /// as (-GalleryModel): the iPhone when nil, iPad15,3 for an iPad.
+    var model: String?
     /// A test that types: the keyboard shown once and put away as the
     /// gallery opens, before the watch counts, as its first showing in a
     /// process holds the main thread for seconds on a CI Mac
     /// (GalleryKeyboard, GalleryTesting.swift).
     var typing = false
+    /// Cartouche signed with the player's own certificate (-GallerySigning,
+    /// GalleryApp.swift): "iphone", by a signing app on the iPhone, or
+    /// "installer", by the Cartouche Installer.
+    var signing: String?
+    /// The title ID of the game Siri asks for as the gallery opens, before
+    /// its console shows; and of the one it asks for each time the test
+    /// posts GalleryWords.siriAsks (GalleryShortcut, GalleryTesting.swift).
+    var siri: String?
+    var siriOnPost: String?
 
     var arguments: [String] {
         var arguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US",
@@ -193,6 +218,10 @@ struct Launch {
         if !iphoneApps.isEmpty { arguments += ["-GalleryIPhoneApps", iphoneApps.joined(separator: ",")] }
         if let holdMainThread { arguments += ["-GalleryHoldMainThread", String(holdMainThread)] }
         if typing { arguments += ["-GalleryKeyboard", "1"] }
+        if let signing { arguments += ["-GallerySigning", signing] }
+        if let siri { arguments += ["-GalleryShortcut", siri] }
+        if let siriOnPost { arguments += ["-GalleryShortcutOnPost", siriOnPost] }
+        if let model { arguments += ["-GalleryModel", model] }
         return arguments
     }
 }
@@ -434,6 +463,39 @@ class ConsoleTestCase: XCTestCase {
         button.tap()
     }
 
+    /// Cancels the confirmation on the screen (a confirmationDialog) as a
+    /// player does, then waits for it to go: by its Cancel, or, where iOS
+    /// shows it in a popover, which has no Cancel, as on an iPhone from
+    /// iOS 26, by a tap outside it, halfway between it and the edge of the
+    /// screen with the most room.
+    @MainActor
+    func cancelConfirmation(_ what: String, in app: XCUIApplication,
+                            file: StaticString = #filePath, line: UInt = #line) {
+        let sheet = app.sheets.firstMatch
+        expect(sheet.waitForExistence(timeout: 15), "No \(what)", in: app, file: file, line: line)
+        let cancel = sheet.buttons[Words.cancel]
+        let outside = app.otherElements["PopoverDismissRegion"]
+        var cancels = false
+        _ = waitUntil(5) {
+            cancels = cancel.exists && cancel.isHittable
+            return cancels || outside.exists
+        }
+        if cancels {
+            cancel.tap()
+        } else if outside.exists {
+            let area = outside.frame
+            let shown = sheet.frame
+            let below = area.maxY - shown.maxY
+            let above = shown.minY - area.minY
+            let y = below >= above ? shown.maxY + below / 2 : area.minY + above / 2
+            outside.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: (y - area.minY) / area.height)).tap()
+        } else {
+            expect(false, "\(what) has no Cancel, and nothing outside it to tap", in: app, file: file, line: line)
+            return
+        }
+        expect(waitForGone(sheet), "\(what) stayed once cancelled", in: app, file: file, line: line)
+    }
+
     /// Swipes the page up, slowly, until ELEMENT can be tapped: a list draws
     /// its rows only as they come on the screen.
     @MainActor
@@ -492,6 +554,31 @@ class ConsoleTestCase: XCTestCase {
         // The install happens once.
         Thread.sleep(forTimeInterval: 2)
         expect(!app.alerts[GalleryWords.install].exists, "A second install followed the first", in: app, file: file, line: line)
+    }
+
+    /// Siri asks for the game of Launch.siriOnPost, as iOS hands Cartouche
+    /// Play a Game: the gallery runs it (GalleryShortcut).
+    @MainActor
+    func askSiri() {
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                             CFNotificationName(GalleryWords.siriAsks as CFString), nil, nil, true)
+    }
+
+    /// The gallery's start of the game NAME, the COUNT-th since it opened,
+    /// says so over the console within TIMEOUT seconds; Done closes it, and
+    /// no other start follows.
+    @MainActor
+    func expectPlay(of name: String, count: Int = 1, timeout: TimeInterval = 30, in app: XCUIApplication,
+                    file: StaticString = #filePath, line: UInt = #line) {
+        let alert = app.alerts[GalleryWords.play]
+        expect(alert.waitForExistence(timeout: timeout), "\(name) did not start", in: app, file: file, line: line)
+        let message = "Play \(count): \(name)"
+        expect(alert.staticTexts[message].exists, "The start was not the \(count)th, of \(name): \(alert.debugDescription)",
+               in: app, file: file, line: line)
+        tap(alert.buttons[Words.done], "Done of the start", in: app, file: file, line: line)
+        expect(waitForGone(alert), "The start's alert stayed", in: app, file: file, line: line)
+        Thread.sleep(forTimeInterval: 2)
+        expect(!app.alerts[GalleryWords.play].exists, "Another start followed", in: app, file: file, line: line)
     }
 
     /// Whether the console is back, with nothing over it: its dock can be
@@ -635,7 +722,9 @@ struct FilesPicker {
     /// Picks FILE, which the picker may show without its extension: where
     /// the picker opened, as after an earlier pick, else in On My iPhone,
     /// where uitests.sh puts it, from Browse, else in the gallery's own
-    /// folder there, where the gallery writes it too.
+    /// folder there, where the gallery writes it too, which a picker that
+    /// takes folders as well, as the one of a Switch save, did not open on
+    /// a tap (2026-11-14).
     func pick(_ file: String) {
         let name = (file as NSString).deletingPathExtension
         if let item = item(name, timeout: 5) {
@@ -671,9 +760,19 @@ struct FilesPicker {
     }
 
     /// Picks ITEM, unless the picker shows it greyed out: of a type the
-    /// import does not take.
+    /// import does not take. A picker that takes folders as well may only
+    /// select the file a tap picks in another, for its Open button to pick:
+    /// Open then, once the file shows as selected, never for the folder
+    /// shown, which Open would pick when nothing is.
     private func choose(_ item: XCUIElement, _ file: String) {
         test.expect(item.isEnabled, "The Files picker shows \(file) greyed out: \(item.debugDescription)", in: app)
         open(item)
+        guard !waitForItToGo(10), item.exists else { return }
+        let openButton = app.buttons["DOCPicker.actionButton"]
+        print("== The Files picker stayed 10 s after the tap on \(file): selected \(item.isSelected), "
+              + "Open \(openButton.exists ? (openButton.isEnabled ? "enabled" : "greyed out") : "absent")")
+        if item.isSelected, openButton.exists, openButton.isEnabled {
+            openButton.tap()
+        }
     }
 }

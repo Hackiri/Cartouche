@@ -4,13 +4,16 @@
 //
 //  What Cartouche has on this iPhone: its setup, and the guide to the
 //  player's first game (CartoucheGuideView), which opens over the console;
-//  the player's storage, where their games and saves are kept; the memory
+//  the player's storage, where their games and saves are kept; the builds
+//  of the player's Mac paired there (CartoucheMacBuildsPage); the memory
 //  limit iOS sets for it, which the games that start in its place share;
 //  whether games run behind the console, and the memory they have there;
 //  when its signature expires, and how it is renewed; the device that the
 //  game sheets are compared with; Cartouche's updates; the game
-//  measurements it sends (CartoucheTelemetryView); and Report a problem
-//  (CartoucheReportView).
+//  measurements it sends (CartoucheTelemetryView); Cartouche's version and
+//  what the last versions brought (CartoucheReleaseNotesView); Report a
+//  problem (CartoucheReportView); and Reset Cartouche (CartoucheResetView),
+//  last.
 //  It opens over the console (CartoucheRootView), and OK or the
 //  controller's Menu button closes it.
 //
@@ -22,11 +25,13 @@ import UserNotifications
 struct CartoucheSystemView: View {
     @State private var memory = CartoucheMemoryReading.now()
     @State private var signature = CartoucheSignature.current()
-    @State private var renewal: Progress?
-    /// Why the last renewal from this page failed, and the report on it.
-    @State private var renewalReport: CartoucheReport?
     @State private var alertStatus: UNAuthorizationStatus?
     @ObservedObject private var setup = CartoucheSetup.shared
+    /// The renewal under way, from this page or by Cartouche itself, and
+    /// why the last one failed.
+    @ObservedObject private var renewals = CartoucheRenewals.shared
+    /// The sign-in, during which SideStore renews nothing: Renew now waits.
+    @ObservedObject private var account = CartoucheAccount.shared
     @ObservedObject private var storage = CartoucheStorageSettings.shared
     @ObservedObject private var reach = CartoucheStorageReach.shared
     @ObservedObject private var updates = CartoucheUpdates.shared
@@ -37,37 +42,82 @@ struct CartoucheSystemView: View {
     @ObservedObject private var guide = CartoucheGuide.shared
     @ObservedObject private var storedGames = CartoucheStoredGames.shared
     @EnvironmentObject private var sharedModel: SharedModel
+    /// The player's Mac, asked its builds while their page shows.
+    @StateObject private var macBuilds = CartoucheMacBuildsWatch()
 
     private let catalog = CartoucheCatalog.shared
 
+    /// The section the page opens on, by the first row's id, when not the
+    /// first: in the gallery's screenshots of a section further down
+    /// (launcher/Gallery, the scenario's category). Cartouche opens the page
+    /// at the top.
+    #if CARTOUCHE_GALLERY
+    static var openingSection: String?
+    #else
+    static let openingSection: String? = nil
+    #endif
+
+    /// The first row of the signature's section.
+    static let signatureRow = "signature"
+
+    /// The row of a version on offer, in the updates' section.
+    static let updateRow = "update"
+
+    #if CARTOUCHE_GALLERY
+    /// Whether the gallery's page opens on the Mac's builds, as the row
+    /// under Storage opens them (screen: mac-builds).
+    static var opensMacBuilds = false
+    @State private var showsMacBuilds = CartoucheSystemView.opensMacBuilds
+    #endif
+
     var body: some View {
         NavigationStack {
-            List {
-                setupSection
-                storageSection
-                memorySection
-                playingSection
-                signatureSection
-                if !CartoucheImportedSigning.accountSigningDisabled { automaticRenewalSection }
-                CartoucheIPhoneAppsSection()
-                deviceSection
-                updateSection
-                telemetrySection
-                cartoucheSection
-                reportSection
-            }
-            .cartoucheStageBackground()
-            .navigationTitle(CartoucheText.systemTab)
-            .refreshable { measure() }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(CartoucheText.done, action: close)
+            ScrollViewReader { reader in
+                List {
+                    setupSection
+                    storageSection
+                    macBuildsSection
+                    memorySection
+                    playingSection
+                    signatureSection
+                    if !CartoucheImportedSigning.accountSigningDisabled { automaticRenewalSection }
+                    CartoucheIPhoneAppsSection()
+                    deviceSection
+                    updateSection
+                    telemetrySection
+                    cartoucheSection
+                    reportSection
+                    resetSection
                 }
+                .cartoucheStageBackground()
+                .navigationTitle(CartoucheText.systemTab)
+                .refreshable { measure() }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(CartoucheText.done, action: close)
+                    }
+                }
+                .task {
+                    guard let section = Self.openingSection else { return }
+                    // Once the list has laid out its rows; the section's
+                    // header shows above its first row.
+                    try? await Task.sleep(for: .milliseconds(500))
+                    reader.scrollTo(section, anchor: UnitPoint(x: 0.5, y: 0.15))
+                }
+                #if CARTOUCHE_GALLERY
+                .navigationDestination(isPresented: $showsMacBuilds) {
+                    CartoucheMacBuildsPage(watch: macBuilds)
+                }
+                #endif
             }
         }
         // Dark like the console under it, whatever the iPhone's appearance.
         .preferredColorScheme(.dark)
         .onAppear(perform: measure)
+        // A renewal ended, from this page or by Cartouche itself.
+        .onChange(of: renewals.isRenewing) { _, renewing in
+            if !renewing { measure() }
+        }
         .onReceive(CartoucheGamepad.shared.inputs) { input in
             if input == .menu { close() }
         }
@@ -160,6 +210,23 @@ struct CartoucheSystemView: View {
                     }
                 } label: {
                     Label(CartoucheText.storageTitle, systemImage: "externaldrive.fill")
+                }
+            }
+        }
+    }
+
+    // MARK: The Mac's builds
+
+    /// The builds of the Mac paired in Storage, to follow and drive from
+    /// here; nothing without a Mac.
+    @ViewBuilder
+    private var macBuildsSection: some View {
+        if let mac = CartoucheMacBuildsWatch.mac(in: storage) {
+            Section {
+                NavigationLink {
+                    CartoucheMacBuildsPage(watch: macBuilds)
+                } label: {
+                    Label(CartoucheText.macBuildsTitle(mac.name), systemImage: "hammer.fill")
                 }
             }
         }
@@ -261,6 +328,7 @@ struct CartoucheSystemView: View {
         Section {
             if let expirationDate = signature.expirationDate, let daysLeft = signature.daysLeft {
                 LabeledContent(CartoucheText.expires, value: expirationDate.formatted(date: .abbreviated, time: .shortened))
+                    .id(Self.signatureRow)
                 LabeledContent(CartoucheText.daysLeft) {
                     Text(daysLeft < 0 ? CartoucheText.expired : String(daysLeft))
                         .foregroundStyle(daysLeft < 0 ? Color.red : daysLeft <= 2 ? Color.orange : Color.secondary)
@@ -269,6 +337,7 @@ struct CartoucheSystemView: View {
             } else {
                 Text(CartoucheText.profileUnknown)
                     .foregroundStyle(.secondary)
+                    .id(Self.signatureRow)
             }
             if let renewalDate = signature.renewalDate {
                 LabeledContent(CartoucheText.renewed, value: renewalDate.formatted(date: .abbreviated, time: .shortened))
@@ -282,15 +351,17 @@ struct CartoucheSystemView: View {
         } header: {
             Text(CartoucheText.signature)
         } footer: {
-            Text(CartoucheImportedSigning.accountSigningDisabled ? CartoucheText.signingUpdateOnComputer : CartoucheText.signatureFooter)
+            Text(CartoucheImportedSigning.isSignedOnIPhone ? CartoucheText.signingUpdateOnIPhone
+                 : CartoucheImportedSigning.accountSigningDisabled ? CartoucheText.signingUpdateOnComputer : CartoucheText.signatureFooter)
         }
     }
 
     @ViewBuilder
     private var renewRow: some View {
-        if let renewal {
+        if let renewal = renewals.progress {
             VStack(alignment: .leading, spacing: 8) {
-                Label(CartoucheText.renewing, systemImage: "arrow.triangle.2.circlepath")
+                Label(renewals.isAutomatic ? CartoucheText.renewingByItself : CartoucheText.renewing,
+                      systemImage: "arrow.triangle.2.circlepath")
                     .foregroundStyle(.secondary)
                 // SideStore reports its progress from another thread: read it
                 // twice a second instead of observing it.
@@ -300,35 +371,40 @@ struct CartoucheSystemView: View {
             }
             .padding(.vertical, 4)
         } else {
-            Button(CartoucheText.renewNow, systemImage: "arrow.triangle.2.circlepath", action: renew)
-                // One action of the built-in SideStore at a time (decision 125).
-                .disabled(apps.work != nil)
+            Button(CartoucheText.renewNow, systemImage: "arrow.triangle.2.circlepath") {
+                renewals.renewNow()
+            }
+            // As for an update: SideStore needs the setup done, and takes
+            // one action at a time, those for the apps on this iPhone too
+            // (decision 125). Up to 0.12.0, Renew now failed on copies not
+            // signed in.
+            .disabled(!renewals.canRenewNow || apps.work != nil)
+            if !setup.isComplete {
+                Text(CartoucheText.updateNeedsSetup)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
-        if let renewalReport {
-            Label(renewalReport.message, systemImage: "exclamationmark.triangle.fill")
+        if let report = renewals.report {
+            Label(report.message, systemImage: "exclamationmark.triangle.fill")
                 .font(.footnote)
                 .foregroundStyle(.red)
-            CartoucheReportButton(report: renewalReport)
+            CartoucheReportButton(report: report)
                 .font(.footnote)
-        }
-    }
-
-    private func renew() {
-        let progress = Progress(totalUnitCount: 100)
-        renewal = progress
-        renewalReport = nil
-        CartoucheReports.note("Renewal started")
-        Task {
-            do {
-                try await CartoucheRenewal.renew(progress: progress)
-                CartoucheReports.note("Renewal done")
-            } catch {
-                renewalReport = CartoucheReports.make(.renewal, CartoucheText.renewFailed, message: error.localizedDescription,
-                                                      error: error, step: CartoucheText.renewing,
-                                                      fraction: progress.fractionCompleted)
-            }
-            renewal = nil
-            measure()
+        } else if renewals.liveProcessMissing {
+            // Until an install over Cartouche puts LiveProcess back: Cartouche
+            // no longer renews itself meanwhile, and Renew now, an update or
+            // a sign-in says the same.
+            Label(CartoucheText.noLiveProcess, systemImage: "exclamationmark.triangle.fill")
+                .font(.footnote)
+                .foregroundStyle(.red)
+        } else if renewals.certificateRevoked {
+            // After the renewal or the update that found it, until an install
+            // over Cartouche gives it another signature: Cartouche no longer
+            // renews itself meanwhile.
+            Label(CartoucheText.renewRevoked, systemImage: "exclamationmark.triangle.fill")
+                .font(.footnote)
+                .foregroundStyle(.red)
         }
     }
 
@@ -401,17 +477,25 @@ struct CartoucheSystemView: View {
 
     // MARK: Updates
 
+    /// Signed with the player's own certificate, the section says that a
+    /// version is out, which Cartouche does not install by itself.
     @ViewBuilder
     private var updateSection: some View {
-        if updates.canUpdate {
+        if updates.canCheck {
             Section {
                 updateRows
             } header: {
                 Text(CartoucheText.updatesTitle)
             } footer: {
-                Text(CartoucheText.updatesFooter)
+                Text(updatesFooter)
             }
         }
+    }
+
+    private var updatesFooter: String {
+        if CartoucheImportedSigning.isSignedOnIPhone { return CartoucheText.signingUpdateOnIPhone }
+        if CartoucheImportedSigning.isImportedInstall { return CartoucheText.signingUpdateOnComputer }
+        return CartoucheText.updatesFooter
     }
 
     @ViewBuilder
@@ -437,9 +521,14 @@ struct CartoucheSystemView: View {
             .padding(.vertical, 4)
         } else if let available = updates.available {
             LabeledContent(CartoucheText.updateAvailable, value: available.version)
+                .id(Self.updateRow)
             if CartoucheImportedSigning.accountSigningDisabled {
-                Text(CartoucheText.signingUpdateOnComputer)
-                    .font(.footnote).foregroundStyle(.secondary)
+                // Its IPA, signed on the iPhone; the footer says what then.
+                if updates.download != nil {
+                    Button(CartoucheText.updateDownloadVersion(available.version), systemImage: "arrow.down.circle") {
+                        updates.openDownload()
+                    }
+                }
             } else {
                 Button(CartoucheText.updateTo(available.version), systemImage: "arrow.down.circle") {
                     updates.start()
@@ -507,6 +596,15 @@ struct CartoucheSystemView: View {
     private var cartoucheSection: some View {
         Section {
             LabeledContent(CartoucheText.version, value: version)
+            // What the last versions brought, which What's new showed after
+            // their update (CartoucheWhatsNewView).
+            if !CartoucheWhatsNew.carried.isEmpty {
+                NavigationLink {
+                    CartoucheReleaseNotesView(notes: Array(CartoucheWhatsNew.carried.prefix(CartoucheWhatsNew.listed)))
+                } label: {
+                    Text(CartoucheText.releaseNotesTitle)
+                }
+            }
             if let basedOn {
                 LabeledContent(CartoucheText.basedOn, value: basedOn)
             }
@@ -559,16 +657,39 @@ struct CartoucheSystemView: View {
                  : CartoucheText.reportFooter)
         }
     }
+
+    // MARK: Reset Cartouche
+
+    /// The reset's row: the gallery opens the page on it, at the page's
+    /// end (openingSection).
+    private static let resetRow = "reset"
+
+    /// Last, apart: what it erases, and the button, are on its own page.
+    private var resetSection: some View {
+        Section {
+            NavigationLink {
+                CartoucheResetView()
+            } label: {
+                Label(CartoucheText.resetTitle, systemImage: "arrow.counterclockwise")
+            }
+            .id(Self.resetRow)
+        } footer: {
+            Text(CartoucheText.resetFooter)
+        }
+    }
 }
 
 /// How to have Shortcuts renew Cartouche every night.
 @available(iOS 17.0, *)
 struct CartoucheNightlyRenewalView: View {
+    /// LocalDevVPN's action connects it before Refresh All Apps, which
+    /// waits for its tunnel (app/patches/livecontainer/0015): up to 0.12.1,
+    /// the player had to leave LocalDevVPN connected all day.
     private var steps: [String] {
         [
-            CartoucheText.dailyStepVPN,
             CartoucheText.dailyStepAutomation,
             CartoucheText.dailyStepTime,
+            CartoucheText.dailyStepVPN,
             CartoucheText.dailyStepAction,
             CartoucheText.dailyStepCheck,
         ]

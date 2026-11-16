@@ -10,6 +10,8 @@
 //  leaves the game as it was; Save keeps what the page says, on this iPhone
 //  only. For a game Cartouche does not know, the page says what IGDB has
 //  of it by its name (CartoucheGameLookup): a new name is looked up again.
+//  Cartouche's console on the Mac opens the same page over a game's sheet,
+//  its cover chosen in Photos or in the Finder.
 //
 
 import PhotosUI
@@ -76,7 +78,14 @@ struct CartoucheGameInfoView: View {
 
             Section {
                 TextField(entry.ownName, text: $name)
+                    #if os(iOS)
                     .textInputAutocapitalization(.words)
+                    #else
+                    // The field across the row, the game's own name in it
+                    // when it is empty, as on the iPhone: a form on the Mac
+                    // puts a field's title beside it otherwise.
+                    .labelsHidden()
+                    #endif
                     .autocorrectionDisabled()
                     .submitLabel(.done)
             } header: {
@@ -107,6 +116,9 @@ struct CartoucheGameInfoView: View {
             Section {
                 TextField(CartoucheText.gameInfoSummaryPrompt, text: $summary, axis: .vertical)
                     .lineLimit(4 ... 12)
+                    #if os(macOS)
+                    .labelsHidden()
+                    #endif
             } header: {
                 Text(CartoucheText.gameInfoSummary)
             } footer: {
@@ -130,10 +142,15 @@ struct CartoucheGameInfoView: View {
                 }
             }
         }
+        // In boxes, as on the iPhone: a form on the Mac lines its titles up
+        // in a column of their own otherwise.
+        .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(CartoucheStage(key: entry.tileKey, art: shown.backdrop))
         .navigationTitle(CartoucheText.gameInfoTitle)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             // A symbol as well as a name: the iPhone Duo shows the bars of a
             // sheet down the side of its outer display, where an item with a

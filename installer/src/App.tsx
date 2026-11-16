@@ -31,7 +31,7 @@ import { usePlatform } from "./PlatformContext";
 import { useStore } from "./StoreContext";
 import i18n, { defaultLanguage } from "./i18next";
 
-const REPOSITORY_URL = "https://github.com/clabeuhtegrite/Cartouche";
+const REPOSITORY_URL = "https://github.com/cartouche-app/Cartouche";
 
 /// The newest Cartouche, as its source lists it.
 type Release = {
@@ -342,11 +342,33 @@ function App() {
         <section className="step">
           <StepTitle
             number={2}
-            title={t("steps.apple_id_title")}
+            title={signingMode === "imported" ? t("signing.title") : t("steps.apple_id_title")}
             done={signingReady}
           />
-          <p className="step-hint">{t("steps.apple_id_hint")}</p>
+          <p className="step-hint">
+            {signingMode === "imported" ? t("signing.hint") : t("steps.apple_id_hint")}
+          </p>
           <GlassCard className="panel">
+            {/* How Cartouche is signed, chosen at the top of the card: the
+                Apple Account, as most do, or a certificate of the player's own. */}
+            <div className="signing-modes" role="radiogroup" aria-label={t("signing.mode_label")}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={signingMode === "account"}
+                onClick={() => setSigningMode("account")}
+              >
+                {t("apple_id.title")}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={signingMode === "imported"}
+                onClick={() => setSigningMode("imported")}
+              >
+                {t("signing.mode_certificate")}
+              </button>
+            </div>
             {signingMode === "imported" ? <ImportedSigning value={importedSigning} onChange={setImportedSigning}
               summary={profileSummary} onProfileChecked={setProfileSummary} /> :
             <AppleID
@@ -354,9 +376,6 @@ function App() {
               setLoggedInAs={setLoggedInAs}
               noKeyringAvailable={noKeyringAvailable}
             />}
-            <button className="error-link" onClick={() => setSigningMode(signingMode === "account" ? "imported" : "account")}>
-              {t(signingMode === "account" ? "signing.have_certificate" : "signing.use_account")}
-            </button>
           </GlassCard>
         </section>
         <section className="step">

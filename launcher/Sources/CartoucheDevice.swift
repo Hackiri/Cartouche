@@ -16,8 +16,10 @@ enum CartoucheDevice {
     /// The model identifier, such as "iPhone18,2".
     static let modelIdentifier: String = {
         #if CARTOUCHE_GALLERY
-        // The gallery draws the screens as the iPhone of catalog/devices.json shows them.
-        return "iPhone19,4"
+        // The gallery draws the screens as a device of catalog/devices.json
+        // shows them: the iPhone, or the iPad a scenario names (-GalleryModel,
+        // launcher/Gallery/Sources/GalleryApp.swift).
+        return UserDefaults.standard.string(forKey: "GalleryModel") ?? "iPhone19,4"
         #else
         if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
             return simulated
@@ -30,6 +32,14 @@ enum CartoucheDevice {
         return String(cString: machine)
         #endif
     }()
+
+    /// Whether Cartouche runs on an iPad, which its words then call the
+    /// iPad (CartoucheDeviceWords.swift).
+    static let isPad = modelIdentifier.hasPrefix("iPad")
+
+    /// The symbol of the device a game is on, beside its size and its
+    /// build: the console on the Mac has its own.
+    static let symbol = "iphone"
 
     static var iOSVersion: String {
         let version = ProcessInfo.processInfo.operatingSystemVersion
@@ -79,6 +89,30 @@ enum CartoucheDevice {
             return false
         }
         return (value.takeRetainedValue() as? NSNumber)?.boolValue ?? false
+    }()
+}
+
+extension CartoucheOwnSignature {
+    /// Cartouche's, signed with the player's own certificate: the
+    /// entitlements it runs with, against those of the profile it was
+    /// signed with. Nil when the built-in SideStore signed it, with an
+    /// Apple ID, or when its profile does not read.
+    static let current: CartoucheOwnSignature? = {
+        #if CARTOUCHE_GALLERY
+        return GalleryState.ownSignature
+        #else
+        guard CartoucheImportedSigning.isImportedInstall, let data = CartoucheImportedSigning.ownProfile,
+              let profile = try? CartoucheSigningMaterial.profileContents(data) else { return nil }
+        let task = SecTaskCreateFromSelf(nil)
+        var signed: [String: Any] = [:]
+        for key in [memoryEntitlement, keychainEntitlement, teamEntitlement] {
+            if let value = SecTaskCopyValueForEntitlement(task, key as CFString, nil) {
+                signed[key] = value.takeRetainedValue()
+            }
+        }
+        let team = signed[teamEntitlement] as? String ?? (profile["TeamIdentifier"] as? [String])?.first ?? ""
+        return CartoucheOwnSignature(signed: signed, profile: profile["Entitlements"] as? [String: Any] ?? [:], team: team)
+        #endif
     }()
 }
 

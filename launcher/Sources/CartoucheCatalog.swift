@@ -43,6 +43,10 @@ struct CartoucheGameSheet: Decodable, Hashable {
         let status: String
         let peakMemoryMiB: Int?
         let notes: [String]?
+        /// What Cartouche's game measurements found, for a result they made:
+        /// the figures its note and engine say in English, which Cartouche
+        /// says in the player's language (CartoucheMeasuredNote.swift).
+        let measured: CartoucheMeasured?
     }
 
     let titleId: String
@@ -221,7 +225,9 @@ final class CartoucheCatalog: ObservableObject {
     private var otherApps: Set<String> = []
 
     private init() {
-        let folder = Bundle.main.bundleURL.appendingPathComponent("CartoucheCatalog", isDirectory: true)
+        // In the app's bundle on the iPhone, in its Resources on the Mac
+        // (builder/mac/bundle.sh).
+        let folder = (Bundle.main.resourceURL ?? Bundle.main.bundleURL).appendingPathComponent("CartoucheCatalog", isDirectory: true)
         let decoder = JSONDecoder()
         var sheets: [CartoucheGameSheet] = []
         let gameFiles = (try? FileManager.default.contentsOfDirectory(

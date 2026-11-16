@@ -38,6 +38,10 @@ enum HarnessLC {
         case fails(String)
         /// Signed, but zsign could not sign some files, which it names.
         case signsPartly(String)
+        /// zsign cannot sign these files, by their path in the bundle, if
+        /// it gets them: it signs the others, then fails, with "Failed to
+        /// Sign" and each one's path, as it does.
+        case cannotSign([String])
     }
 
     /// A start of a game in Cartouche's place: LiveContainer quits Cartouche
@@ -60,6 +64,10 @@ enum HarnessLC {
         case refused
         /// The process crashes as it starts.
         case crashes
+        /// The process starts, then LiveProcess ends it on an error, with
+        /// these words: it could not run the game, in dyld's words or its
+        /// own, or the game ended itself, or threw (LCBootstrap.m).
+        case endsOnError(String)
     }
 
     static var signing: Signing = .signs
@@ -73,6 +81,9 @@ enum HarnessLC {
     static var readsBCTextures = true
     /// The bundles zsign signed, in order.
     static var signed: [String] = []
+    /// The files LiveContainer handed zsign, in order, by their whole path:
+    /// those Cartouche lists (app/patches/livecontainer/0013).
+    static var signedFiles: [String] = []
     static var launches: [Launch] = []
     /// The data folders whose keychain items LiveContainer removed.
     static var removedKeychains: [String] = []
@@ -93,10 +104,72 @@ enum HarnessLC {
     /// (app/patches/livecontainer/0012): not on an iOS without the scene
     /// it opens there.
     static var gamesHaveATVScene = true
-    /// Whether a display shows a copy of the iPhone's screen: a TV, by
-    /// cable or AirPlay, that iOS has not handed Cartouche
-    /// (CartoucheGameHost.iPhoneIsMirrored).
-    static var iPhoneMirrored = false
+    /// Whether the iPhone's sound goes to a display, by cable or AirPlay
+    /// (CartoucheGameHost.soundGoesToADisplay), or nil for the Simulator's
+    /// own route, to the Mac. A test says that iOS captures the iPhone's
+    /// screen with the capture state of the harness's scene, as iOS does
+    /// (TVTests.copyTheIPhonesScreen).
+    static var soundGoesToADisplay: Bool?
+    /// The way the screen of a game behind the console is turned, and the
+    /// way the screen would turn for the device as it is held, as a test
+    /// sets them (CartoucheGameScreen.followTurns): the Simulator's own
+    /// when nil, which a test cannot turn.
+    static var screenTurned: CartoucheGameOrientations?
+    static var deviceHeld: CartoucheGameOrientations?
+    /// Whether VoiceOver or Switch Control runs, as the screen of a game
+    /// behind the console reads it (CartoucheGameScreen): the Simulator's
+    /// own when nil, which a test cannot turn on.
+    static var assistiveTechnologyRuns: Bool?
+    /// Whether LocalDevVPN is connected, as Cartouche reads it
+    /// (CartoucheLocalDevVPN.isConnected): the Simulator has no LocalDevVPN.
+    static var vpnConnected = true
+    /// Whether LocalDevVPN is on the iPhone (CartoucheLocalDevVPN).
+    static var localDevVPNInstalled = true
+    /// Whether LocalDevVPN, once Cartouche opens it, connects, a moment
+    /// later, as its URL has it do.
+    static var localDevVPNConnects = true
+    /// Whether Cartouche is in front: not while LocalDevVPN is.
+    static var cartoucheInFront = true
+    /// The URLs Cartouche opened, in order: LocalDevVPN's, its page of the
+    /// App Store.
+    static var openedURLs: [URL] = []
+    /// How the built-in SideStore's next renewals go
+    /// (HarnessSideStore.swift).
+    static var renewal: HarnessSideStore.Renewal = .renews(days: 7)
+    /// How long each takes.
+    static var renewalTime: TimeInterval = 0.2
+    /// When Cartouche asked SideStore to renew it, in order.
+    static var renewals: [Date] = []
+    /// Whether LocalDevVPN was connected each time Cartouche asked SideStore
+    /// to renew it, in order.
+    static var vpnAtRenewals: [Bool] = []
+    /// The renewal SideStore holds without answering
+    /// (HarnessSideStore.Renewal.hangs).
+    static var heldRenewal: (() -> Void)?
+
+    /// Cartouche opens URL (CartoucheLocalDevVPN): the harness notes it, and
+    /// LocalDevVPN connects a moment later when `localDevVPNConnects` says
+    /// so, as localdevvpn://enable has it do before it opens Cartouche
+    /// again.
+    static func open(_ url: URL) {
+        openedURLs.append(url)
+        guard url.scheme == "localdevvpn", url.host == "enable", localDevVPNConnects else { return }
+        // Never in the test after this one.
+        let test = tests
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if test == tests, localDevVPNConnects { vpnConnected = true }
+        }
+    }
+
+    /// How many times the harness was reset: one for each test.
+    private static var tests = 0
+
+    /// SideStore answers the renewal it held: Cartouche renewed.
+    static func endHeldRenewal() {
+        let held = heldRenewal
+        heldRenewal = nil
+        held?()
+    }
 
     static let appGroupID = "group.io.github.clabeuhtegrite.cartouche.harness"
 
@@ -120,10 +193,12 @@ enum HarnessLC {
     }
 
     /// LiveContainer's LiveProcess extension, where Cartouche looks for it
-    /// (CartoucheGameKeeping.isAvailable): its Info.plist, in the app's
-    /// PlugIns, which the Simulator lets the app write. The harness's
-    /// AppSceneViewController stands in for what it runs.
-    private static func installLiveProcess() {
+    /// (CartoucheGameKeeping.isAvailable, CartoucheLiveProcess): its
+    /// Info.plist, in the app's PlugIns, which the Simulator lets the app
+    /// write. The harness's AppSceneViewController stands in for what it
+    /// runs. Back before each test, as an install of Cartouche over itself
+    /// with the Cartouche Installer puts it back.
+    static func installLiveProcess() {
         guard let plugins = Bundle.main.builtInPlugInsURL else { return }
         let appex = plugins.appendingPathComponent("LiveProcess.appex", isDirectory: true)
         let info = appex.appendingPathComponent("Info.plist")
@@ -138,10 +213,19 @@ enum HarnessLC {
         (plist as NSDictionary).write(to: info, atomically: true)
     }
 
+    /// Takes LiveProcess out of the app's PlugIns, as an install that
+    /// removed the app's extensions leaves Cartouche.
+    static func removeLiveProcess() {
+        guard let plugins = Bundle.main.builtInPlugInsURL else { return }
+        try? FileManager.default.removeItem(at: plugins.appendingPathComponent("LiveProcess.appex", isDirectory: true))
+    }
+
     /// LiveContainer and the harness as on a new install: no app, no data
     /// folder, nothing in the app group, nothing signed or started, and the
     /// harness's defaults.
     static func reset() {
+        // A renewal a test left held ends before anything else goes.
+        endHeldRenewal()
         let fileManager = FileManager.default
         for folder in [LCPath.docPath, fileManager.temporaryDirectory, appGroup] {
             for item in (try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [] {
@@ -165,6 +249,7 @@ enum HarnessLC {
         iOSRefusesCertificate = false
         readsBCTextures = true
         signed = []
+        signedFiles = []
         launches = []
         removedKeychains = []
         LCSharedUtils.setCartoucheSigningCandidate(nil)
@@ -174,7 +259,21 @@ enum HarnessLC {
         gameEndsOnTerminate = true
         extensionReportsExit = true
         gamesHaveATVScene = true
-        iPhoneMirrored = false
+        soundGoesToADisplay = nil
+        screenTurned = nil
+        deviceHeld = nil
+        assistiveTechnologyRuns = nil
+        tests += 1
+        vpnConnected = true
+        localDevVPNInstalled = true
+        localDevVPNConnects = true
+        cartoucheInFront = true
+        openedURLs = []
+        renewal = .renews(days: 7)
+        renewalTime = 0.2
+        renewals = []
+        vpnAtRenewals = []
+        installLiveProcess()
         HarnessScenes.reset()
         HarnessNetwork.reset()
         let model = DataManager.shared.model
@@ -280,31 +379,48 @@ enum HarnessLC {
 
     // MARK: Signing
 
-    /// What zsign does with BUNDLE: signs it with the installed certificate,
-    /// as the signature and profile it writes, or fails, as SIGNING says,
-    /// on a queue of its own. Returns its progress at once, as zsign does.
+    /// What LiveContainer's signing does with BUNDLE (LCUtils
+    /// signAppBundleWithZSign, with Cartouche's patch 0013): it hands zsign
+    /// the files Cartouche lists (CartoucheSignedFiles), which zsign signs
+    /// with the installed certificate, as the signature and profile it
+    /// writes, or fails, as SIGNING says, on a queue of its own. Should it
+    /// get a file it cannot sign, a Mach-O of Apple's GPU, which has no
+    /// room for a signature, or a file that is no Mach-O, it signs the
+    /// others and fails, in its own words, as zsign does
+    /// (HarnessMachO.zsignFailure). Returns its progress at once.
     static func sign(bundle: String, completion: @escaping (Bool, Error?) -> Void) -> Progress {
+        let files = CartoucheSignedFiles.paths(inBundle: bundle)
         let progress = Progress(totalUnitCount: 100)
         let plan = signing
         let time = signingTime
         let certificate = LCUtils.certificateData()
-        DispatchQueue.main.async { HarnessLC.signed.append(bundle) }
+        DispatchQueue.main.async {
+            HarnessLC.signed.append(bundle)
+            HarnessLC.signedFiles.append(contentsOf: files)
+        }
         DispatchQueue.global(qos: .userInitiated).async {
             for step in 1...10 {
                 Thread.sleep(forTimeInterval: time / 10)
                 progress.completedUnitCount = Int64(step * 10)
             }
+            var refused = files.compactMap(HarnessMachO.zsignFailure)
+            if case .cannotSign(let paths) = plan {
+                refused += files.filter { file in paths.contains { file.hasSuffix("/" + $0) } }.map { "Failed to Sign " + $0 }
+            }
             switch plan {
             case .fails(let message):
                 completion(false, NSError(domain: "zsign", code: 1, userInfo: [NSLocalizedDescriptionKey: message]))
-            case .signs, .signsPartly:
+            case .signs, .signsPartly, .cannotSign:
                 let folder = URL(fileURLWithPath: bundle, isDirectory: true)
                 let signature = folder.appendingPathComponent("_CodeSignature", isDirectory: true)
                 try? FileManager.default.createDirectory(at: signature, withIntermediateDirectories: true)
                 let resources: [String: Any] = ["HarnessCertificate": HarnessLC.fingerprint(of: certificate) ?? ""]
                 (resources as NSDictionary).write(to: signature.appendingPathComponent("CodeResources"), atomically: true)
                 try? Data("harness provisioning profile".utf8).write(to: folder.appendingPathComponent("embedded.mobileprovision"))
-                if case .signsPartly(let message) = plan {
+                if !refused.isEmpty {
+                    completion(false, NSError(domain: "Failed to Sign", code: -1,
+                                              userInfo: [NSLocalizedDescriptionKey: refused.joined(separator: "\n")]))
+                } else if case .signsPartly(let message) = plan {
                     completion(true, NSError(domain: "zsign", code: 2, userInfo: [NSLocalizedDescriptionKey: message]))
                 } else {
                     completion(true, nil)

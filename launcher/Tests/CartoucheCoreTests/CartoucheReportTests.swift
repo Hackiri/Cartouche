@@ -86,6 +86,26 @@ final class CartoucheReportTests: XCTestCase {
         XCTAssertTrue(text.contains("11-10 07:02:11 Reading the games folder on <server>"))
     }
 
+    func testCartouchesOwnFactsKeepTheirWords() {
+        // A player whose user name is "games" and whose bucket is "saves":
+        // the facts on Cartouche and this iPhone, Cartouche's own words,
+        // stay whole, where the player's names took "games on SMB" with
+        // them; what may hold the player's names still loses them.
+        let player = CartoucheRedaction(names: ["saves"], accounts: ["games"])
+        var report = sample
+        report.message = "331 Password required for games."
+        report.facts.append(.init("Bucket", "saves, in eu-west-3"))
+        report.environment.facts.append(.init("Place", "smb://nas.local/Games"))
+        let text = report.text(redactedBy: player)
+        let lines = text.components(separatedBy: "\n")
+        XCTAssertTrue(lines.contains("Storage: games on SMB, saves on S3"), text)
+        XCTAssertTrue(lines.contains("Message: 331 Password required for <account>."), text)
+        XCTAssertTrue(lines.contains("Bucket: <name>, in eu-west-3"), text)
+        // What is shaped like an address goes from them all the same.
+        XCTAssertTrue(lines.contains("Place: <address>"), text)
+        XCTAssertEqual(report.redacted(by: player).environment.facts.prefix(2), environment.facts.prefix(2))
+    }
+
     // MARK: The text
 
     private var sample: CartoucheReport {
@@ -221,6 +241,29 @@ final class CartoucheReportTests: XCTestCase {
         XCTAssertEqual(again.last(2), last)
     }
 
+    /// Reset, the journal starts again from nothing: never a line of
+    /// before, written again with the next one.
+    func testAClearedJournalStartsAgain() throws {
+        let file = temporaryFile("Journal.txt")
+        let journal = CartoucheJournal(file: file)
+        for index in 1 ... 30 {
+            journal.note("Step \(index)")
+        }
+        journal.clear()
+        XCTAssertEqual(journal.last(100), [])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        journal.note("Cartouche reset")
+        journal.flush()
+        let text = try String(contentsOf: file, encoding: .utf8)
+        XCTAssertEqual(text.split(separator: "\n").map { String($0.dropFirst(15)) }, ["Cartouche reset"])
+        XCTAssertEqual(CartoucheJournal(file: file).last(100).count, 1)
+        // Without a file, in memory alone.
+        let alone = CartoucheJournal(file: nil)
+        alone.note("Step")
+        alone.clear()
+        XCTAssertEqual(alone.last(5), [])
+    }
+
     func testAJournalWithoutFile() {
         let journal = CartoucheJournal(file: nil)
         journal.note("Cartouche started")
@@ -244,5 +287,22 @@ final class CartoucheReportTests: XCTestCase {
 
         let again = CartoucheReportArchive(file: file)
         XCTAssertEqual(again.reports, archive.reports)
+    }
+
+    /// Reset, the archive starts again from nothing.
+    func testAClearedArchiveStartsAgain() {
+        let file = temporaryFile("Reports.json")
+        let archive = CartoucheReportArchive(file: file)
+        for _ in 1 ... 3 {
+            archive.add(sample, redactedBy: player)
+        }
+        archive.clear()
+        XCTAssertEqual(archive.reports, [])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        var report = sample
+        report.message = "After the reset"
+        archive.add(report, redactedBy: player)
+        archive.flush()
+        XCTAssertEqual(CartoucheReportArchive(file: file).reports.map(\.message), ["After the reset"])
     }
 }

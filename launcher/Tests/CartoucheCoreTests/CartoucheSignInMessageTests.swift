@@ -99,6 +99,55 @@ final class CartoucheSignInMessageTests: XCTestCase {
                        .unreadable(status: nil))
         XCTAssertNil(CartoucheSignInMessage.trouble(in: "Your Apple ID or password is incorrect.",
                                                     failure: CartoucheFailure(.appleCredentials, details: ["kind": .text("incorrectCredentials")])))
+        // The built-in SideStore closed before it finished, as it launched or
+        // on its way: LiveContainer's English words say nothing of what to do.
+        for message in ["Built-in SideStore quit unexpectedly while starting", "Built-in SideStore quit unexpectedly"] {
+            let quit = CartoucheFailure.sideStore(outcome: nil, message: message, fraction: 0, seconds: 1, vpn: true, pairing: true)
+            XCTAssertEqual(CartoucheSignInMessage.trouble(in: message, failure: quit), .sideStoreQuit, message)
+        }
+        // The built-in SideStore found no app group, as when a signing app
+        // signed the IPA for an Apple ID: its database's error as it starts,
+        // or its operations', whose words say nothing of the IPA to sign.
+        for (family, stage, message) in [("database", "database", "App Group Container Inaccessible"),
+                                         ("operation", "ClearAppCache", "SideStore's shared app group could not be accessed.")] {
+            let noGroup = sideStoreFailure(["stage": stage, "family": family, "kind": "missingAppGroup"], message: message)
+            XCTAssertEqual(CartoucheSignInMessage.trouble(in: message, failure: noGroup), .noAppGroup, family)
+        }
+        // Apple's portal refusing an app group of the account is another
+        // matter.
+        XCTAssertNil(CartoucheSignInMessage.trouble(in: "The app group does not exist.",
+                                                    failure: CartoucheFailure(.appGroup, details: ["kind": .text("appGroupDoesNotExist")])))
+        // The Apple ID already has a certificate the built-in SideStore does
+        // not hold, which it never revokes: its words are in English, and
+        // end with the certificates' serial numbers.
+        let certificate = "This Apple account already has a certificate, which signs the apps installed with it."
+        let other = sideStoreFailure(["stage": "certificate", "family": "operation", "kind": "forbidden"], message: certificate)
+        XCTAssertEqual(CartoucheSignInMessage.trouble(in: certificate, failure: other), .otherCertificate)
+        // SideStore's forbidden at another step is not that.
+        let elsewhere = sideStoreFailure(["stage": "ResignApp", "family": "operation", "kind": "forbidden"], message: "Forbidden")
+        XCTAssertNil(CartoucheSignInMessage.trouble(in: "Forbidden", failure: elsewhere))
+        // LiveProcess, which the built-in SideStore runs in, is not in the
+        // app: LiveContainer's bridge cannot start it, and its English words
+        // send the player to the settings of other sideloaders.
+        let noLiveProcess = "Unable to locate LiveProcess bundle. To use the Refresh All Apps shortcut, reinstall "
+            + "LiveContainer+SideStore with LiveProcess installed."
+        let missing = CartoucheFailure.sideStore(outcome: nil, message: noLiveProcess, fraction: 0, seconds: 0, vpn: true, pairing: true)
+        XCTAssertEqual(CartoucheSignInMessage.trouble(in: noLiveProcess, failure: missing), .noLiveProcess)
+        // LiveProcess there, refusing to start, is not that.
+        let refusing = "Failed to start extension Error Domain=NSCocoaErrorDomain Code=4099"
+        let failed = CartoucheFailure.sideStore(outcome: nil, message: refusing, fraction: 0, seconds: 0, vpn: true, pairing: true)
+        XCTAssertNil(CartoucheSignInMessage.trouble(in: refusing, failure: failed))
+    }
+
+    /// What Cartouche makes of the built-in SideStore's MESSAGE, its sign-in
+    /// having left FIELDS as its outcome.
+    private func sideStoreFailure(_ fields: [String: Any], message: String) -> CartoucheFailure {
+        var left: [String: Any] = ["version": 1, "action": "signIn", "ok": false, "date": Int(Date().timeIntervalSince1970)]
+        left.merge(fields) { _, new in new }
+        let outcome = (try? JSONSerialization.data(withJSONObject: left))
+            .flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .signIn) }
+        XCTAssertNotNil(outcome, "\(fields)")
+        return CartoucheFailure.sideStore(outcome: outcome, message: message, fraction: 0, seconds: 0, vpn: true, pairing: true)
     }
 
     func testTheTroubleWithThisIPhone() {
@@ -114,6 +163,39 @@ final class CartoucheSignInMessageTests: XCTestCase {
         XCTAssertEqual(CartoucheSignInMessage.deviceTrouble(in: CartoucheFailure(.device)), .noAnswer)
         XCTAssertNil(CartoucheSignInMessage.deviceTrouble(in: CartoucheFailure(.deviceRegistration, stage: "device")))
         XCTAssertNil(CartoucheSignInMessage.deviceTrouble(in: CartoucheFailure(.appleCredentials, stage: "account")))
+    }
+
+    func testTheTroubleMinimuxerToldOf() {
+        func trouble(_ cause: CartoucheFailure.Cause, _ kind: String, reason: String?, vpn: Bool?) -> CartoucheSignInMessage.DeviceTrouble? {
+            var details: [String: CartoucheTelemetryValue] = ["kind": .text(kind)]
+            if let reason { details["reason"] = .text(reason) }
+            if let vpn { details["vpn"] = .flag(vpn) }
+            return CartoucheSignInMessage.deviceTrouble(in: CartoucheFailure(cause, stage: "deviceCheck", details: details))
+        }
+        // A Lockdown pairing file, which minimuxer takes through LocalDevVPN
+        // from iOS 26.4 only beside an IPsec interface (patch 0022).
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: "noIPsec", vpn: true), .olderPairing)
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: "noIPsec", vpn: false), .olderPairing)
+        // LocalDevVPN connected, as Cartouche saw it: the iPhone did not
+        // answer through it, whatever minimuxer made of it: the player is
+        // not told that LocalDevVPN is not connected.
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: "portClosed", vpn: true), .noAnswer)
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: "dropped", vpn: true), .noAnswer)
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: nil, vpn: true), .noAnswer)
+        // LocalDevVPN off, or not known.
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: "portClosed", vpn: false), .vpn)
+        XCTAssertEqual(trouble(.vpn, "noVPN", reason: "noTunnel", vpn: false), .vpn)
+        XCTAssertEqual(trouble(.vpn, "invalidVPN", reason: nil, vpn: nil), .vpn)
+        // A pairing file this iPhone refused when minimuxer reached it.
+        for reason in ["handshake", "serviceRefused", "lockdownSession", "lockdownValue"] {
+            XCTAssertEqual(trouble(.pairing, "invalidPairingFile", reason: reason, vpn: true), .pairingRefused, reason)
+        }
+        // One missing, or that does not read, or a reason not known.
+        for reason in ["notLoaded", "unreadable", "incomplete", "noUDID", "other"] {
+            XCTAssertEqual(trouble(.pairing, "invalidPairingFile", reason: reason, vpn: true), .pairing, reason)
+        }
+        XCTAssertEqual(trouble(.pairing, "invalidPairingFile", reason: nil, vpn: true), .pairing)
+        XCTAssertEqual(trouble(.pairing, "pairingNotComplete", reason: "notLoaded", vpn: true), .pairing)
     }
 
     func testWhatASignInLeavesOfTheIPhonesStep() {

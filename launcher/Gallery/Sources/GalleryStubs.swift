@@ -5,7 +5,8 @@
 //  LiveContainer's types and calls the launcher uses, as the gallery stands
 //  them in: the player's games are the scenario's, the certificate and the
 //  pairing file are there once its setup is done, and the built-in
-//  SideStore's last renewal leaves six days.
+//  SideStore's last renewal leaves six days; its renewal, which the System
+//  page's Renew now asks for, renews Cartouche for seven.
 //
 
 import SwiftUI
@@ -20,6 +21,24 @@ enum GalleryState {
     /// SideStore keeps the Apple ID of a sign-in that stopped before the
     /// certificate (work: sign-in-unfinished).
     static var signInUnfinished = false
+    /// The part of a game's sheet the sheet opens on: results, the
+    /// testers' results (category: results).
+    static var sheetSection: String?
+    /// Cartouche signed with the player's own certificate (-GallerySigning):
+    /// on the iPhone, by a signing app, or by the Cartouche Installer.
+    static var signing: CartoucheSigningMode = .account
+    /// What that signature gives Cartouche (GalleryScenario.ownSignature).
+    static var ownSignature: CartoucheOwnSignature?
+    /// LocalDevVPN is connected (CartoucheVPN.isConnected), whatever the
+    /// interfaces of the Mac under the simulator (work: device-…).
+    static var vpnConnected = false
+    /// The IPA for an Apple ID, signed by a signing app without its app
+    /// group, which LiveContainer then does not find (work: signed-elsewhere).
+    static var appGroupMissing = false
+    /// LiveContainer's LiveProcess extension, which the built-in SideStore
+    /// runs in, is missing from the app, as after an install that removed
+    /// its extensions (CartoucheLiveProcess; works: …-no-liveprocess).
+    static var liveProcessMissing = false
 
     static let documents: URL = {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -33,6 +52,42 @@ enum GalleryState {
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }()
+
+    /// The built-in SideStore's records of the apps Cartouche installed on
+    /// this iPhone, as JSON objects, which go after Cartouche's own in
+    /// widget_data.json (-GalleryIPhoneApps, decision 125).
+    static var appRecords: [String] = []
+
+    /// Records Cartouche's signature as expiring EXPIRY seconds from now,
+    /// renewed RENEWED seconds ago, as the built-in SideStore does for its
+    /// widget, in widget_data.json in the app group, with appRecords after it.
+    static func recordSignature(expiringIn expiry: TimeInterval, renewedAgo renewed: TimeInterval) {
+        let own = """
+        {"bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "")",
+         "expirationDate": \(Date().addingTimeInterval(expiry).timeIntervalSinceReferenceDate),
+         "refreshedDate": \(Date().addingTimeInterval(-renewed).timeIntervalSinceReferenceDate)}
+        """
+        let record = "{\"allApps\": [" + ([own] + appRecords).joined(separator: ",") + "]}"
+        try? Data(record.utf8).write(to: appGroup.appendingPathComponent("widget_data.json"))
+    }
+}
+
+/// The built-in SideStore's renewal, as LiveContainer loads it with
+/// SideStoreSupport (CartoucheRefresh): with it, the System page shows
+/// Renew now. Two seconds after it is asked, it renews Cartouche for seven
+/// days.
+@objc(CartoucheRefresh)
+final class GalleryRefresh: NSObject {
+    @objc(refreshAllAppsWithProgress:completion:)
+    static func refreshAllApps(progress: Progress, completion: @escaping (String?) -> Void) {
+        progress.totalUnitCount = 100
+        progress.completedUnitCount = 10
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            GalleryState.recordSignature(expiringIn: 7 * 86_400, renewedAgo: 0)
+            progress.completedUnitCount = 100
+            completion(nil)
+        }
+    }
 }
 
 final class LCAppInfo {
@@ -105,8 +160,8 @@ final class LCAppModel: ObservableObject, Identifiable, Hashable {
 /// games with LiveContainer and opens their preferences, as the gallery
 /// stands it in: nothing happens, a scenario can show a step in progress,
 /// every game has the settings of GallerySettings, kept in memory, and an
-/// install says, for the UI tests, which IPA it was given
-/// (GalleryTesting.swift).
+/// install or a start says, for the UI tests, which IPA or game it was
+/// given (GalleryTesting.swift).
 @MainActor
 final class CartoucheGameActions: ObservableObject {
     static let shared = CartoucheGameActions()
@@ -128,8 +183,10 @@ final class CartoucheGameActions: ObservableObject {
     func installAnyway(_ question: CartoucheInstallQuestion) { installQuestion = nil }
     func dropInstall(_ question: CartoucheInstallQuestion) { installQuestion = nil }
     func closeInstallQuestion() { installQuestion = nil }
-    func play(_ app: LCAppModel, showingSettings: Bool = false) {}
+    func play(_ app: LCAppModel, showingSettings: Bool = false) { GalleryTest.play(app, with: self) }
+    func signAgain(_ bundleId: String) { notice = nil }
     func resumeRunningGame() {}
+    func showConsole() { running?.isInFront = false }
     func askToQuit() { quitQuestion = running }
     func quitRunningGame() { quitQuestion = nil }
     func confirmSwitch(_ change: CartoucheGameSwitch) { switching = nil }
@@ -151,6 +208,10 @@ final class CartoucheGameActions: ObservableObject {
     /// gallery has none of, but for the game whose saves a scenario syncs
     /// (work: saves, GallerySaves).
     func saves(of app: LCAppModel) -> CartoucheSaveTarget? { GallerySaves.target(of: app) }
+    func savesToImport(of app: LCAppModel) -> CartoucheSaveTarget? { GallerySaves.target(of: app) }
+    /// Nor any log, but for the game whose logs a scenario shares (work:
+    /// log, GalleryLogs).
+    func logs(of app: LCAppModel) -> CartoucheGameLogFolder? { GalleryLogs.folder(of: app) }
     func copySaves(of apps: [LCAppModel]) {}
     /// Nor any folder to measure: the scenario gives each game its size and
     /// play time (CartoucheGameStats.showForGallery).
@@ -170,7 +231,7 @@ final class CartoucheGameActions: ObservableObject {
 final class CartoucheTelemetry: ObservableObject {
     static let shared = CartoucheTelemetry()
     static let endpoint = URL(string: "https://telemetry.example.workers.dev")
-    static let privacyURL = URL(string: "https://github.com/clabeuhtegrite/Cartouche/blob/main/docs/privacy.md")!
+    static let privacyURL = URL(string: "https://github.com/cartouche-app/Cartouche/blob/main/docs/privacy.md")!
 
     @Published private(set) var isOn = true
     @Published private(set) var lastReport: String? = """
@@ -186,6 +247,7 @@ final class CartoucheTelemetry: ObservableObject {
     func setOn(_ on: Bool) { isOn = on }
     func erase() async -> Bool { true }
     func event(_ name: String, game: String? = nil, fields: [String: CartoucheTelemetryValue] = [:]) {}
+    func renewed(fields: [String: CartoucheTelemetryValue]) {}
 }
 
 /// A settings list as nxnative writes one into a game (dm/launcher.json,
@@ -261,6 +323,13 @@ final class SharedModel: ObservableObject {
     @Published var apps: [LCAppModel] = []
 }
 
+/// LiveContainer's holder of its model, whose apps Siri and Shortcuts name
+/// (CartoucheShortcuts.swift): the gallery shows this model.
+final class DataManager {
+    static let shared = DataManager()
+    let model = SharedModel()
+}
+
 extension UTType {
     static let ipa = UTType(filenameExtension: "ipa")!
 }
@@ -277,7 +346,7 @@ enum LCUtils {
 enum LCSharedUtils {
     static func setCartoucheSigningCandidate(_ material: [String: Any]?) {}
     static func certificatePassword() -> String? { GalleryState.setupDone ? "" : nil }
-    static func appGroupPath() -> URL? { GalleryState.appGroup }
+    static func appGroupPath() -> URL? { GalleryState.appGroupMissing ? nil : GalleryState.appGroup }
 }
 
 struct LCPath {

@@ -41,7 +41,10 @@ struct CartoucheReport: Codable, Equatable, Sendable {
         var device: String
         /// The language Cartouche speaks, then the iPhone's: "fr (fr-FR)".
         var language: String
-        /// Memory, free space, setup, signature, storage.
+        /// Memory, free space, setup, signature, storage: Cartouche's own
+        /// words and numbers, never a name of the player's
+        /// (CartoucheReports.environment()), so that a report takes only
+        /// what is shaped like an address out of them (redacted(by:)).
         var facts: [Fact]
     }
 
@@ -74,6 +77,8 @@ struct CartoucheReport: Codable, Equatable, Sendable {
         /// The apps Cartouche installed on this iPhone: installing one,
         /// renewing one, uninstalling one (decision 125).
         case apps
+        /// Erasing Cartouche, from System › Reset Cartouche.
+        case reset
     }
 
     /// Where it went wrong.
@@ -169,7 +174,11 @@ extension CartoucheReport {
         report.step = step.map(redact)
         report.error = error.map(redact)
         report.facts = facts.map { Fact($0.name, redact($0.value)) }
-        report.environment.facts = environment.facts.map { Fact($0.name, redact($0.value)) }
+        // Cartouche's own words, which the player's names would take with
+        // them where a name is one of those words: "Storage: games on SMB"
+        // for a player whose user name is games.
+        let shapes = CartoucheRedaction.shapes.redactor()
+        report.environment.facts = environment.facts.map { Fact($0.name, shapes($0.value)) }
         report.journal = journal.map(redact)
         return report
     }
@@ -327,8 +336,10 @@ struct CartoucheRedaction: Equatable, Sendable {
     /// Its last character is not a sentence's: "Could not reach smb://x."
     private static let url = regex(#"[A-Za-z][A-Za-z0-9+.\-]*://[^\s"'<>()\[\]]*[^\s"'<>()\[\].,;:!?]"#)
     private static let mail = regex(#"[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}"#)
-    /// The folders iOS gives an app, named by a UUID that is this iPhone's.
-    private static let appContainer = regex(
+    /// The folders iOS gives an app, named by a UUID that is this iPhone's:
+    /// a game's log takes them out before any other path
+    /// (CartoucheLogCleaning).
+    static let appContainer = regex(
         #"(?:/private)?/var/(?:mobile/Containers|containers)/(?:Data|Shared|Bundle)/(?:Application|AppGroup)/[0-9A-Fa-f\-]{36}"#)
     /// A Bonjour name: "nas.local", "MacBook-Air.local".
     private static let localHost = regex(#"(?<![A-Za-z0-9\-.])[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.local(?![A-Za-z0-9\-])"#)
@@ -448,6 +459,19 @@ final class CartoucheJournal: @unchecked Sendable {
         writing.sync {}
     }
 
+    /// Forgets every line, and its file once the lines on their way are
+    /// written, as Cartouche is reset (CartoucheReset): the next line
+    /// starts a file of its own.
+    func clear() {
+        lock.lock()
+        lines = []
+        lock.unlock()
+        guard let file else { return }
+        writing.sync {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
     /// "11-10 07:12:03", in this iPhone's time zone.
     static func stamp(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -504,5 +528,17 @@ final class CartoucheReportArchive: @unchecked Sendable {
     /// Waits for the reports kept so far to be in the file.
     func flush() {
         writing.sync {}
+    }
+
+    /// Forgets every report, and its file once the reports on their way
+    /// are written, as Cartouche is reset (CartoucheReset).
+    func clear() {
+        lock.lock()
+        saved = []
+        lock.unlock()
+        guard let file else { return }
+        writing.sync {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 }

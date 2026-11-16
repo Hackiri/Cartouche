@@ -12,15 +12,18 @@ installs shared; the devices players have; and the builds on players' Macs,
 by nxnative commit. Every line, and every figure, sums up at least three
 installs, as everything the project publishes does (docs/privacy.md): a
 smaller group is left out, and no install's or session's number is ever
-written. Set apart, so that they do not read as nxnative's: the sessions on
+written. Beside the page, for Cartouche Builder, unbuilt.json: the games at
+least three Macs tried and none built, which the app warns of before one is
+built (builder/mac/Sources/BuilderKit/Unbuilt.swift). Set apart, so that they do not read as nxnative's: the sessions on
 iPhones whose GPU reads no BC texture, which nxnative refuses; those whose
 game process ran without Increased Memory Limit, which is Cartouche's doing;
 and those of builds with changes of their own.
 
 It reads the D1 database through Cloudflare's API, with the secrets
 CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, and does nothing without
-them. It writes the page as README.md into --out, says what it found in the
-job's summary, and sets the job's output written to true or false.
+them. It writes the page as README.md, and unbuilt.json, into --out, says
+what it found in the job's summary, and sets the job's output written to
+true or false.
 
     python3 telemetry/nxnative.py --catalog catalog --out build/nxnative
 
@@ -61,6 +64,14 @@ WITHOUT_IML_MIB = 3376
 SIGNALS = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGEMT", 8: "SIGFPE", 9: "SIGKILL", 10: "SIGBUS",
            11: "SIGSEGV", 12: "SIGSYS"}
 
+# Why a game crashed, when its log says (CartoucheGameLog.swift, end.cause):
+# gpuLost, nxnative stopped it once the system took the GPU away from it for
+# the GPU errors it caused ("[RED] GPU access revoked", gpu_lost_check in
+# nvn_mtl.m). Cartouche tells it from its fourth reading of the log on:
+# before it, such a session was a crash like any other abort.
+CAUSES = {"gpuLost": "GPU access revoked"}
+GPU_LOST_READER = 4
+
 # The sessions one day received, a page at a time, with D1's parameters as
 # text. A session sent again because its log grew is the same session with
 # a higher seq.
@@ -86,6 +97,7 @@ SESSIONS = (
     "json_extract(body, '$.end.signal') AS signal, "
     "json_extract(body, '$.end.pc') AS pc, "
     "json_extract(body, '$.end.lr') AS lr, "
+    "json_extract(body, '$.end.cause') AS endCause, "
     "json_extract(body, '$.process.limitMiB') AS processLimit, "
     "json_extract(body, '$.memoryLimitMiB') AS limitMiB, "
     "json_extract(body, '$.reader') AS reader "
@@ -101,7 +113,8 @@ EVENTS = (
     "json_extract(body, '$.fields.nxnative') AS nxnative, "
     "json_extract(body, '$.fields.stage') AS stage, "
     "json_extract(body, '$.fields.cause') AS cause, "
-    "json_extract(body, '$.fields.forkOfNxnative') AS fork "
+    "json_extract(body, '$.fields.forkOfNxnative') AS fork, "
+    "json_extract(body, '$.fields.seconds') AS seconds, game "
     "FROM reports WHERE kind = 'event' "
     "AND name IN ('app.opened', 'builder.opened', 'builder.built', 'builder.failed') "
     f"AND day = ?1 AND id > ?2 ORDER BY id LIMIT {PAGE}"
@@ -223,6 +236,15 @@ class Group:
     def endings(self) -> Counter:
         return Counter(e for e in (ending(s) for s in self.sessions) if e)
 
+    @property
+    def gpu_lost(self) -> int | None:
+        """The crashes nxnative ended when the system took the GPU away from
+        the game; none when Cartouche read no session of the group so as to
+        tell them."""
+        if not any((number(s.get("reader")) or 1) >= GPU_LOST_READER for s in self.sessions):
+            return None
+        return sum(1 for s in self.sessions if ending(s) == "crash" and s.get("endCause") == "gpuLost")
+
 
 
 def fmt(value: float | None, digits: int = 0) -> str:
@@ -290,7 +312,7 @@ def commits_text(group: Group) -> str:
 
 FIGURES = ("Installs | Sessions | Hours | Target fps | FPS median | FPS slowest 5% | Frame p99 ms | Stutters a minute "
            "| Waiting for shaders | Shader stall ms a minute | Prepare s | Peak MiB | Reached serious heat | Crashed "
-           "| Failed to boot | Out of memory | Drew no frame")
+           "| GPU lost | Failed to boot | Out of memory | Drew no frame")
 
 
 def figures(group: Group) -> str:
@@ -301,7 +323,8 @@ def figures(group: Group) -> str:
         fmt(group.figure("fps"), 1), fmt(group.figure("slowest"), 1), fmt(group.figure("p99"), 1),
         fmt(group.figure("stutters")), "–" if share is None else f"{share:.0%}", fmt(group.figure("stall")),
         fmt(group.figure("prepare"), 1), fmt(group.peak), f"{group.hot} of {len(group.sessions)}",
-        str(endings["crash"]), str(endings["boot-failed"]), str(endings["memory-likely"]), str(endings["no-frame"]),
+        str(endings["crash"]), fmt(group.gpu_lost), str(endings["boot-failed"]), str(endings["memory-likely"]),
+        str(endings["no-frame"]),
     ])
 
 
@@ -355,9 +378,9 @@ def page(catalog: Catalog, sessions: list[dict], events: list[dict], first: dt.d
     lines = [
         "# nxnative's games on players' iPhones",
         "",
-        f"What the players of [Cartouche](https://github.com/clabeuhtegrite/Cartouche) measured of nxnative's games "
+        f"What the players of [Cartouche](https://github.com/cartouche-app/Cartouche) measured of nxnative's games "
         f"from {since} to {last}, summed up for nxnative's developers each Thursday. How, and what is left out: "
-        "[telemetry/README.md](https://github.com/clabeuhtegrite/Cartouche/blob/main/telemetry/README.md#nxnatives-page).",
+        "[telemetry/README.md](https://github.com/cartouche-app/Cartouche/blob/main/telemetry/README.md#nxnatives-page).",
         "",
         f"{len(sessions)} game sessions from {installs_text(len(installs))}, {hours:,.1f} hours of play. "
         f"{named} of the {len(kept)} sessions that count name their nxnative commit. "
@@ -402,13 +425,17 @@ def page(catalog: Catalog, sessions: list[dict], events: list[dict], first: dt.d
         "of the log or a later one, which leaves such a stretch out, and shows – before. Stutters and the shader "
         "stall are per minute of the whole session.",
         "- The figures come from the lines nxnative writes in `log.txt`, which Cartouche reads after each session "
-        "([CartoucheGameLog.swift](https://github.com/clabeuhtegrite/Cartouche/blob/main/launcher/Sources/"
+        "([CartoucheGameLog.swift](https://github.com/cartouche-app/Cartouche/blob/main/launcher/Sources/"
         "CartoucheGameLog.swift)): the `[nvn]` timing, on-screen and power lines, `[longframe]`, `pipeline prepare`, "
-        "the memory and thermal lines, `CRASH sig=` and `[RED] boot:`. "
+        "the memory and thermal lines, `CRASH sig=`, `GPU access revoked` and `[RED] boot:`. "
         "A session's commit is the first 12 digits of `DMCommit` in the game's `Info.plist`; Cartouche 0.11.2 and "
         "before did not send it. Target fps is the rate most of the line's sessions asked for.",
         "- Reached serious heat: the sessions iOS put in its serious thermal state. Drew no frame: the session ended "
         "before nxnative's first summary line, whatever its end.",
+        "- GPU lost: the crashes nxnative ended once the system took the GPU away from the game for the GPU errors it "
+        "caused (`[RED] GPU access revoked`), as the crashes' cause says too. Cartouche tells them from its reading "
+        f"{GPU_LOST_READER} of the log on: before it, such a session is a crash like any other abort, and a line "
+        "with no session read so shows –. On a Mac, nxnative quits the game itself, and its crash has no signal.",
         "- A session counts once, as last sent; a copy of another region counts for its game.",
         "- nxnative, Models: the commit, or the model, most installs of the line ran, when at least 3 did, and how "
         "many others; else only how many. A Mac counts as an install does: a step of a build shows when at least 3 "
@@ -432,33 +459,36 @@ def crashes(catalog: Catalog, kept: list[dict]) -> list[str]:
     exact: dict[tuple, Group] = defaultdict(lambda: Group([]))
     for s in crashed:
         signal = int(number(s.get("signal")) or 0)
-        by_signal[(s["game"], signal)].sessions.append(s)
+        cause = s.get("endCause") or ""
+        by_signal[(s["game"], signal, cause)].sessions.append(s)
         if s.get("pc") and s.get("nxnative"):
-            exact[(s["game"], s.get("version") or "", s["nxnative"], signal, s["pc"], s.get("lr") or "")].sessions.append(s)
+            exact[(s["game"], s.get("version") or "", s["nxnative"], signal, cause, s["pc"],
+                   s.get("lr") or "")].sessions.append(s)
     lines = ["## Crashes", ""]
     rows = sorted(((k, g) for k, g in by_signal.items() if len(g.installs) >= MIN_INSTALLS),
                   key=lambda kv: (-len(kv[1].installs), kv[0]))
     if rows:
-        lines += ["| Game | Signal | Installs | Sessions | Models | nxnative | Minutes in |",
-                  "| --- | --- | --- | --- | --- | --- | --- |"]
-        for (game, signal), group in rows:
+        lines += ["| Game | Signal | Cause | Installs | Sessions | Models | nxnative | Minutes in |",
+                  "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for (game, signal, cause), group in rows:
             models = most_shared(((s.get("device"), s["install"]) for s in group.sessions), "model")
-            lines.append(f"| {catalog.name(game)} | {SIGNALS.get(signal, signal or '–')} | {len(group.installs)} | "
+            lines.append(f"| {catalog.name(game)} | {SIGNALS.get(signal, signal or '–')} | "
+                         f"{CAUSES.get(cause, cause or '–')} | {len(group.installs)} | "
                          f"{len(group.sessions)} | {models} | {commits_text(group)} | "
                          f"{fmt(group.figure('minutes'), 1)} |")
         lines.append("")
     else:
-        lines += [f"No game crashed with one signal on {MIN_INSTALLS} installs or more.", ""]
+        lines += [f"No game crashed with one signal and cause on {MIN_INSTALLS} installs or more.", ""]
     rows = sorted(((k, g) for k, g in exact.items() if len(g.installs) >= MIN_INSTALLS),
                   key=lambda kv: (-len(kv[1].installs), kv[0]))
     if rows:
         lines += ["The same crash, at the same place of the same build, on several installs:", "",
-                  "| Game | Version | nxnative | Signal | pc | lr | Installs | Sessions | Minutes in |",
-                  "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-        for (game, version, commit, signal, pc, lr), group in rows:
+                  "| Game | Version | nxnative | Signal | Cause | pc | lr | Installs | Sessions | Minutes in |",
+                  "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for (game, version, commit, signal, cause, pc, lr), group in rows:
             lines.append(f"| {catalog.name(game)} | {version or '–'} | `{commit}` | {SIGNALS.get(signal, signal)} | "
-                         f"`{pc}` | `{lr}` | {len(group.installs)} | {len(group.sessions)} | "
-                         f"{fmt(group.figure('minutes'), 1)} |")
+                         f"{CAUSES.get(cause, cause or '–')} | `{pc}` | `{lr}` | {len(group.installs)} | "
+                         f"{len(group.sessions)} | {fmt(group.figure('minutes'), 1)} |")
         lines.append("")
     return lines
 
@@ -531,8 +561,52 @@ def builds(events: list[dict]) -> list[str]:
     return lines + [""]
 
 
+# A game's own failures, as Cartouche Builder names their causes
+# (builder/cartouche_builder/causes.py), and those of a builder older than
+# 0.5.0, which named none: not the player's files (damaged, zip, keys), nor
+# the Mac's (no_space, no_room, metal), nor a commit of nxnative that breaks
+# every game's app build (app_build), nor a stop or the builder's own code.
+GAMES_OWN = (None, "", "nxnative", "crashed", "signal", "no_ipa")
+
+
+def unbuilt(events: list[dict], first: dt.date, last: dt.date) -> dict:
+    """unbuilt.json, for Cartouche Builder: the games at least MIN_INSTALLS
+    Macs tried in the window, failing for reasons of the game's own, and
+    none built, those of a fork of nxnative left out. For each, how many
+    Macs tried and how many builds failed; the median of each Mac's longest
+    attempt, in hours, when MIN_INSTALLS Macs said how long it took; and the
+    step the most Macs failed at, when MIN_INSTALLS share it."""
+    forks = {e["install"] for e in once([e for e in events if e.get("name") == "builder.opened"], lambda e: e["install"])
+             if e.get("fork") in (1, True)}
+    built = {e["game"] for e in events if e.get("name") == "builder.built" and e.get("game") and e["install"] not in forks}
+    tried: dict[str, dict] = defaultdict(lambda: {"macs": {}, "failures": 0, "stages": []})
+    for e in events:
+        if e.get("name") != "builder.failed" or e["install"] in forks or not e.get("game") or e.get("cause") not in GAMES_OWN:
+            continue
+        game = tried[e["game"]]
+        game["failures"] += 1
+        seconds = e.get("seconds") if isinstance(e.get("seconds"), (int, float)) else 0
+        game["macs"][e["install"]] = max(game["macs"].get(e["install"], 0), seconds)
+        # A step not said counts for none: the app shows the step as is.
+        game["stages"].append((e.get("stage") or "", e["install"]))
+    games = []
+    for title, game in sorted(tried.items()):
+        if title in built or len(game["macs"]) < MIN_INSTALLS:
+            continue
+        entry: dict = {"titleId": title, "macs": len(game["macs"]), "failures": game["failures"]}
+        longest = [seconds for seconds in game["macs"].values() if seconds > 0]
+        if len(longest) >= MIN_INSTALLS:
+            entry["hours"] = round(statistics.median(longest) / 3600, 1)
+        stages, _ = shared(game["stages"])
+        if stages:
+            entry["stage"] = stages[0][0]
+        games.append(entry)
+    return {"schema": 1, "from": first.isoformat(), "to": last.isoformat(), "games": games}
+
+
 def run(catalog: Path, out: Path, today: dt.date, cloudflare: Cloudflare) -> list[str]:
-    """Writes the page into out; returns the lines of the job's summary."""
+    """Writes the page and unbuilt.json into out; returns the lines of the
+    job's summary."""
     first, last = today - dt.timedelta(days=WINDOW_DAYS), today - dt.timedelta(days=1)
     database = cloudflare.database(DATABASE)
     sessions = read(cloudflare, database, SESSIONS, first, last)
@@ -540,7 +614,10 @@ def run(catalog: Path, out: Path, today: dt.date, cloudflare: Cloudflare) -> lis
     text, summary = page(Catalog(catalog), sessions, events, first, last)
     out.mkdir(parents=True, exist_ok=True)
     (out / "README.md").write_text(text, encoding="utf-8")
-    return summary + [f"The page goes on the branch `{BRANCH}`."]
+    never = unbuilt(events, first, last)
+    (out / "unbuilt.json").write_text(json.dumps(never, indent=2) + "\n", encoding="utf-8")
+    return summary + [f"Games no Mac built, of {MIN_INSTALLS} Macs or more: {len(never['games'])}, in unbuilt.json.",
+                      f"The page goes on the branch `{BRANCH}`."]
 
 
 def main(argv: list[str] | None = None) -> int:

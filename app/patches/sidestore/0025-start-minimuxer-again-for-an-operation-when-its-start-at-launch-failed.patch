@@ -1,4 +1,4 @@
-From defee4c4c4ad0bd2611e27975f6d840f4fd2c47a Mon Sep 17 00:00:00 2001
+From cbf9a12ff44eb66078b5adf77b1e0d75e025044a Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 12 Nov 2026 20:31:18 -0500
 Subject: [PATCH] Start minimuxer again for an operation when its start at
@@ -12,13 +12,15 @@ until SideStore was opened again, the pairing file being the right one
 all along. Before an operation, the readiness check now starts minimuxer
 again with the pairing file in place, once no start is under way, and
 when that start fails without LocalDevVPN's tunnel it says so (noVPN)
-instead of blaming the pairing file.
+instead of blaming the pairing file. cartouche.outcome (0022) tells that
+sentence as noTunnel, as minimuxer's own for a missing tunnel.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 ---
  SideStore/AppBootManager.swift                | 10 +++++
  .../Core/DeviceApi/MinimuxerWrapper.swift     | 38 ++++++++++++++++++-
- 2 files changed, 47 insertions(+), 1 deletion(-)
+ SideStore/Intents/CartoucheOutcome.swift      |  3 ++
+ 3 files changed, 50 insertions(+), 1 deletion(-)
 
 diff --git a/SideStore/AppBootManager.swift b/SideStore/AppBootManager.swift
 index fd230a4..f0d0692 100644
@@ -102,6 +104,20 @@ index 9dfb2c5..af22b0a 100644
  extension MinimuxerError {
      var asOperationError: OperationError {
          switch self {
+diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
+index d2f1e8e..3f2ead2 100644
+--- a/SideStore/Intents/CartoucheOutcome.swift
++++ b/SideStore/Intents/CartoucheOutcome.swift
+@@ -383,6 +383,9 @@ final class CartoucheOutcome: @unchecked Sendable
+     static let deviceReasons: [(sentence: String, reason: String)] = [
+         // LocalDevVPN, and this iPhone through it.
+         ("No utun interface detected", "noTunnel"),
++        // SideStore's own, as its start again for an operation fails
++        // without LocalDevVPN's tunnel (MinimuxerWrapper).
++        ("LocalDevVPN is not connected, so minimuxer could not start", "noTunnel"),
+         ("no ipsec/IKEv2 interface found", "noIPsec"),
+         ("WireGuard VPN is not supported with Cellular Refresh", "wireGuard"),
+         ("tunnel peer IP is not yet reachable", "noPeer"),
 -- 
 2.54.0
 

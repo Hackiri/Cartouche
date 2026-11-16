@@ -84,10 +84,14 @@ final class CartoucheIPhoneApps: ObservableObject {
 
     static var isAvailable: Bool { unavailableReason == nil }
 
-    /// Whether the built-in SideStore works for Renew now or an update:
-    /// the bridge takes one action at a time (RefreshHandler), and those
-    /// two wait for this model's in turn (CartoucheSystemView).
-    static var isBusyElsewhere: Bool { CartoucheRenewal.isRenewing || CartoucheUpdates.shared.phase != nil }
+    /// Whether the built-in SideStore works for a renewal, from Renew now
+    /// or by Cartouche itself, an update or a sign-in: the bridge takes one
+    /// action at a time (RefreshHandler), and those wait for this model's in
+    /// turn (CartoucheRenewals.sideStoreBusy, CartoucheSystemView).
+    static var isBusyElsewhere: Bool {
+        CartoucheRenewal.isRenewing || CartoucheRenewals.shared.isRenewing
+            || CartoucheUpdates.shared.phase != nil || CartoucheAccount.shared.phase != nil
+    }
 
     /// Why nothing can be installed: a p12 and its profile sign Cartouche
     /// alone (decision 78), or the bridge did not load.

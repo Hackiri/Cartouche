@@ -1,32 +1,33 @@
 name: Launcher screens
 
-# Builds the launcher's gallery (launcher/Gallery) for the iOS Simulator, runs
-# its UI tests on an iPhone simulator, which drive the console as a player
-# would (launcher/Gallery/UITests), then saves a screenshot of each scenario
-# of launcher/Gallery/scenarios.json: the console's screens at the sizes of
-# the iPhone 17 Pro and of the iPhone Duo folded and unfolded, and on the
-# iPhone Duo simulator itself. The screenshots wait for the UI tests to pass,
-# on the same Mac and from the same build. They are kept with the run, and
-# for a branch of this repository on the branch launcher-screens/<branch>,
-# one commit that each run replaces; the results of failed UI tests are kept
-# with the run (launcher-ui-tests).
+# Builds the launcher's gallery (launcher/Gallery) for the iOS Simulator and,
+# at the same time, on Macs of their own: runs its UI tests on an iPhone
+# simulator, in two parts, which drive the console as a player would
+# (launcher/Gallery/UITests), the iPad's on an iPad simulator, where a game's
+# sheet stands beside the console, and saves a screenshot of each scenario of
+# launcher/Gallery/scenarios.json, in three parts: the console's screens at
+# the sizes of the iPhone 17 Pro, of the iPhone Duo folded and unfolded, of
+# the iPad mini and of the 11-inch iPad Air, and on the iPhone Duo and
+# 13-inch iPad Pro simulators themselves. The screenshots are kept with the
+# run, each part's apart, and for a branch of this repository all together on
+# the branch launcher-screens/<branch>, one commit that each run replaces;
+# the results of failed UI tests are kept with the run (launcher-ui-tests-1
+# and -2, and launcher-ui-tests-ipad for the iPad's).
 #
 # A pull request's UI tests and screenshots run once for what it changes in
 # the gallery's files: a rebase or a merge of main that leaves those changes
-# as they were keeps the results of before, about an hour of a Mac each
+# as they were keeps the results of before, half an hour of six Macs each
 # time. Run the workflow from the Actions tab to run them again, with or
 # without the screenshots. The Full test pass runs them all, and keeps the
 # screenshots with its run only (full-pass.yml).
-#
-# They run on Ad's Mac when it can take them now, which spares GitHub's
-# Macs, five at a time for the whole account, and their wait; on GitHub's
-# otherwise, and always for a run again or the Full test pass
-# (.github/mac/README.md).
 
 on:
   pull_request:
     # What the gallery is built from and shows (launcher/Gallery/project.yml
-    # and capture.sh).
+    # and capture.sh); not the release notes it shows too (project.sh): a
+    # version's pull request would take a Mac for What's new's screenshots
+    # alone, which the next change to the launcher, or the Full test pass,
+    # takes with the rest.
     paths:
       - "launcher/Sources/**"
       - "launcher/Gallery/**"
@@ -38,7 +39,7 @@ on:
   workflow_dispatch:
     inputs:
       screenshots:
-        description: Take the screenshots too, once the UI tests pass
+        description: Take the screenshots too
         type: boolean
         default: true
   # The Full test pass (full-pass.yml): the UI tests and every screenshot,
@@ -50,7 +51,7 @@ on:
         type: boolean
         default: false
       screenshots:
-        description: Take the screenshots too, once the UI tests pass
+        description: Take the screenshots too
         type: boolean
         default: true
 
@@ -70,7 +71,7 @@ jobs:
   # The pull request's changes to the files in the paths above, as its merge
   # into main has them, and whether a run of this pull request passed their
   # UI tests and took their screenshots already. Its key goes to the Actions
-  # cache once it has.
+  # cache once it has (memo).
   taken:
     name: UI tests and screenshots done already?
     if: ${{ github.event_name == 'pull_request' }}
@@ -106,47 +107,74 @@ jobs:
           echo "::notice::An earlier run passed the UI tests of these very changes and took their screenshots, on $BRANCH: run this workflow from the Actions tab to run them again."
           echo "The UI tests of these very changes passed, and their screenshots are on \`$BRANCH\` already." >> "$GITHUB_STEP_SUMMARY"
 
-  # Ad's Mac, when it can take them now, else GitHub's (route.py).
-  route:
-    name: Ad's Mac or GitHub
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read # the jobs waiting for Ad's Mac
-    outputs:
-      runner: ${{ steps.route.outputs.runner }}
-      mac: ${{ steps.route.outputs.mac }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github/mac
-          persist-credentials: false
-      - name: Where the UI tests and screenshots run
-        id: route
-        env:
-          MAC_JOB: UI tests and screenshots
-          MAC_LABELS: cartouche-screens,xcode-${{ env.XCODE_VERSION }},ios-sim-${{ env.XCODE_VERSION }}
-          RUNNERS_TOKEN: ${{ secrets.MAC_RUNNER_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-        run: python3 .github/mac/route.py
-
+  # The UI tests on an iPhone, in two parts, each on a Mac of its own, with
+  # whole classes of tests (launcher/Gallery/parts.py): on one Mac they took
+  # 48 minutes (Full test pass 43733690016). The iPad's UI tests and the
+  # screenshots run at the same time, on Macs of their own: one after the
+  # other on one of GitHub's Macs, the three took 84 of the job's 95 minutes
+  # (run 43637103769), ran out of them in the screenshots (#183, 14
+  # November), or were cancelled in the iPad's, by no one known (run
+  # 43637355324). The run now takes as long as its longest part, and a job
+  # cut or cancelled runs again alone.
   screens:
-    name: UI tests and screenshots
-    needs: [taken, route]
-    # Run unless the first job found them done, so that a failure there, or
-    # in the route, cannot skip them.
+    name: UI tests on an iPhone
+    needs: taken
+    # Run unless the first job found them done, so that a failure there
+    # cannot skip them.
     if: ${{ !cancelled() && needs.taken.outputs.taken != 'true' }}
-    runs-on: ${{ fromJSON(needs.route.outputs.runner || '"xcode-27"') }}
-    # The UI tests take half an hour, a failed one running once more, and
-    # the screenshots as long again.
-    timeout-minutes: 95
-    outputs:
-      # Whether the screenshots were taken, whole or in part: skipped when
-      # the UI tests failed, or when the run was asked without them.
-      shot: ${{ steps.shoot.outcome }}
+    runs-on: xcode-27
+    strategy:
+      # Each part to its end, whatever the other's.
+      fail-fast: false
+      matrix:
+        part: [1, 2]
+    # The gallery built, then a quarter of an hour of tests, a failed one
+    # running once more.
+    timeout-minutes: 50
     env:
       # brew install takes the formula the runner knows, without updating
       # Homebrew first.
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      # This job's part, as 1/2.
+      PART: ${{ matrix.part }}/${{ strategy.job-total }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: UI tests
+        run: launcher/Gallery/uitests.sh --part "$PART" build/ui-tests
+      - name: Upload the UI tests' results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: launcher-ui-tests-${{ matrix.part }}
+          path: build/ui-tests
+          retention-days: 14
+          if-no-files-found: warn
+
+  # The iPad's UI tests, on an iPad: the console and a game's sheet side by
+  # side (launcher/Gallery/UITests/IPadUITests.swift). Its simulator takes
+  # more of the Mac than the iPhone's: after the iPhone's, on the same Mac,
+  # GitHub's Macs ran short of memory there, and were cancelled, as the
+  # harness's on an iPad (harness.yml).
+  ipad:
+    name: UI tests on an iPad
+    needs: taken
+    # Run unless the first job found them done, so that a failure there
+    # cannot skip them.
+    if: ${{ !cancelled() && needs.taken.outputs.taken != 'true' }}
+    runs-on: xcode-27
+    # The gallery built, the iPad booted, then a quarter of an hour of
+    # tests, a failed one running once more.
+    timeout-minutes: 50
+    env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
     steps:
@@ -154,94 +182,103 @@ jobs:
         with:
           persist-credentials: false
       - name: Select Xcode
-        if: ${{ runner.environment == 'github-hosted' }}
         run: |
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
           xcodebuild -version
       - name: Install XcodeGen
-        if: ${{ runner.environment == 'github-hosted' }}
         run: brew install xcodegen
-      # Its own simulators, which stay from a run to the next, shut down.
-      - name: Xcode, XcodeGen and simulators on Ad's Mac
-        if: ${{ runner.environment == 'self-hosted' }}
-        run: |
-          .github/mac/job.sh xcode "$XCODE_VERSION"
-          .github/mac/job.sh tool xcodegen
-          .github/mac/job.sh simulators
-      - name: UI tests
-        run: launcher/Gallery/uitests.sh build/ui-tests
+      - name: UI tests on an iPad
+        run: launcher/Gallery/uitests.sh --ipad build/ui-tests/ipad
       - name: Upload the UI tests' results
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: launcher-ui-tests
-          path: build/ui-tests
+          name: launcher-ui-tests-ipad
+          path: build/ui-tests/ipad
           retention-days: 14
           if-no-files-found: warn
+
+  # The screenshots, whether the UI tests pass or not: a test that fails
+  # does not hold back the screens of a pull request, which Ad looks at. In
+  # three parts, each on a Mac of its own (launcher/Gallery/parts.py): the
+  # sized scenarios, drawn on the largest iPad, shared between the first
+  # two, and those of a device of their own in the third, each on a
+  # simulator of that device. On one Mac they took 60 minutes (Full test
+  # pass 43733690016), 79 in the pass of 0.13.1 (43746649258), of the 90
+  # the job had.
+  shots:
+    name: Screenshots
+    needs: taken
+    # Unless the first job found them done, or a run asked without them.
+    if: ${{ !cancelled() && needs.taken.outputs.taken != 'true' && (github.event_name != 'workflow_dispatch' || inputs.screenshots) }}
+    runs-on: xcode-27
+    strategy:
+      # Each part to its end, whatever the others', so that every screen
+      # that can be taken is.
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3]
+    # The gallery built, then about 20 minutes of screenshots for each part,
+    # 23 for the devices' with their three boots.
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      # This job's part, as 1/3.
+      PART: ${{ matrix.part }}/${{ strategy.job-total }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
       - name: Take the screenshots
         id: shoot
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.screenshots }}
-        run: launcher/Gallery/capture.sh build/screens
+        run: launcher/Gallery/capture.sh --part "$PART" build/screens
       - name: Upload them
         if: ${{ !cancelled() && (steps.shoot.outcome == 'success' || steps.shoot.outcome == 'failure') }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: launcher-screens
+          name: launcher-screens-${{ matrix.part }}
           path: build/screens
           retention-days: 14
           if-no-files-found: warn
-      # Once the UI tests have passed and every scenario has its screenshot.
+
+  # Once the UI tests have passed, on the iPhone and on the iPad, and every
+  # scenario has its screenshot, notes it in the Actions cache for the first
+  # job of the pull request's next runs, from Ubuntu as that job looks for
+  # it. The cache puts its compression in an entry's version: Ad's Mac,
+  # which has no zstd, kept a gzip entry there that Ubuntu, with zstd, never
+  # found (runs 43453403759 and 43461548558).
+  memo:
+    name: Note that the UI tests and screenshots are done
+    needs: [taken, screens, ipad, shots]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.taken.outputs.key != '' && needs.screens.result == 'success' && needs.ipad.result == 'success' && needs.shots.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Note that they are done
-        if: ${{ needs.taken.outputs.key != '' }}
         env:
           SOURCE: ${{ github.event.pull_request.head.sha }}
         run: |
           mkdir -p build/screens-taken
           echo "$SOURCE" > build/screens-taken/source
       - name: Keep the note in the cache
-        if: ${{ needs.taken.outputs.key != '' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/screens-taken
           key: ${{ needs.taken.outputs.key }}
 
-  # Beside the UI tests and screenshots when Ad's Mac takes them: sends the
-  # run back to GitHub's Macs when the Mac loses them or does not take them
-  # (watch.py).
-  watch:
-    name: Watch Ad's Mac
-    needs: [taken, route]
-    # Not in the Full test pass, whose UI tests run on GitHub's Macs.
-    if: ${{ !cancelled() && !inputs.full && needs.route.outputs.mac == 'true' && needs.taken.outputs.taken != 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 170
-    permissions:
-      contents: read
-      actions: write # cancels this run, and starts Mac rescue to run it again
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github/mac
-          persist-credentials: false
-      - name: Watch the UI tests and screenshots on Ad's Mac
-        env:
-          MAC_JOB: UI tests and screenshots
-          MAC_LABELS: cartouche-screens,xcode-${{ env.XCODE_VERSION }},ios-sim-${{ env.XCODE_VERSION }}
-          # The job may wait for the one before it on the Mac, which took 46
-          # minutes there (run 43280139397): GitHub's Macs after an hour.
-          MAC_QUEUE_MINUTES: "60"
-          RUNNERS_TOKEN: ${{ secrets.MAC_RUNNER_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: python3 .github/mac/watch.py
-
   # The only job that can write runs nothing from the pull request: it
-  # commits the screenshots the job above uploaded. Not in the Full test
-  # pass, which publishes nothing.
+  # commits the screenshots the Screenshots jobs uploaded, every part's
+  # together. Not in the Full test pass, which publishes nothing.
   keep:
     name: Keep the screenshots on a branch
-    needs: screens
-    if: ${{ !cancelled() && !inputs.full && (needs.screens.outputs.shot == 'success' || needs.screens.outputs.shot == 'failure') && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: shots
+    if: ${{ !cancelled() && !inputs.full && (needs.shots.result == 'success' || needs.shots.result == 'failure') && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write # the branch launcher-screens/<branch>
@@ -250,12 +287,19 @@ jobs:
       SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      # Each part's, in one folder: none of a part that stopped before its
+      # first screenshot.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: launcher-screens
+          pattern: launcher-screens-*
+          merge-multiple: true
           path: screens
       - name: Push them to launcher-screens/<branch>
         run: |
+          if [ -z "$(ls -A screens 2>/dev/null)" ]; then
+            echo "::warning::No part took a screenshot: $BRANCH stays as it was"
+            exit 0
+          fi
           cd screens
           git init -q -b screens
           git add -A

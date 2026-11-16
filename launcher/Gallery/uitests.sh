@@ -1,18 +1,31 @@
 #!/bin/bash
 # Builds the launcher's gallery with its UI tests (launcher/Gallery/UITests)
 # and runs them on an iPhone simulator, keeping their results in OUT. Needs a
-# Mac with Xcode and XcodeGen (brew install xcodegen).
+# Mac with Xcode and XcodeGen (brew install xcodegen). One build serves every
+# simulator (build.sh): the iPad's tests and the screenshots after these, on
+# the same Mac, find it done. The CI runs each on a Mac of its own, at the
+# same time (.github/workflows/screens.yml).
 #
-#     launcher/Gallery/uitests.sh OUT
+#     launcher/Gallery/uitests.sh [--ipad | --part I/N] OUT
+#
+# --ipad runs the iPad's tests alone (UITests/IPadUITests.swift), which the
+# iPhone leaves out, on a 13-inch iPad Pro (M5), else the newest iPad, of
+# the newest iOS runtime that has one: the console and a game's sheet side
+# by side, as an iPad shows them.
+#
+# --part I/N runs part I of N of the iPhone's tests alone (parts.py): the
+# CI runs them in two parts, each on a Mac of its own (screens.yml), each
+# part with whole classes of tests.
 #
 # The tests open the gallery on the whole console, as Cartouche shows it,
 # and drive it as a player would (UITests/ConsoleTestCase.swift). They run on
 # an iPhone 17 Pro, else the newest iPhone Pro, of the newest iOS runtime
 # that has one, created should no simulator of it exist. simctl opens the
 # gallery once first, with time: its first launch after the install can take
-# minutes. The import's tests pick an IPA in On My iPhone, which this script
-# puts there. A test that fails runs once more before it counts as failed,
-# and so do the tests when the test runner stops before the first one; a
+# minutes. The import's tests pick an IPA in On My iPhone, and the saves'
+# test a save JKSV exported, which this script puts there. A test that
+# fails runs once more before it counts as failed, and so do the tests
+# when the test runner stops before the first one; a
 # test has ten minutes, which a test that runs out of them does not get
 # again. OUT keeps the results (UITests.xcresult), with the screen and the
 # accessibility tree of each test that failed, and where the gallery's main
@@ -28,7 +41,16 @@
 
 set -euo pipefail
 
-[ $# -eq 1 ] || { echo "usage: $0 OUT" >&2; exit 2; }
+DEVICE=iPhone
+PART=1/1
+if [ "${1:-}" = "--ipad" ]; then
+  DEVICE=iPad
+  shift
+elif [ "${1:-}" = "--part" ] && [ $# -ge 2 ]; then
+  PART="$2"
+  shift 2
+fi
+[ $# -eq 1 ] || { echo "usage: $0 [--ipad | --part I/N] OUT" >&2; exit 2; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$1"
 OUT="$(cd "$1" && pwd)"
@@ -37,12 +59,17 @@ PROJECT="$HERE/CartoucheGallery.xcodeproj"
 BUNDLE="io.github.clabeuhtegrite.cartouche.gallery"
 APP="$BUILD/DerivedData/Build/Products/Debug-iphonesimulator/CartoucheGallery.app"
 started=$SECONDS
-
-"$HERE/project.sh"
+# Where the CI keeps the results of the tests that failed (screens.yml).
+KEPT=launcher-ui-tests
+if [ "$DEVICE" = iPad ]; then
+  KEPT=launcher-ui-tests-ipad
+elif [ "$PART" != 1/1 ]; then
+  KEPT="launcher-ui-tests-${PART%/*}"
+fi
 
 # The simulator: its UDID on the last line.
-UDID="$(python3 -u - <<'PY' | tail -n 1
-import json, re, subprocess, sys
+UDID="$(UITESTS_DEVICE="$DEVICE" python3 -u - <<'PY' | tail -n 1
+import json, os, re, subprocess, sys
 
 
 def simctl(*args):
@@ -67,8 +94,15 @@ def pro(name):
 
 
 kinds = listing("devicetypes")["devicetypes"]
-wanted = [k for k in kinds if k["name"] == "iPhone 17 Pro"] + sorted(
-    (k for k in kinds if pro(k["name"]) and k["name"] != "iPhone 17 Pro"), key=lambda k: -pro(k["name"]))
+if os.environ.get("UITESTS_DEVICE") == "iPad":
+    # The newest iPads come last in the list of simctl.
+    ipads = [k for k in kinds if k.get("productFamily") == "iPad"]
+    wanted = [k for k in ipads if k["name"] == "iPad Pro 13-inch (M5)"] + ipads[::-1]
+    name = "Cartouche UI tests iPad"
+else:
+    wanted = [k for k in kinds if k["name"] == "iPhone 17 Pro"] + sorted(
+        (k for k in kinds if pro(k["name"]) and k["name"] != "iPhone 17 Pro"), key=lambda k: -pro(k["name"]))
+    name = "Cartouche UI tests"
 runtimes = sorted((r for r in listing("runtimes")["runtimes"]
                    if r.get("isAvailable", True) and r.get("platform", "iOS") == "iOS"), key=release, reverse=True)
 devices = listing("devices", "available")["devices"]
@@ -82,18 +116,36 @@ for runtime in runtimes:
             if device.get("deviceTypeIdentifier") == kind["identifier"]:
                 print(device["udid"])
                 sys.exit(0)
-        print(simctl("create", "Cartouche UI tests", kind["identifier"], runtime["identifier"]).strip())
+        print(simctl("create", name, kind["identifier"], runtime["identifier"]).strip())
         sys.exit(0)
-sys.exit("no iOS runtime runs an iPhone Pro simulator")
+sys.exit("no iOS runtime runs an iPad simulator" if os.environ.get("UITESTS_DEVICE") == "iPad"
+         else "no iOS runtime runs an iPhone Pro simulator")
 PY
 )"
-echo "== UI tests on the simulator $UDID"
+echo "== UI tests on the $DEVICE simulator $UDID"
+# The tests of this run: the iPad's on the iPad alone; on the iPhone, this
+# part of the others, whose options for xcodebuild parts.py prints, one a
+# line.
+TESTS=(-only-testing:CartoucheGalleryUITests/IPadUITests)
+if [ "$DEVICE" = iPhone ]; then
+  OPTIONS="$(python3 "$HERE/parts.py" tests "$PART" "$HERE/UITests")"
+  TESTS=()
+  while IFS= read -r option; do
+    TESTS+=("$option")
+  done <<<"$OPTIONS"
+fi
+echo "   tests: ${TESTS[*]}"
 
-# It boots while the gallery builds.
-xcrun simctl boot "$UDID" 2>/dev/null || true
-xcodebuild build-for-testing -quiet -project "$PROJECT" -scheme CartoucheGallery \
-  -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$BUILD/DerivedData"
+# The iPhone boots while the gallery builds, the iPad once it is built: the
+# iPad's simulator takes more of the Mac, and a build beside its boot, on
+# GitHub's Mac, took it out of memory until GitHub cancelled the job (run
+# 43602029480). The build says every minute that it goes on (build.sh).
+if [ "$DEVICE" = iPhone ]; then
+  xcrun simctl boot "$UDID" 2>/dev/null || true
+fi
+"$HERE/build.sh"
 echo "   built in $((SECONDS - started)) s"
+xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null
 echo "   booted $((SECONDS - started)) s after the start"
 
@@ -124,19 +176,46 @@ xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 # to pick (UITests/ConsoleTestCase.swift, FilesPicker): in the folder of the
 # simulator's local storage.
 LOCAL=""
-for meta in "$HOME/Library/Developer/CoreSimulator/Devices/$UDID"/data/Containers/Shared/AppGroup/*/.com.apple.mobile_container_manager.metadata.plist; do
-  [ -f "$meta" ] || continue
-  if [ "$(plutil -extract MCMMetadataIdentifier raw -o - "$meta" 2>/dev/null)" = "group.com.apple.FileProvider.LocalStorage" ]; then
-    LOCAL="$(dirname "$meta")/File Provider Storage"
-  fi
-done
+if [ "$DEVICE" = iPhone ]; then
+  for meta in "$HOME/Library/Developer/CoreSimulator/Devices/$UDID"/data/Containers/Shared/AppGroup/*/.com.apple.mobile_container_manager.metadata.plist; do
+    [ -f "$meta" ] || continue
+    if [ "$(plutil -extract MCMMetadataIdentifier raw -o - "$meta" 2>/dev/null)" = "group.com.apple.FileProvider.LocalStorage" ]; then
+      LOCAL="$(dirname "$meta")/File Provider Storage"
+    fi
+  done
+fi
 if [ -n "$LOCAL" ]; then
   mkdir -p "$LOCAL"
   # An empty zip archive: the gallery's install reads none of it.
   { printf 'PK\005\006'; head -c 18 /dev/zero; } >"$LOCAL/Test Game.ipa"
   echo "   Test Game.ipa in On My iPhone"
-else
-  echo "::warning::the simulator has no local storage for On My iPhone: the IPA to pick is in the gallery's folder alone"
+  # The save JKSV exported on the Switch, for the saves' test to pick, where
+  # a player keeps one too, named as the test has it (GalleryWords.switchExport
+  # in UITests/SavesUITests.swift), of the first of the player's games (Games.owned):
+  # JKSV's fiche, a file and a folder with a file, as the gallery writes it
+  # in its own folder (GallerySaves.writeSwitchExport in Sources/GalleryApp.swift),
+  # which a Files picker that takes folders as well did not open on a tap.
+  if python3 -I - "$LOCAL/Player - 2026-11-13_15-20-00.zip" 0400C3F00006E000 <<'PY'
+import os, struct, sys, zipfile
+path, title = sys.argv[1], int(sys.argv[2], 16)
+fiche = bytearray(86)                       # .nx_save_meta.bin
+fiche[0:4] = struct.pack("<I", 0x56534B4A)  # JKSV's magic
+fiche[4] = 1                                # its revision
+fiche[5:13] = struct.pack("<Q", title)      # the game
+fiche[37] = 1                               # a player's save
+with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+    archive.writestr(".nx_save_meta.bin", bytes(fiche))
+    archive.writestr("progress.bin", os.urandom(1 << 20))
+    archive.writestr("slots/", b"", compress_type=zipfile.ZIP_STORED)
+    archive.writestr("slots/1.bin", b"slot 1")
+PY
+  then
+    echo "   the save JKSV exported in On My iPhone"
+  else
+    echo "::warning::the save JKSV exported is not in On My iPhone: the saves' test looks for it in the gallery's folder alone"
+  fi
+elif [ "$DEVICE" = iPhone ]; then
+  echo "::warning::the simulator has no local storage for On My iPhone: the IPA and the save to pick are in the gallery's folder alone"
 fi
 
 # The main thread's waits of this run alone: on a Mac whose simulator stays
@@ -153,7 +232,7 @@ run_tests() {
   rm -rf "$OUT/UITests.xcresult"
   xcodebuild test-without-building -project "$PROJECT" -scheme CartoucheGallery \
     -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$BUILD/DerivedData" \
-    -resultBundlePath "$OUT/UITests.xcresult" \
+    -resultBundlePath "$OUT/UITests.xcresult" "${TESTS[@]}" \
     -retry-tests-on-failure -test-iterations 2 \
     -test-timeouts-enabled YES -default-test-execution-time-allowance 600 -maximum-test-execution-time-allowance 900 \
     -parallel-testing-enabled NO -collect-test-diagnostics never 2>&1 | tee "$OUT/xcodebuild.log"
@@ -235,11 +314,11 @@ if [ "$status" -ne 0 ]; then
   # Each failure, with the screen's accessibility tree as the test found
   # it (ConsoleTestCase.expect), the first lines of each.
   echo "== What the tests that failed found"
-  awk '
+  awk -v kept="$KEPT" '
     / error: / || tolower($0) ~ /^test case .* failed/ { tree = 0; print; next }
     /^== .*The accessibility tree:$/ { tree = 1; lines = 0; print; next }
     tree && (tolower($0) ~ /^test case / || /^ *t = /) { tree = 0 }
-    tree { if (lines < 400) print; else if (lines == 400) print "    … the rest of the tree in launcher-ui-tests"; lines++ }
+    tree { if (lines < 400) print; else if (lines == 400) print "    … the rest of the tree in " kept; lines++ }
   ' "$OUT/xcodebuild.log" | head -n 1800 || true
 fi
 # Each test's result, and what the main thread's watch said at its end.
@@ -251,6 +330,6 @@ xcrun xcresulttool get test-results summary --path "$OUT/UITests.xcresult" 2>/de
 echo
 xcrun simctl shutdown "$UDID" 2>/dev/null || true
 if [ "$status" -ne 0 ]; then
-  echo "::error::UI tests failed: the end of the log shows each failed test and what it found on the screen; launcher-ui-tests keeps the results"
+  echo "::error::UI tests failed on the $DEVICE: the end of the log shows each failed test and what it found on the screen; $KEPT keeps the results"
 fi
 exit "$status"

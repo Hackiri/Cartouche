@@ -66,6 +66,11 @@ struct CartoucheGameNotice: Equatable {
     /// The report on what failed, which the player can copy; nil when
     /// nothing failed.
     var report: CartoucheReport? = nil
+    /// The bundle identifier of a game the player may sign again, whole,
+    /// and start, from the notice: LiveContainer did not sign it whole, or
+    /// iOS refused its signature as it started (CartoucheGameActions
+    /// signAgain).
+    var signAgain: String? = nil
 }
 
 /// An app that is not a game, waiting for StikDebug's JIT, once the player
@@ -149,7 +154,7 @@ struct CartoucheGameWorkView: View {
                     VStack(spacing: 6) {
                         ProgressView(value: min(max(fraction, 0), 1))
                             .tint(Color.white)
-                        Text(min(max(fraction, 0), 1).formatted(.percent.precision(.fractionLength(0))))
+                        Text(CartoucheText.percent(min(max(fraction, 0), 1)))
                             .font(.footnote.weight(.semibold).monospacedDigit())
                             .foregroundStyle(CartoucheTheme.secondaryText)
                     }

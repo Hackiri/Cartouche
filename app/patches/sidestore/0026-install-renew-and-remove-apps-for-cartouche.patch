@@ -1,4 +1,4 @@
-From 1a72fad5eae17777c6ba1ecd7ebc643dbdff8e2d Mon Sep 17 00:00:00 2001
+From 4ca937b0813b60bc6102219d4d97805ed2cb2993 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 11:17:15 -0500
 Subject: [PATCH] Install, renew and remove apps on the iPhone for Cartouche
@@ -39,7 +39,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
  create mode 100644 SideStore/Intents/CartoucheRemoveAppIntent.swift
 
 diff --git a/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift b/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift
-index e2d775f..2ef2c12 100644
+index e2d775f..1552ca7 100644
 --- a/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift	
 +++ b/AltStore/Intents/App Intents/RefreshAllAppsIntent.swift	
 @@ -149,7 +149,7 @@ struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Predictab
@@ -94,7 +94,7 @@ index 9397828..c8b9f97 100644
              let reader = try Archive.Reader.open(at: url)
 diff --git a/SideStore/Intents/CartoucheAppsRequest.swift b/SideStore/Intents/CartoucheAppsRequest.swift
 new file mode 100644
-index 0000000..a8978e3
+index 0000000..21bbb08
 --- /dev/null
 +++ b/SideStore/Intents/CartoucheAppsRequest.swift
 @@ -0,0 +1,100 @@
@@ -316,10 +316,10 @@ index 0000000..9ee4647
 +    }
 +}
 diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
-index 444c6be..80f874d 100644
+index 3f2ead2..a6c1186 100644
 --- a/SideStore/Intents/CartoucheOutcome.swift
 +++ b/SideStore/Intents/CartoucheOutcome.swift
-@@ -49,6 +49,11 @@ final class CartoucheOutcome: @unchecked Sendable
+@@ -64,6 +64,11 @@ final class CartoucheOutcome: @unchecked Sendable
          case device
          case refresh
          case update
@@ -331,7 +331,7 @@ index 444c6be..80f874d 100644
      }
  
      static let account = "cartouche.outcome"
-@@ -321,6 +326,10 @@ final class CartoucheOutcome: @unchecked Sendable
+@@ -498,6 +503,10 @@ final class CartoucheOutcome: @unchecked Sendable
          {
              return ("cartouche", error.kind.rawValue)
          }

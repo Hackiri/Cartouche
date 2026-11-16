@@ -123,6 +123,30 @@ enum CartoucheSignInMessage {
         /// Apple's servers answered with an error and nothing Cartouche can
         /// read, such as a page: of that HTTP status, when it is known.
         case unreadable(status: Int?)
+        /// The built-in SideStore's process quit before its action ended,
+        /// as it launched or on its way: LiveContainer's bridge says so in
+        /// English, and says nothing of what to do.
+        case sideStoreQuit
+        /// The built-in SideStore found no app group to open its database
+        /// in, its missingAppGroup: Cartouche's IPA for an Apple ID that a
+        /// signing app signed without that group, whose sign-in cannot
+        /// work (CartoucheOwnSignature.swift). SideStore's words, "App
+        /// Group Container Inaccessible", say nothing of the IPA to sign
+        /// instead.
+        case noAppGroup
+        /// The Apple ID already has a certificate the built-in SideStore
+        /// does not hold, made by another app or computer, which it never
+        /// revokes (app/patches/sidestore/0004, 0012): SideStore says so in
+        /// English, and sends to the Cartouche Installer without a word of
+        /// the Apple ID Cartouche was installed with.
+        case otherCertificate
+        /// LiveContainer's LiveProcess extension, which the built-in
+        /// SideStore runs in, is not in the app, so that SideStore cannot
+        /// start: LiveContainer's bridge says so in English, and sends the
+        /// player to the settings of LiveContainer+SideStore and of other
+        /// sideloaders, where only an install of Cartouche over itself, with
+        /// the Cartouche Installer, puts it back.
+        case noLiveProcess
     }
 
     /// Whether MESSAGE holds a page of HTML, as Apple's servers send one for
@@ -150,10 +174,14 @@ enum CartoucheSignInMessage {
     /// its words say it well enough.
     static func trouble(in message: String, failure: CartoucheFailure) -> Trouble? {
         if failure.cause == .tooManyAttempts { return .tooManyRequests }
+        if failure.cause == .sideStoreQuit { return .sideStoreQuit }
+        if failure.cause == .liveProcessMissing { return .noLiveProcess }
+        if failure.cause == .certificateRefused { return .otherCertificate }
         var http: Int?
         if case .number(let number)? = failure.details["http"] { http = Int(number) }
         var kind: String?
         if case .text(let text)? = failure.details["kind"] { kind = text }
+        if kind == "missingAppGroup" { return .noAppGroup }
         let status = pageStatus(in: message) ?? http
         if status == 429 { return .tooManyRequests }
         if hasPage(message) || kind == "httpStatus" || kind == "invalidResponseFormat" {
@@ -175,18 +203,38 @@ extension CartoucheSignInMessage {
         case vpn
         /// The iPhone is not on Wi-Fi, which LocalDevVPN needs.
         case wifi
-        /// The pairing file is missing, or the iPhone refuses it.
+        /// The pairing file is missing, or could not be read.
         case pairing
+        /// The iPhone refused the pairing file: one made before it stopped
+        /// trusting the computer, or for another device.
+        case pairingRefused
+        /// The pairing file is of the older kind, Lockdown, which minimuxer
+        /// takes through LocalDevVPN from iOS 26.4 only beside an IPsec
+        /// interface, which an iPad without cellular never has.
+        case olderPairing
         /// The iPhone did not answer through LocalDevVPN.
         case noAnswer
     }
 
+    /// Minimuxer's reasons (app/patches/sidestore/0022) for a pairing file
+    /// this iPhone refused when minimuxer reached it.
+    static let refusedPairingReasons: Set<String> = ["handshake", "serviceRefused", "lockdownSession", "lockdownValue"]
+
     /// The trouble FAILURE tells, when it is one of this iPhone's connection
     /// to itself.
     static func deviceTrouble(in failure: CartoucheFailure) -> DeviceTrouble? {
+        var reason: String?
+        if case .text(let told)? = failure.details["reason"] { reason = told }
         switch failure.cause {
-        case .vpn: return .vpn
-        case .pairing: return .pairing
+        case .vpn:
+            if reason == "noIPsec" { return .olderPairing }
+            // Cartouche saw LocalDevVPN connected: this iPhone did not answer
+            // through it, whatever minimuxer made of it.
+            if case .flag(true)? = failure.details["vpn"] { return .noAnswer }
+            return .vpn
+        case .pairing:
+            if let reason, refusedPairingReasons.contains(reason) { return .pairingRefused }
+            return .pairing
         case .device:
             if case .text("noConnection")? = failure.details["kind"] { return .wifi }
             return .noAnswer
@@ -255,12 +303,14 @@ struct CartoucheSignInPause: Codable, Equatable {
     var last: Date
 
     static let steps: [TimeInterval] = [15 * 60, 30 * 60, 60 * 60, 120 * 60]
+    /// How long a limit counts towards the next one's pause.
+    static let memory: TimeInterval = 86_400
 
     /// The pause after Apple limited a sign-in at NOW, asking to wait RETRY
     /// AFTER seconds when it did, PREVIOUS being the pause before, if any.
     static func after(_ previous: CartoucheSignInPause?, at now: Date, retryAfter: Int?) -> CartoucheSignInPause {
         var inARow = 1
-        if let previous, now.timeIntervalSince(previous.last) < 86_400 {
+        if let previous, previous.counts(at: now) {
             inARow = previous.inARow + 1
         }
         var wait = steps[min(inARow, steps.count) - 1]
@@ -275,6 +325,10 @@ struct CartoucheSignInPause: Codable, Equatable {
 
     /// Whether it still keeps the player from signing in at NOW.
     func holds(at now: Date) -> Bool { now < until }
+
+    /// Whether the limit still counts at NOW: it makes the next pause
+    /// longer for a day.
+    func counts(at now: Date) -> Bool { now.timeIntervalSince(last) < Self.memory }
 }
 
 /// Where Cartouche's sign-in stands (CartoucheAccount), which its screens

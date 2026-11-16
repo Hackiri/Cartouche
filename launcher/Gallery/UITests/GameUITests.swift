@@ -3,14 +3,43 @@
 //  CartoucheGalleryUITests
 //
 //  A game of the player's beyond its settings: its info, which the player
-//  changes from its sheet and puts back to Cartouche's; the game paused
-//  behind the console, which the home offers to resume or to quit, Quit
-//  asking first; and an install, under way over the console, or failed,
-//  with the report to copy. The gallery stands in for the games, their
-//  install and their process (GalleryStubs.swift).
+//  changes from its sheet and puts back to Cartouche's; its log, which the
+//  player shares from its sheet as the game wrote it, or sends to
+//  Cartouche cleaned; the game paused behind the console, which the home
+//  offers to resume or to quit, Quit asking first; an install, under way
+//  over the console, or failed, with the report to copy; and its builds
+//  on the player's Mac, from its sheet. The gallery stands in for the
+//  games, their logs, their install and their process
+//  (GalleryStubs.swift), and for the Mac (GalleryMac).
 //
 
 import XCTest
+
+/// The words of a game's log, from its sheet (CartoucheGameLogView).
+extension Words {
+    static let shareLog = "Share the log"                   // gameLog.row
+    static let gameLog = "Game log"                         // gameLog.title
+    static let lastSession = "Last session"                 // gameLog.last
+    static let endedInACrash = "Ended in a crash"           // gameLog.crashed
+    static let sendTheLog = "Send the log…"                 // gameLog.share
+    static let sendToCartouche = "Send to Cartouche"        // report.sendToCartouche
+    static let whatCartoucheReceives = "What Cartouche receives" // gameLog.whatIsSent
+}
+
+/// The words of a game's build on the player's Mac, on its sheet, and of
+/// the page of all the Mac's builds it opens (decision 96).
+extension Words {
+    static let macUpToDate = "Up to date on the Mac"        // mac.build.upToDate.built
+    static let macBuilding = "Building on the Mac"          // mac.build.building
+    static let macWaitingAfterOne = "Waiting its turn on the Mac, after 1 game" // mac.build.waiting.one
+    static let addToMacQueue = "Add to the Mac’s queue"     // mac.build.action.queue
+    static let macBuilds = "All the Mac’s builds"           // mac.builds.all
+    static let macImproved = "nxnative improved it"         // mac.build.improved
+    static let stopItsBuild = "Stop its build"              // mac.build.stop
+    static let removeFromQueue = "Remove from the queue"    // mac.build.remove
+    static let macBuildsPage = "Builds"                     // mac.builds.page
+    static let removeGameFromQueue = "Remove %@ from the queue" // mac.builds.remove
+}
 
 final class GameUITests: ConsoleTestCase {
     /// The first of the player's games, the one work: paused pauses; the
@@ -39,6 +68,34 @@ final class GameUITests: ConsoleTestCase {
         closeSheet(in: app)
         expect(app.buttons[game].waitForExistence(timeout: 10), "The home does not show \(game) again", in: app)
         expect(!app.buttons[name].exists, "The home still shows \(name)", in: app)
+        expectMainThreadAnswered(app)
+    }
+
+    /// A game's log, from its sheet: its page shows the game's last
+    /// session, which ended in a crash, offers to send the log as the game
+    /// wrote it, once the zip is made, or to Cartouche, and shows what
+    /// Cartouche would receive: cleaned, the device's paths taken out.
+    @MainActor
+    func testAGamesLogIsSharedFromItsSheet() {
+        let app = openConsole(Launch(work: "log"))
+        openSheet(of: game, in: app)
+        scrollAndTap(app.buttons[Words.shareLog], "Share the log", in: app)
+        expect(app.navigationBars[Words.gameLog].waitForExistence(timeout: 15), "No page \(Words.gameLog)", in: app)
+        let last = element(beginningWith: Words.lastSession, in: app)
+        expect(last.waitForExistence(timeout: 15), "The log's page does not show the last session", in: app)
+        expect(last.label.contains(Words.endedInACrash), "The last session does not say it ended in a crash: \(last.label)",
+               in: app)
+        expect(app.buttons[Words.sendTheLog].waitForExistence(timeout: 15), "The log's page does not offer to send the log",
+               in: app)
+        expect(app.buttons[Words.sendToCartouche].exists, "The log's page does not offer to send it to Cartouche", in: app)
+
+        scrollAndTap(app.buttons[Words.whatCartoucheReceives], "What Cartouche receives", in: app)
+        let sent = element(containing: "Cartouche game log", in: app)
+        expect(sent.waitForExistence(timeout: 15), "No page of what Cartouche receives", in: app)
+        expect(element(containing: "boot: game files <container>/", in: app).exists,
+               "What Cartouche receives does not show the log cleaned: \(sent.label.prefix(300))", in: app)
+        expect(!element(containing: "/private/var", in: app).exists, "What Cartouche receives holds the device's paths",
+               in: app)
         expectMainThreadAnswered(app)
     }
 
@@ -98,6 +155,58 @@ final class GameUITests: ConsoleTestCase {
                "No word that the report was copied", in: app)
         expect(waitForGone(alert), "Copy the report did not close the alert", in: app)
         expect(waitUntil(10) { isOnConsole(app) }, "The console did not come back after the report", in: app)
+        expectMainThreadAnswered(app)
+    }
+
+    /// A game's builds on the player's Mac, from its sheet, while Cartouche
+    /// Builder builds another: the game up to date there, added to the
+    /// Mac's queue, waits its turn after the game waiting, and can leave
+    /// the queue; the Mac's builds, which the sheet opens, list the game
+    /// building and those waiting, the next first, and take the game out
+    /// of the queue; the game building says so on its sheet, with nothing
+    /// to ask but Stop its build, after which the Mac goes on with the
+    /// next.
+    @MainActor
+    func testAGameAddedToTheMacsQueueWaitsItsTurn() {
+        let app = openConsole(Launch(work: "mac-builds"))
+        // Mario Kart World builds on the Mac, Donkey Kong Bananza waits its
+        // turn, Link's Awakening is up to date there (GalleryMac.builds).
+        let building = Games.names[0], waiting = Games.names[1], upToDate = Games.names[2]
+        openSheet(of: upToDate, in: app)
+        scrollTo(element(beginningWith: Words.macUpToDate, in: app), "the game up to date on the Mac", in: app)
+        scrollAndTap(app.buttons[Words.addToMacQueue], "Add to the Mac's queue", in: app)
+        expect(element(beginningWith: Words.macWaitingAfterOne, in: app).waitForExistence(timeout: 10),
+               "The game added to the Mac's queue does not wait its turn after the game waiting", in: app)
+        expect(!app.buttons[Words.addToMacQueue].exists, "The sheet still offers to add the game to the Mac's queue", in: app)
+        expect(app.buttons[Words.removeFromQueue].exists, "The game waiting its turn cannot leave the Mac's queue", in: app)
+
+        scrollAndTap(app.buttons[Words.macBuilds], "The Mac's builds", in: app)
+        expect(app.navigationBars[Words.macBuildsPage].waitForExistence(timeout: 15), "The Mac's builds did not open", in: app)
+        // In the order the page shows them, top to bottom.
+        let list = app.collectionViews.descendants(matching: .any)
+        for (words, what) in [(building, "the game building"),
+                              ("1. " + waiting, "the game waiting, first"),
+                              ("2. " + upToDate, "the game added to the queue, second")] {
+            scrollTo(element(in: list, beginningWith: words), what + " in the Mac's builds", in: app)
+        }
+        let remove = app.buttons[String(format: Words.removeGameFromQueue, upToDate)]
+        scrollAndTap(remove, "Remove, for the game added to the queue", in: app)
+        expect(waitForGone(element(in: list, beginningWith: "2. " + upToDate)), "The game removed from the queue still waits its turn",
+               in: app)
+        back(from: Words.macBuildsPage, in: app)
+        scrollTo(app.buttons[Words.addToMacQueue], "Add to the Mac's queue, once the game left the queue", in: app)
+        closeSheet(in: app)
+
+        openSheet(of: building, in: app)
+        scrollTo(element(beginningWith: Words.macBuilding, in: app), "the game building on the Mac", in: app)
+        expect(!app.buttons[Words.addToMacQueue].exists, "The sheet offers to add the game building to the Mac's queue",
+               in: app)
+        scrollAndTap(app.buttons[Words.stopItsBuild], "Stop its build, for the game building", in: app)
+        // nxnative improved it: due again, after the game that now builds.
+        expect(element(beginningWith: Words.macImproved, in: app).waitForExistence(timeout: 10),
+               "The game whose build stopped does not say it is due again", in: app)
+        expect(app.buttons[Words.addToMacQueue].exists, "The game whose build stopped cannot be asked for again", in: app)
+        closeSheet(in: app)
         expectMainThreadAnswered(app)
     }
 

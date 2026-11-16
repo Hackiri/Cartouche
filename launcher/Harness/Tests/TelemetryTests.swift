@@ -29,11 +29,31 @@ final class TelemetryTests: HarnessCase {
         try await super.tearDown()
     }
 
+    /// The telemetry's tries, the requests it sent the server its reports
+    /// with, in order. The tests count these, never every request
+    /// HarnessNetwork records: another part of Cartouche, such as the covers
+    /// or the catalogue, may ask the network at any moment.
+    private var tries: [HarnessNetwork.Request] {
+        HarnessNetwork.requests.filter { $0.url.path == "/v1/reports" }
+    }
+
     /// Every report the server got, in order, as JSON.
     private var reports: [[String: Any]] {
-        HarnessNetwork.requests.filter { $0.url.path == "/v1/reports" }.flatMap { request -> [[String: Any]] in
+        tries.flatMap { request -> [[String: Any]] in
             let body = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any]
             return body?["reports"] as? [[String: Any]] ?? []
+        }
+    }
+
+    /// A request from another part of Cartouche while the telemetry waits,
+    /// as the covers' or the catalogue's may come: not one of its tries.
+    private func askElsewhere() async throws {
+        let url = try XCTUnwrap(URL(string: "https://elsewhere.harness.invalid/cover.png"))
+        let session = URLSession(configuration: .ephemeral)
+        session.dataTask(with: url).resume()
+        session.finishTasksAndInvalidate()
+        try await waitUntil("another part of Cartouche asked the network") {
+            HarnessNetwork.requests.contains { $0.url.host == "elsewhere.harness.invalid" }
         }
     }
 
@@ -63,7 +83,7 @@ final class TelemetryTests: HarnessCase {
         XCTAssertEqual(telemetry.waiting, 0)
         XCTAssertNotNil(telemetry.lastSent)
 
-        let request = try XCTUnwrap(HarnessNetwork.requests.last { $0.url.path == "/v1/reports" })
+        let request = try XCTUnwrap(tries.last)
         XCTAssertEqual(request.method, "POST")
         XCTAssertEqual(request.url.scheme, "https")
         XCTAssertEqual(request.headers["Content-Type"], "application/json")
@@ -98,11 +118,11 @@ final class TelemetryTests: HarnessCase {
         for status in [400, 413, 422] {
             answer(status)
             let sent = telemetry.sent
-            let asked = HarnessNetwork.requests.count
+            let asked = tries.count
             telemetry.event("harness.refused", fields: ["status": .number(Double(status))])
             XCTAssertEqual(telemetry.waiting, 1)
             try await waitUntil("\(status) drops the report") { telemetry.waiting == 0 }
-            XCTAssertEqual(HarnessNetwork.requests.count, asked + 1)
+            XCTAssertEqual(tries.count, asked + 1)
             XCTAssertEqual(telemetry.sent, sent, "\(status) is not counted as sent")
         }
     }
@@ -111,15 +131,15 @@ final class TelemetryTests: HarnessCase {
         answer(503, headers: ["Retry-After": "1"])
         let sent = telemetry.sent
         telemetry.event("harness.later")
-        try await waitUntil("the server was asked") { !HarnessNetwork.requests.isEmpty }
+        try await waitUntil("the server was asked") { !tries.isEmpty }
         try await pause(0.3)
         XCTAssertEqual(telemetry.waiting, 1, "kept")
 
         // Not before the server said.
-        let asked = HarnessNetwork.requests.count
+        let asked = tries.count
         telemetry.send()
         try await pause(0.3)
-        XCTAssertEqual(HarnessNetwork.requests.count, asked)
+        XCTAssertEqual(tries.count, asked)
 
         answer(200)
         try await pause(1)
@@ -131,15 +151,17 @@ final class TelemetryTests: HarnessCase {
     func testWithoutNetworkReportsWaitForTheNextTry() async throws {
         let sent = telemetry.sent
         telemetry.event("harness.offline")
-        try await waitUntil("the server was tried") { !HarnessNetwork.requests.isEmpty }
+        try await waitUntil("the server was tried") { !tries.isEmpty }
         try await pause(0.3)
         XCTAssertEqual(telemetry.waiting, 1)
         XCTAssertEqual(telemetry.sent, sent)
-        // A minute before the next try.
-        let asked = HarnessNetwork.requests.count
+        // A minute before the next try, whatever else Cartouche asks the
+        // network meanwhile.
+        let asked = tries.count
         telemetry.event("harness.offline.again")
+        try await askElsewhere()
         try await pause(0.3)
-        XCTAssertEqual(HarnessNetwork.requests.count, asked)
+        XCTAssertEqual(tries.count, asked)
         XCTAssertEqual(telemetry.waiting, 2)
     }
 
@@ -229,10 +251,27 @@ final class TelemetryTests: HarnessCase {
 
     func testCartouchesStartItsInstallsAndItsErrorsAreReported() async throws {
         answer(200)
+        // The launch before this one stopped three seconds in, its games
+        // listed, before the check of the certificate: this one says it.
+        let mark = CartoucheLaunchMark.standard
+        let before = Date().addingTimeInterval(-600)
+        _ = mark.begin(version: "0.12.1", at: before)
+        mark.note(at: before.addingTimeInterval(3)) { $0.listed = true }
         telemetry.start()
         let game = HarnessGame.plain()
         _ = try await installed(game)
         try await waitUntil("Cartouche reported its start", timeout: 10) { self.report(named: "app.opened") != nil }
+        let unfinished = try XCTUnwrap(report(named: "app.unfinished")?["fields"] as? [String: Any])
+        XCTAssertEqual(unfinished["version"] as? String, "0.12.1")
+        XCTAssertEqual(unfinished["listed"] as? Bool, true)
+        XCTAssertEqual(unfinished["checked"] as? Bool, false)
+        XCTAssertEqual(unfinished["background"] as? Bool, false)
+        XCTAssertEqual(unfinished["seconds"] as? Double, 3)
+        XCTAssertEqual(unfinished["minutesBefore"] as? Double, 10)
+        // This launch got there: the next one says nothing.
+        XCTAssertEqual(mark.launch?.ended, .opened)
+        XCTAssertEqual(mark.launch?.listed, true)
+        XCTAssertEqual(mark.launch?.checked, true)
         try await waitUntil("the install is reported") { self.report(named: "game.installed") != nil }
         let installedReport = try XCTUnwrap(report(named: "game.installed"))
         XCTAssertEqual(installedReport["game"] as? String, game.titleId.uppercased())
@@ -249,5 +288,56 @@ final class TelemetryTests: HarnessCase {
         let text = String(decoding: try JSONSerialization.data(withJSONObject: error), as: UTF8.self)
         XCTAssertFalse(text.contains("lc.appList.urlFileIsNotIpaError".loc), "never the message's words")
         XCTAssertFalse(text.contains(HarnessIPA.folder.path), "never a path of the iPhone")
+
+        // A game LiveContainer did not sign whole: why, the kind of the
+        // files zsign could not sign and how many, never zsign's words nor
+        // a file's name or path, which the report the player copies has.
+        HarnessLC.signing = .cannotSign(["Frameworks/MoltenVK.framework/MoltenVK"])
+        _ = try await install(try HarnessIPA.game(.plain(1)))
+        try await waitUntil("the signing error is reported") {
+            (self.report(named: "error")?["fields"] as? [String: Any])?["cause"] as? String == "notSigned"
+        }
+        let unsigned = try XCTUnwrap(report(named: "error"))
+        let unsignedFields = try XCTUnwrap(unsigned["fields"] as? [String: Any])
+        XCTAssertEqual(unsignedFields["origin"] as? String, "install")
+        XCTAssertEqual(unsignedFields["kind"] as? String, "filesNotSigned")
+        XCTAssertEqual(unsignedFields["fileKind"] as? String, "framework")
+        XCTAssertEqual((unsignedFields["files"] as? NSNumber)?.intValue, 1)
+        let unsignedText = String(decoding: try JSONSerialization.data(withJSONObject: unsigned), as: UTF8.self)
+        XCTAssertFalse(unsignedText.contains("Failed to Sign"), "never zsign's words")
+        XCTAssertFalse(unsignedText.contains("MoltenVK"), "never a file's name")
+        XCTAssertFalse(unsignedText.contains(LCPath.bundlePath.path), "never a path of the iPhone")
+    }
+
+    // MARK: Renewals
+
+    /// renewal.done says Cartouche renewed itself, and signature.renewed
+    /// what renewed the signature: up to 0.12.0, the measurements could not
+    /// tell the automation of Shortcuts from Renew now, from an update or
+    /// from an install of the Cartouche Installer. Telemetry starts once per
+    /// launch: testCartouchesStartItsInstallsAndItsErrorsAreReported, which
+    /// runs before this test, waits for that start's app.opened, so no test
+    /// of a class that runs before this one may start it.
+    func testWhatRenewedTheSignatureIsReported() async throws {
+        answer(200)
+        telemetry.start()
+        try await setUpCartouche()
+        HarnessSideStore.record(expiringIn: 2.5)
+        // Cartouche reads its signature again as it comes back to the front.
+        NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        let renewals = CartoucheRenewals.shared
+        renewals.renewIfDue()
+        XCTAssertTrue(renewals.isRenewing, "Cartouche renews itself, 2 days left")
+        try await waitUntil("the renewal ended") { !renewals.isRenewing }
+        let renewedHere = { (report: [String: Any]) -> Bool in
+            report["name"] as? String == "signature.renewed"
+                && (report["fields"] as? [String: Any])?["via"] as? String == "cartouche"
+        }
+        try await waitUntil("the server has what renewed it") { self.reports.contains(where: renewedHere) }
+        let renewed = try XCTUnwrap(reports.last(where: renewedHere)?["fields"] as? [String: Any])
+        XCTAssertEqual(renewed["daysLeft"] as? Double, 6)
+        let done = try XCTUnwrap(report(named: "renewal.done")?["fields"] as? [String: Any])
+        XCTAssertEqual(done["automatic"] as? Bool, true)
     }
 }

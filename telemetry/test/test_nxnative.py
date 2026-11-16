@@ -115,11 +115,13 @@ class NxnativePageTest(unittest.TestCase):
         return report
 
     def event(self, install, name, day="2026-11-10", device="Mac16,12", ios="27.1", seq=1, limit=None, iml=None,
-              **fields):
+              game=None, **fields):
         """An event as the Worker keeps it."""
         report = {"schema": 1, "kind": "event", "id": str(uuid.uuid4()), "install": install, "seq": seq,
                   "cartouche": "0.11.2", "device": device, "ios": ios, "language": "en", "name": name,
                   "fields": fields}
+        if game:
+            report["game"] = game
         if limit is not None:
             report.update(memoryLimitMiB=limit, increasedMemoryLimit=iml)
         self.insert(report, day)
@@ -174,8 +176,8 @@ class NxnativePageTest(unittest.TestCase):
         figures = {"Installs": "3", "Sessions": "4", "Hours": "2.3", "Target fps": "60", "FPS median": "58.0",
                    "FPS slowest 5%": "52.0", "Frame p99 ms": "33.4", "Stutters a minute": "3",
                    "Waiting for shaders": "70%", "Shader stall ms a minute": "210", "Prepare s": "21.4",
-                   "Peak MiB": "4,813", "Reached serious heat": "4 of 4", "Crashed": "0", "Failed to boot": "0",
-                   "Out of memory": "0", "Drew no frame": "0"}
+                   "Peak MiB": "4,813", "Reached serious heat": "4 of 4", "Crashed": "0", "GPU lost": "–",
+                   "Failed to boot": "0", "Out of memory": "0", "Drew no frame": "0"}
         self.assertEqual(rows(page, "By game"), [{"Game": MKW_NAME, "nxnative": "`6c3aeb3d70a1`", **figures}])
         self.assertEqual(rows(page, "By game and model"),
                          [{"Game": MKW_NAME, "Model": "`iPhone19,4`", "nxnative": "`6c3aeb3d70a1`", **figures}])
@@ -277,15 +279,34 @@ class NxnativePageTest(unittest.TestCase):
         self.run_page()
         page = self.page()
         by_signal, exact = tables(page, "Crashes")
-        self.assertEqual(by_signal, [{"Game": MKW_NAME, "Signal": "SIGSEGV", "Installs": "4", "Sessions": "4",
+        self.assertEqual(by_signal, [{"Game": MKW_NAME, "Signal": "SIGSEGV", "Cause": "–", "Installs": "4", "Sessions": "4",
                                       "Models": "`iPhone19,4` (+1)", "nxnative": "`aaaaaaaaaaaa`",
                                       "Minutes in": "35.2"}])
         self.assertEqual(exact, [{"Game": MKW_NAME, "Version": "1.0.0", "nxnative": "`aaaaaaaaaaaa`",
-                                  "Signal": "SIGSEGV", "pc": "`main+0x10`", "lr": "`main+0x08`", "Installs": "3",
+                                  "Signal": "SIGSEGV", "Cause": "–", "pc": "`main+0x10`", "lr": "`main+0x08`", "Installs": "3",
                                   "Sessions": "3", "Minutes in": "35.2"}])
         for unshared in ("main+0x99", "main+0x98", "SIGABRT", "main+0x20", "iPhone17,2"):
             self.assertNotIn(unshared, page)
         self.assertEqual(rows(page, "By game")[0]["Crashed"], "6")
+
+    def test_a_lost_gpu_is_a_crash_of_its_own_from_the_reading_that_tells_it(self):
+        abort = {"kind": "crash", "signal": 6, "pc": "__pthread_kill+0x8", "lr": "pthread_kill+0x10c"}
+        for phone in self.phones[:3]:
+            self.session(phone, nxnative="aaaaaaaaaaaa", reader=4, end={**abort, "cause": "gpuLost"})
+        for phone in self.phones[3:6]:
+            self.session(phone, nxnative="aaaaaaaaaaaa", reader=4, end=abort)
+        # Read before, a lost GPU was an abort like the others.
+        self.session(self.phones[6], nxnative="aaaaaaaaaaaa", end=abort)
+        self.run_page()
+        page = self.page()
+        by_signal, exact = tables(page, "Crashes")
+        self.assertEqual([(r["Signal"], r["Cause"], r["Installs"]) for r in by_signal],
+                         [("SIGABRT", "–", "4"), ("SIGABRT", "GPU access revoked", "3")])
+        self.assertEqual([(r["Signal"], r["Cause"], r["pc"], r["Installs"]) for r in exact],
+                         [("SIGABRT", "–", "`__pthread_kill+0x8`", "4"),
+                          ("SIGABRT", "GPU access revoked", "`__pthread_kill+0x8`", "3")])
+        line = rows(page, "By game")[0]
+        self.assertEqual((line["Crashed"], line["GPU lost"]), ("7", "3"))
 
     def test_no_installs_sessions_or_reports_number_is_written(self):
         for phone in self.phones[:3]:
@@ -348,6 +369,43 @@ class NxnativePageTest(unittest.TestCase):
              "Where they failed": "app build 3, other steps 1"}])
         for left_out in ("bbbbbbbbbbbb", "unpack v0", "extract v0", "deliver"):
             self.assertNotIn(left_out, page.split("## How it is summed up")[0])
+
+    def test_the_games_no_mac_built_for_cartouche_builder(self):
+        """unbuilt.json: a game three Macs tried and none built, as Pokopia
+        on 14 November 2026 (8 failures on 4 Macs, up to 7.9 hours), for the
+        app to warn of before a fourth spends its night on it."""
+        pokopia, other = "0400A3A01EE4C000", "0100F2C0115B6000"
+        hours = {self.macs[0]: [28493], self.macs[1]: [16878, 8741], self.macs[2]: [3600]}
+        for mac, attempts in hours.items():
+            for seconds in attempts:
+                self.event(mac, "builder.failed", game=pokopia, nxnative="aaaaaaaaaaaa", stage="iOS shaders", cause="nxnative", seconds=seconds)
+        # Not the game's own: a stop, the Mac's Xcode, the player's files.
+        self.event(self.macs[3], "builder.failed", game=pokopia, nxnative="aaaaaaaaaaaa", stage="iOS shaders", cause="stopped", seconds=600)
+        self.event(self.macs[4], "builder.failed", game=pokopia, nxnative="aaaaaaaaaaaa", stage="unpack v0", cause="damaged", seconds=60)
+        # Another game three Macs failed, and one built.
+        for mac in self.macs[:3]:
+            self.event(mac, "builder.failed", game=other, nxnative="aaaaaaaaaaaa", stage="shader split", cause="nxnative", seconds=100)
+        self.event(self.macs[5], "builder.built", game=other, nxnative="aaaaaaaaaaaa", seconds=2000)
+        # A game two Macs failed: too few to say.
+        for mac in self.macs[:2]:
+            self.event(mac, "builder.failed", game=SENTINELS, nxnative="aaaaaaaaaaaa", stage="app build", cause="nxnative", seconds=50)
+        self.run_page()
+        found = json.loads((self.work / "page" / "unbuilt.json").read_text(encoding="utf-8"))
+        self.assertEqual(found, {"schema": 1, "from": "2026-10-15", "to": "2026-11-11", "games": [
+            {"titleId": pokopia, "macs": 3, "failures": 4, "hours": 4.7, "stage": "iOS shaders"}]})
+        text = json.dumps(found)
+        for number in self.ids:
+            self.assertNotIn(number, text)
+
+    def test_a_game_built_by_a_fork_alone_is_still_unbuilt(self):
+        pokopia = "0400A3A01EE4C000"
+        for mac in self.macs[:3]:
+            self.event(mac, "builder.failed", game=pokopia, nxnative="aaaaaaaaaaaa", stage="iOS shaders", seconds=7200)
+        self.event(self.macs[3], "builder.opened", nxnative="cccccccccccc", forkOfNxnative=True)
+        self.event(self.macs[3], "builder.built", game=pokopia, nxnative="cccccccccccc", seq=2)
+        self.run_page()
+        found = json.loads((self.work / "page" / "unbuilt.json").read_text(encoding="utf-8"))
+        self.assertEqual([(g["titleId"], g["macs"], g["hours"]) for g in found["games"]], [(pokopia, 3, 2.0)])
 
     # MARK: Which sessions count
 

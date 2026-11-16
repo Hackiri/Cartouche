@@ -126,7 +126,7 @@ class IPhoneAppsTest(unittest.TestCase):
         self.assertIn("CartoucheUpdates.shared.phase", model)
         self.assertIn("removeItem(at: copy)", model)
         renew_button = system.index("Button(CartoucheText.renewNow")
-        self.assertIn("apps.work != nil", system[renew_button:renew_button + 400])
+        self.assertIn("apps.work != nil", system[renew_button:renew_button + 600])
         update_button = system.index("Button(CartoucheText.updateTo")
         self.assertIn("apps.work != nil", system[update_button:update_button + 400])
 
@@ -141,7 +141,7 @@ class IPhoneAppsTest(unittest.TestCase):
         note = note[:note.index("\n    }\n")]
         self.assertIn("Self.listed", note)
         self.assertNotIn("for app in apps", note)
-        renew = renewal[renewal.index("static func renew(progress: Progress)"):]
+        renew = renewal[renewal.index("static func renew(progress: Progress"):]
         taken = renew.index("CartoucheIPhoneApps.shared.takeNightlyOutcome()")
         self.assertLess(taken, renew.index("CartoucheStoreKeychain.remove("))
 

@@ -1,4 +1,4 @@
-From 3b127c950f127489c4719073124c2a297a1636d6 Mon Sep 17 00:00:00 2001
+From b5a7d044af7c706b4d032a0f11300cc938d3d7cd Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 12 Nov 2026 19:49:02 -0500
 Subject: [PATCH] Ask for a pairing file only when none is in place

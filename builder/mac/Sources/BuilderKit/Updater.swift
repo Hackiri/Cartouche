@@ -5,14 +5,25 @@
 //  The app's own updates, without the player, like Cartouche's on the
 //  iPhone. It reads the project's releases on GitHub (builder-v<version>,
 //  which the Builder workflow publishes) when it opens and every six
-//  hours. A higher version than its own is downloaded and checked against
-//  the SHA-256 published beside it, then put in place of the app when the
-//  app quits, at once when the player asks, or when nothing runs and no
-//  window is open (the app then opens again, in the menu bar only). The new
-//  app is checked before it replaces this one: the same bundle identifier,
-//  the version the release names, a macOS it runs on, an intact signature.
-//  A disk image the app downloads itself is not quarantined, so macOS opens
-//  the new version without asking again.
+//  hours, a page at a time until one has the builder's: Cartouche's own
+//  releases and its Installer's come between. A higher version than its
+//  own is downloaded and checked against the SHA-256 published beside it,
+//  then put in place of the app when the app quits, at once when the
+//  player asks, or when nothing runs and no window is open (the app then
+//  opens again, in the menu bar only). The new app is checked before it
+//  replaces this one: the same bundle identifier, the version the release
+//  names, a macOS it runs on, an intact signature. A disk image the app
+//  downloads itself is not quarantined, so macOS opens the new version
+//  without asking again.
+//
+//  A copy already installed finds only what it was built to find: the
+//  tag, the disk image's name and the bundle identifier below, and the
+//  repository, or the one GitHub answers for once it moved. Every release
+//  keeps them (builder/tests/test_updates.py): 0.5.0 and older took their
+//  disk images from github.com/clabeuhtegrite/Cartouche alone, and find
+//  none since the repository moved to its organization.
+//  UpdaterEndToEndTests.swift updates an installed copy as a player's Mac
+//  does, and the Builder workflow does it with the disk image it made.
 //
 
 import CryptoKit
@@ -65,22 +76,104 @@ public enum BuilderVersion {
 }
 
 public enum BuilderReleases {
-    public static let repository = "clabeuhtegrite/Cartouche"
+    public static let repository = "cartouche-app/Cartouche"
     public static let tagPrefix = "builder-v"
+    /// The releases in one answer of GitHub's, its most.
+    public static let perPage = 100
+    /// The answers one check reads at most. GitHub gives the newest
+    /// releases first, so the builder's newest is on the first answer that
+    /// has one of the builder's; Cartouche's and its Installer's, two at
+    /// each version of Cartouche, can fill the answers before it.
+    public static let pages = 10
 
     public static var api: URL {
-        URL(string: "https://api.github.com/repos/\(repository)/releases?per_page=40")!
+        URL(string: "https://api.github.com/repos/\(repository)/releases?per_page=\(perPage)")!
+    }
+
+    /// The newest release of Cartouche Builder that GitHub has: its
+    /// releases read from `api` an answer at a time, FETCH giving each as
+    /// URLSession does (redirects followed, the answer's own address in the
+    /// response), until one has a release of the builder's, at most `pages`
+    /// of them. The repository GitHub answered for is the first answer's
+    /// (`answeringRepository(_:releases:)`). Nil when there is none.
+    public static func newest(fetch: (URL) async throws -> (Data, URLResponse)) async throws -> BuilderRelease? {
+        var address: URL? = api
+        var answering: String?
+        for page in 1...pages {
+            guard let asked = address else { break }
+            let (data, response) = try await fetch(asked)
+            if page == 1 {
+                answering = answeringRepository(response.url, releases: data)
+            }
+            if let found = try newest(in: data, answering: answering) {
+                return found
+            }
+            address = nextPage((response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Link"))
+        }
+        return nil
+    }
+
+    /// The address of the answer after this one, from GitHub's Link header
+    /// (`<https://api.github.com/…&page=2>; rel="next", <…>; rel="last"`):
+    /// an address of GitHub's API alone. Nil on the last answer.
+    public static func nextPage(_ link: String?) -> URL? {
+        guard let link else { return nil }
+        for part in link.split(separator: ",") {
+            let pieces = part.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }
+            let isNext = pieces.dropFirst().contains { $0.replacingOccurrences(of: " ", with: "").lowercased() == "rel=\"next\"" }
+            guard isNext, let first = pieces.first, first.hasPrefix("<"), first.hasSuffix(">") else { continue }
+            guard let next = URL(string: String(first.dropFirst().dropLast())), next.scheme == "https",
+                  next.host?.lowercased() == "api.github.com" else { return nil }
+            return next
+        }
+        return nil
     }
 
     public static func imageName(_ version: String) -> String {
         "Cartouche-Builder-\(version).dmg"
     }
 
+    /// The repository whose releases GitHub answered with, from the address
+    /// the answer came from once URLSession followed GitHub's redirects:
+    /// another than `repository` once the repository has moved, as GitHub
+    /// redirects the API of a repository that moved, whose answer then gives
+    /// the new place's addresses.
+    /// - https://api.github.com/repos/OWNER/NAME/releases names it.
+    /// - https://api.github.com/repositories/ID/releases, where GitHub may
+    ///   send a repository that moved, names it by its number alone: the
+    ///   answer, RELEASES, is that repository's releases, whose pages,
+    ///   https://github.com/OWNER/NAME/releases/tag/TAG, all name it.
+    /// Nil for any other address, or releases that name none or several.
+    public static func answeringRepository(_ address: URL?, releases: Data? = nil) -> String? {
+        guard let address, address.scheme == "https", address.host?.lowercased() == "api.github.com" else { return nil }
+        let path = address.pathComponents.filter { $0 != "/" }
+        if path.count == 4, path[0] == "repos", path[3] == "releases" {
+            return path[1] + "/" + path[2]
+        }
+        guard path.count == 3, path[0] == "repositories", path[2] == "releases",
+              !path[1].isEmpty, path[1].allSatisfy({ $0.isASCII && $0.isNumber }), let releases else { return nil }
+        struct Release: Decodable {
+            var html_url: String
+        }
+        guard let pages = try? JSONDecoder().decode([Release].self, from: releases) else { return nil }
+        let named = pages.map { release -> String? in
+            guard let page = URL(string: release.html_url), page.scheme == "https",
+                  page.host?.lowercased() == "github.com" else { return nil }
+            let parts = page.pathComponents.filter { $0 != "/" }
+            guard parts.count >= 4, parts[2] == "releases" else { return nil }
+            return parts[0] + "/" + parts[1]
+        }
+        guard let first = named.first ?? nil,
+              named.allSatisfy({ $0?.caseInsensitiveCompare(first) == .orderedSame }) else { return nil }
+        return first
+    }
+
     /// The newest release of Cartouche Builder in an answer of GitHub's
     /// releases API: not a draft nor a pre-release, with its disk image and
-    /// its SHA-256 downloaded from the project's releases. Nil when there is
-    /// none.
-    public static func newest(in data: Data) throws -> BuilderRelease? {
+    /// its SHA-256 downloaded from the project's releases, those of
+    /// `repository` or of the repository GitHub answered for (ANSWERING,
+    /// `answeringRepository(_:)`). Nil when there is none.
+    public static func newest(in data: Data, answering: String? = nil) throws -> BuilderRelease? {
         struct Release: Decodable {
             struct Asset: Decodable {
                 var name: String
@@ -95,7 +188,8 @@ public enum BuilderReleases {
             var html_url: String
             var assets: [Asset]
         }
-        let downloads = "https://github.com/\(repository)/releases/download/".lowercased()
+        let repositories: [String] = [repository, answering ?? repository]
+        let downloads = repositories.map { "https://github.com/\($0)/releases/download/".lowercased() }
         var best: BuilderRelease?
         for release in try JSONDecoder().decode([Release].self, from: data)
         where release.draft != true && release.prerelease != true && release.tag_name.hasPrefix(tagPrefix) {
@@ -103,7 +197,7 @@ public enum BuilderReleases {
             guard isVersion(version) else { continue }
             func asset(_ name: String) -> (url: URL, size: UInt64)? {
                 guard let found = release.assets.first(where: { $0.name == name }),
-                      found.browser_download_url.lowercased().hasPrefix(downloads),
+                      downloads.contains(where: { found.browser_download_url.lowercased().hasPrefix($0) }),
                       let url = URL(string: found.browser_download_url) else { return nil }
                 return (url, found.size ?? 0)
             }
@@ -186,14 +280,17 @@ public final class Updater: ObservableObject {
     private let app: URL
     private let identifier: String
     private let folder: URL
+    /// How it reaches GitHub: the system's session, or the tests' own.
+    private let session: URLSession
     private var loop: Task<Void, Never>?
 
-    public init(app: URL, version: String, identifier: String, folder: URL, enabled: Bool) {
+    public init(app: URL, version: String, identifier: String, folder: URL, enabled: Bool, session: URLSession = .shared) {
         self.app = app
         current = version
         self.identifier = identifier
         self.folder = folder
         self.enabled = enabled
+        self.session = session
         automatic = UserDefaults.standard.object(forKey: Self.automaticKey) as? Bool ?? true
     }
 
@@ -273,7 +370,7 @@ public final class Updater: ObservableObject {
         let before = state
         state = .checking
         do {
-            let newest = try await Self.newestRelease()
+            let newest = try await Self.newestRelease(session: session)
             checked = Date()
             guard let newest, BuilderVersion.isHigher(newest.version, than: current) else {
                 state = .upToDate
@@ -297,12 +394,14 @@ public final class Updater: ObservableObject {
         }
     }
 
-    nonisolated private static func newestRelease() async throws -> BuilderRelease? {
-        var request = URLRequest(url: BuilderReleases.api, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try answered(response)
-        return try BuilderReleases.newest(in: data)
+    nonisolated private static func newestRelease(session: URLSession) async throws -> BuilderRelease? {
+        try await BuilderReleases.newest { address in
+            var request = URLRequest(url: address, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            let (data, response) = try await session.data(for: request)
+            try answered(response)
+            return (data, response)
+        }
     }
 
     // MARK: Downloading
@@ -319,7 +418,7 @@ public final class Updater: ObservableObject {
         }
         state = .downloading(release)
         do {
-            try await Self.fetch(release, to: image(release))
+            try await Self.fetch(release, to: image(release), session: session)
             state = .ready(release)
             clean(keeping: release)
             await installIfIdle()
@@ -333,16 +432,16 @@ public final class Updater: ObservableObject {
         folder.appendingPathComponent(BuilderReleases.imageName(release.version))
     }
 
-    nonisolated private static func fetch(_ release: BuilderRelease, to destination: URL) async throws {
+    nonisolated private static func fetch(_ release: BuilderRelease, to destination: URL, session: URLSession) async throws {
         guard release.size <= 800_000_000 else {
             throw UpdateError(tr("This update is too big to be right: it was not downloaded.", "Cette mise à jour est trop grosse pour être la bonne : elle n’a pas été téléchargée."))
         }
-        let (text, sumResponse) = try await URLSession.shared.data(from: release.checksum)
+        let (text, sumResponse) = try await session.data(from: release.checksum)
         try answered(sumResponse)
         guard let expected = BuilderReleases.checksum(in: String(decoding: text, as: UTF8.self)) else {
             throw UpdateError(tr("The update has no valid checksum.", "La mise à jour n’a pas de somme de contrôle valide."))
         }
-        let (temporary, response) = try await URLSession.shared.download(from: release.image)
+        let (temporary, response) = try await session.download(from: release.image)
         defer { try? FileManager.default.removeItem(at: temporary) }
         try answered(response)
         guard try sha256(of: temporary) == expected else {

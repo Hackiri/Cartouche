@@ -10,13 +10,22 @@
 //  description, the player's or IGDB's (CartoucheGameSummaryView), the time
 //  the player played it and the space it takes (CartoucheGameStats), what
 //  stops the game on this iPhone, if anything (what it needs folds into
-//  one line when this iPhone has it all), the copies of its saves, Edit
+//  one line when this iPhone has it all; in the console on the Mac, an
+//  Apple chip and the macOS of the game's app in place of an iOS and
+//  Increased Memory Limit), its build on the player's Mac,
+//  with the button that asks the Mac for one, the one that stops it, and
+//  the way to all the Mac's builds, once Cartouche reaches the Mac and its
+//  Cartouche Builder knows the game (CartoucheMacBuildsView),
+//  the copies of its saves, Edit
 //  the game's info for the player's own game (CartoucheGameInfoView), with
 //  what IGDB has of a game Cartouche does not know, after which the sheet
-//  goes back to its top, where the name and cover show; the game's copy in
-//  the games folder and Uninstall, the testers' results, and last, folded,
-//  the technical details: the recommended settings, what nxnative's
-//  profile says and which build is installed.
+//  goes back to its top, where the name and cover show; for a game installed
+//  on the iPhone, Siri and Home Screen (CartoucheGameShortcutsView); the
+//  game's copy in the games folder, its log to share (CartoucheGameLogView)
+//  and Uninstall, the testers' results, in Cartouche's language
+//  (CartoucheGameResultsView), and last, folded, the technical details: the
+//  recommended settings, what nxnative's profile says and which build is
+//  installed.
 //
 
 import SwiftUI
@@ -40,9 +49,19 @@ struct CartoucheGameSheetView: View {
     /// Opens what the player says of their game: its name, platform, genre
     /// and cover.
     var onEditInfo: () -> Void = {}
+    /// Opens Siri and Home Screen, for the installed game.
+    var onShortcuts: (LCAppModel) -> Void = { _ in }
+    /// Whether the sheet opens on the game's management, near its bottom,
+    /// rather than on its top: for the gallery's screens of it.
+    var opensOnManagement = false
     @ObservedObject private var actions = CartoucheGameActions.shared
     @ObservedObject private var keeping = CartoucheGameKeeping.shared
     @ObservedObject private var reach = CartoucheStorageReach.shared
+    #if os(iOS)
+    /// The player's Mac, asked its builds while the sheet shows: on the
+    /// Mac, the console is the app that builds, and its window shows them.
+    @StateObject private var macBuilds = CartoucheMacBuildsWatch()
+    #endif
 
     // Written out: the private state above would make the synthesized
     // initializer private.
@@ -51,7 +70,9 @@ struct CartoucheGameSheetView: View {
          onUninstall: @escaping (LCAppModel) -> Void,
          onInstallStored: @escaping (CartoucheStoredGame) -> Void = { _ in },
          onExport: @escaping (LCAppModel) -> Void = { _ in },
-         onEditInfo: @escaping () -> Void = {}) {
+         onEditInfo: @escaping () -> Void = {},
+         onShortcuts: @escaping (LCAppModel) -> Void = { _ in },
+         opensOnManagement: Bool = false) {
         self.entry = entry
         self.memory = memory
         self.onPlay = onPlay
@@ -61,6 +82,8 @@ struct CartoucheGameSheetView: View {
         self.onInstallStored = onInstallStored
         self.onExport = onExport
         self.onEditInfo = onEditInfo
+        self.onShortcuts = onShortcuts
+        self.opensOnManagement = opensOnManagement
     }
 
     /// The memory the game has here, where Play starts it: behind the
@@ -93,6 +116,24 @@ struct CartoucheGameSheetView: View {
     /// The header's row, which the sheet goes back to when what the player
     /// says of the game changes.
     private static let top = "top"
+    /// The last row of the game's management.
+    private static let management = "management"
+
+    #if os(iOS)
+    /// The game's title IDs, as the player's Mac may know it: its regions',
+    /// and those its copies say.
+    private var macTitleIds: [String] {
+        var seen = Set<String>()
+        let ids = (entry.game?.titleIds ?? []) + [entry.titleId, entry.ownTitleId, entry.stored?.titleId].compactMap { $0 }
+        return ids.filter { seen.insert($0.uppercased()).inserted }
+    }
+    #endif
+
+    #if CARTOUCHE_GALLERY
+    /// How the gallery brings the sheet down to its saves, for their
+    /// screenshot, given SwiftUI's scroll to the row of the Switch saves.
+    static var galleryToSaves: ((@escaping @MainActor () -> Void) async -> Void)?
+    #endif
 
     var body: some View {
         ScrollViewReader { reader in
@@ -141,20 +182,41 @@ struct CartoucheGameSheetView: View {
                     }
                 }
 
+                #if os(iOS)
+                CartoucheMacBuildsSection(titleIds: macTitleIds, isOwned: entry.isOwned, watch: macBuilds)
+                #endif
+
+                // The game's saves, with, on the iPhone, its saves between the
+                // player's Switch and this iPhone; the Mac's come with its
+                // saves page (builder/mac/console/unshared.json).
+                #if os(iOS)
+                if let app = entry.app, let game = switchGame(of: app) {
+                    CartoucheSavesSection(target: game.target, isRunning: actions.isRunning(app), switchGame: game)
+                }
+                #else
                 if let app = entry.app, let saves = actions.saves(of: app) {
                     CartoucheSavesSection(target: saves, isRunning: actions.isRunning(app))
                 }
+                #endif
 
                 if entry.isOwned {
                     infoSection
                 }
+
+                // Siri and Home Screen start a game in the iPhone's console;
+                // on the Mac, each game is an app of its own.
+                #if os(iOS)
+                if let app = entry.app {
+                    shortcutsSection(app)
+                }
+                #endif
 
                 if let app = entry.app {
                     manageSection(app)
                 }
 
                 if let sheet = entry.sheet, !sheet.results.isEmpty {
-                    results(sheet)
+                    CartoucheGameResultsSection(results: sheet.results)
                 }
 
                 if hasDetails {
@@ -163,15 +225,87 @@ struct CartoucheGameSheetView: View {
             }
             .scrollContentBackground(.hidden)
             .background(CartoucheStage(key: entry.tileKey, art: entry.backdrop))
+            #if os(iOS)
+            .onAppear { macBuilds.start() }
+            .onDisappear { macBuilds.stop() }
+            #endif
+            #if CARTOUCHE_GALLERY
+            // The gallery's sheet on the game's build on the Mac (screen:
+            // sheet-mac): the game's build in the middle of the screen.
+            // Twice: the list had only guessed the heights of the rows on
+            // the way, which the first scroll lays out, and the second lands
+            // where asked.
+            .task {
+                guard CartoucheMacBuildsWatch.galleryScrolls else { return }
+                for _ in 0..<2 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    reader.scrollTo(CartoucheMacBuildsSection.anchor, anchor: .center)
+                }
+            }
+            #endif
             // What the player gave in Edit the game's info shows at once:
             // the sheet goes back to the game's name and cover.
             .onChange(of: entry.player) { _, _ in
                 withAnimation { reader.scrollTo(Self.top, anchor: .top) }
             }
+            // The gallery's screens of the game's management: the sheet goes
+            // to it once it has its rows, and again whenever they change,
+            // as the player's copy and IGDB's summary of the game arrive
+            // after the sheet opens.
+            .task(id: opensOnManagement ? Optional(entry) : nil) {
+                guard opensOnManagement else { return }
+                for delay in [300, 1_000] {
+                    try? await Task.sleep(for: .milliseconds(delay))
+                    guard !Task.isCancelled else { return }
+                    reader.scrollTo(Self.management, anchor: .center)
+                }
+            }
+            #if CARTOUCHE_GALLERY
+            // The gallery's scenario of the testers' results opens the sheet
+            // on them, from their title to the line under them: the middle
+            // one in the middle, as a List scrolls a row to its top, its
+            // middle or its bottom only. Again every half second until the
+            // gallery says it has settled (3 s): the rows above take their
+            // heights as they show, and moved the results down after a
+            // single scroll (run 43553256663).
+            .onAppear {
+                guard GalleryState.sheetSection == "results",
+                      let results = entry.sheet.map({ CartoucheGameResultsSection.ordered($0.results) }),
+                      !results.isEmpty else { return }
+                let middle = results[results.count / 2]
+                for delay in stride(from: 0.5, through: 2.5, by: 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        reader.scrollTo(middle, anchor: .center)
+                    }
+                }
+            }
+            // The gallery's screenshot of the sheet's saves, further down,
+            // once the game's saves are on the sheet.
+            .task(id: entry.app != nil) {
+                guard entry.app != nil, let toSaves = Self.galleryToSaves else { return }
+                await toSaves { reader.scrollTo(CartoucheSavesSection.switchRow, anchor: .center) }
+            }
+            #endif
         }
         // The header names the game: the bar above it stays empty.
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
+
+    #if os(iOS)
+    /// The game's saves, and the game, for its saves between the player's
+    /// Switch and this iPhone; nil for an app that is not an nxnative game.
+    private func switchGame(of app: LCAppModel) -> CartoucheSwitchSaveGame? {
+        let target = actions.saves(of: app)
+        guard target != nil || CartoucheCatalog.shared.gameTitle(of: app) != nil else { return nil }
+        return CartoucheSwitchSaveGame(name: entry.name, titleId: target?.titleId ?? entry.titleId,
+                                       version: CartoucheInstalledBuilds.installedBuild(of: app).version,
+                                       isSwitch2: entry.platform == "switch2", target: target,
+                                       makeTarget: { actions.savesToImport(of: app) },
+                                       isRunningNow: { actions.isRunning(app) })
+    }
+    #endif
 
     // MARK: Header
 
@@ -225,7 +359,7 @@ struct CartoucheGameSheetView: View {
                     buildLine(CartoucheText.buildNewer(serverName, CartoucheText.build(build, showsCommit: false)),
                               systemImage: "arrow.down.circle")
                     if let installed = installedBuild(of: app, showsCommit: false) {
-                        buildLine(CartoucheText.buildHere(installed), systemImage: "iphone")
+                        buildLine(CartoucheText.buildHere(installed), systemImage: CartoucheDevice.symbol)
                     }
                 }
             } else if let stored = entry.stored {
@@ -300,20 +434,32 @@ struct CartoucheGameSheetView: View {
     }
 
     private func requirementList(_ sheet: CartoucheGameSheet) -> [Requirement] {
+        #if os(iOS)
         var list = [Requirement(ok: CartoucheDevice.runsAtLeast(sheet.requirements.minimumIOS),
                                 title: CartoucheText.iosRequirement(sheet.requirements.minimumIOS),
                                 detail: CartoucheText.iosCurrent(CartoucheDevice.iOSVersion))]
+        #else
+        // On the Mac, the app nxnative built of the game for this Mac: an
+        // Apple chip, which Cartouche there needs too, and the macOS its
+        // Info.plist names.
+        let minimum = entry.app?.appInfo.minimumSystemVersion ?? CartoucheDevice.macMinimum
+        var list = [Requirement(ok: CartoucheDevice.runsAtLeast(minimum), title: CartoucheText.macRequirement(minimum),
+                                detail: CartoucheText.macCurrent(CartoucheDevice.chip, CartoucheDevice.iOSVersion))]
+        #endif
         if sheet.requirements.bcTextureCompression || !CartoucheDevice.supportsBCTextureCompression {
             list.append(Requirement(ok: CartoucheDevice.supportsBCTextureCompression,
                                     title: CartoucheText.bcRequirement,
                                     detail: CartoucheDevice.supportsBCTextureCompression ? CartoucheText.gpuSupported : CartoucheText.gpuUnsupported))
         }
+        // iOS's alone: a Mac gives a game its memory without it.
+        #if os(iOS)
         if sheet.requirements.increasedMemoryLimit {
             let limit = memory.map { CartoucheText.memoryAmount(mebibytes: $0.limitMiB) } ?? "–"
             list.append(Requirement(ok: CartoucheDevice.hasIncreasedMemoryLimit,
                                     title: CartoucheText.imlRequirement,
                                     detail: CartoucheDevice.hasIncreasedMemoryLimit ? CartoucheText.imlActive(limit) : CartoucheText.imlInactive(limit)))
         }
+        #endif
         if let peak = sheet.peakMemoryMiB {
             let fits = gameLimitMiB.map { peak <= $0 } ?? true
             list.append(Requirement(ok: fits,
@@ -382,10 +528,25 @@ struct CartoucheGameSheetView: View {
         }
     }
 
+    #if os(iOS)
+    /// Siri and Home Screen: what to say to Siri, and how to give the game
+    /// an icon of its own (CartoucheGameShortcutsView), on a page the
+    /// console opens over the sheet, as the game's settings.
+    private func shortcutsSection(_ app: LCAppModel) -> some View {
+        Section {
+            Button {
+                onShortcuts(app)
+            } label: {
+                Label(CartoucheText.shortcutsTitle, systemImage: "mic.fill")
+            }
+        }
+    }
+    #endif
+
     /// Whether the game starts in Cartouche's place, for its own needs or
     /// because games behind the console run without Increased Memory Limit
     /// here, the game's copy in the games folder, or the button that copies
-    /// it there, and Uninstall, last, in red.
+    /// it there, its log, once it wrote one, and Uninstall, last, in red.
     private func manageSection(_ app: LCAppModel) -> some View {
         Section {
             if keeping.keepsConsoleOpen, CartoucheGameKeeping.isAvailable,
@@ -418,6 +579,18 @@ struct CartoucheGameSheetView: View {
                     Label(CartoucheText.exportTo(server.name), systemImage: "externaldrive.fill.badge.plus")
                 }
             }
+            // What the game wrote of its last sessions, for whoever helps
+            // the player: shared as it is, or sent to Cartouche cleaned. On
+            // the Mac, with the console's reports (decision 101).
+            #if os(iOS)
+            if let logs = actions.logs(of: app), !logs.files.isEmpty {
+                NavigationLink {
+                    CartoucheGameLogView(folder: logs, tileKey: entry.tileKey)
+                } label: {
+                    Label(CartoucheText.gameLogRow, systemImage: "doc.text")
+                }
+            }
+            #endif
             // Quit the game first.
             if !actions.isRunning(app) {
                 Button(role: .destructive) {
@@ -426,6 +599,7 @@ struct CartoucheGameSheetView: View {
                     Label(CartoucheText.uninstall, systemImage: "trash")
                         .foregroundStyle(CartoucheTheme.danger)
                 }
+                .id(Self.management)
             }
         }
     }
@@ -441,51 +615,6 @@ struct CartoucheGameSheetView: View {
                 .font(.subheadline.weight(.semibold))
         }
         .padding(.vertical, 2)
-    }
-
-    // MARK: Testers' results
-
-    private func results(_ sheet: CartoucheGameSheet) -> some View {
-        Section(CartoucheText.results) {
-            ForEach(sheet.results.sorted { $0.date > $1.date }, id: \.self) { result in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(CartoucheText.resultStatus(result.status))
-                            .font(.headline)
-                        Spacer()
-                        Text(result.date)
-                            .font(.footnote.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(deviceName(result.device) + " · iOS " + result.iOS)
-                        .font(.subheadline)
-                    if let peak = result.peakMemoryMiB {
-                        Text(CartoucheText.peak(CartoucheText.memoryAmount(mebibytes: peak)))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(result.engine)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    ForEach(result.notes ?? [], id: \.self) { note in
-                        Text(note)
-                            .font(.footnote)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
-        }
-    }
-
-    private func deviceName(_ identifier: String) -> String {
-        var name = identifier
-        if let device = CartoucheCatalog.shared.device(identifier) {
-            name += " (" + device.chip + ", " + CartoucheText.gigabytes(device.memoryGB) + ")"
-        }
-        if identifier == CartoucheDevice.modelIdentifier {
-            name = CartoucheText.thisModel + " · " + name
-        }
-        return name
     }
 
     // MARK: Technical details
@@ -517,7 +646,7 @@ struct CartoucheGameSheetView: View {
                     nxnative(game)
                 }
                 if let app = entry.app, let installed = installedBuild(of: app) {
-                    Label(CartoucheText.buildHere(installed), systemImage: "iphone")
+                    Label(CartoucheText.buildHere(installed), systemImage: CartoucheDevice.symbol)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

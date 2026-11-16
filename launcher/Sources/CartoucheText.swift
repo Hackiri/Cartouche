@@ -4,19 +4,42 @@
 //
 //  The launcher's words, in Cartouche.xcstrings (English and French). Each
 //  call also carries the English text, which shows if a translation is missing.
+//  They call the device Cartouche runs on the iPhone: on an iPad, the iPad
+//  (CartoucheDeviceWords.swift).
 //
 
 import Foundation
 
 enum CartoucheText {
-    static let bundle = Bundle(for: CartoucheCatalog.self)
+    /// The app's bundle. On the Mac (builder/mac), the console's words are
+    /// read from the folder of the language the app speaks, which its
+    /// settings can change while it runs.
+    nonisolated(unsafe) static var bundle = Bundle(for: CartoucheCatalog.self)
+
+    #if os(macOS)
+    /// The reader's language, in which the games' languages are named and
+    /// numbers and days written: on the Mac, the one the console speaks,
+    /// which the app's settings may choose other than the Mac's
+    /// (builder/mac, ConsoleView.swift).
+    nonisolated(unsafe) static var locale = Locale.current
+    #else
+    /// The reader's language, in which the games' languages are named and
+    /// numbers and days written: the iPhone's.
+    static var locale: Locale { Locale.current }
+    #endif
 
     static func s(_ key: String, _ english: String) -> String {
-        NSLocalizedString(key, tableName: "Cartouche", bundle: bundle, value: english, comment: "")
+        let text = NSLocalizedString(key, tableName: "Cartouche", bundle: bundle, value: english, comment: "")
+        #if canImport(UIKit)
+        return CartoucheDevice.isPad ? CartoucheDeviceWords.onIPad(text) : text
+        #else
+        // The storage's tests on a Mac (launcher/StorageTests), without the device.
+        return text
+        #endif
     }
 
     static func f(_ key: String, _ english: String, _ arguments: CVarArg...) -> String {
-        String(format: s(key, english), locale: Locale.current, arguments: arguments)
+        String(format: s(key, english), locale: locale, arguments: arguments)
     }
 
     // MARK: Tabs and titles
@@ -151,6 +174,7 @@ enum CartoucheText {
     static var noResults: String { s("sheet.results.none", "No result yet.") }
     static var thisModel: String { s("sheet.result.thisModel", "This iPhone model") }
     static func peak(_ amount: String) -> String { f("sheet.result.peak", "Memory peak: %@", amount) }
+    static var resultsTranslated: String { s("sheet.results.translated", "Testers’ notes translated by the iPhone") }
     static var noSheetMessage: String { s("sheet.noSheet.message", "Cartouche has no sheet for this game yet: it can still start it, without checking what the game needs.") }
     static var sheetNxnative: String { s("sheet.nxnative", "In nxnative") }
     static var sheetEngine: String { s("sheet.engine", "Engine") }
@@ -183,9 +207,9 @@ enum CartoucheText {
     static var setupPairingInvalid: String { s("setup.pairing.invalid", "This file is not a pairing file. The Cartouche Installer puts the right one in Cartouche: Put the pairing file in Cartouche again.") }
     static var setupPairingFailed: String { s("setup.pairing.failed", "The pairing file was refused") }
     static var setupAppleIDTitle: String { s("setup.appleID.title", "Apple ID") }
-    static var setupAppleIDHow: String { s("setup.appleID.how", "Sign in once, here in Cartouche, with LocalDevVPN connected: Cartouche then takes its certificate and renews itself every week.") }
+    static var setupAppleIDHow: String { s("setup.appleID.how", "Sign in once, here in Cartouche: Cartouche then takes its certificate and renews itself every week.") }
     static func setupAppleIDDone(_ appleID: String) -> String { f("setup.appleID.done", "Signed in: %@", appleID) }
-    static func setupAppleIDUnfinished(_ appleID: String) -> String { f("setup.appleID.unfinished", "The sign-in with %@ stopped before Cartouche got its certificate. Connect LocalDevVPN, then sign in again.", appleID) }
+    static func setupAppleIDUnfinished(_ appleID: String) -> String { f("setup.appleID.unfinished", "The sign-in with %@ stopped before Cartouche got its certificate. Sign in again.", appleID) }
     static var setupSignIn: String { s("setup.appleID.signIn", "Sign In") }
     static func setupAppleIDDevice(_ appleID: String) -> String { f("setup.appleID.device", "Signed in: %@. This iPhone is left to register, which Cartouche does by itself once LocalDevVPN is connected.", appleID) }
     static var setupCertificateTitle: String { s("setup.certificate.title", "Certificate") }
@@ -270,11 +294,13 @@ enum CartoucheText {
     static var renewed: String { s("system.signature.renewed", "Last renewed") }
     static var team: String { s("system.signature.team", "Apple account team") }
     static var profileUnknown: String { s("system.signature.unknown", "Cartouche could not read its provisioning profile.") }
-    static var signatureFooter: String { s("system.signature.footer", "Cartouche renews itself, and the apps it installed on this iPhone, with LocalDevVPN on. Once expired, it no longer opens: install it again with the Cartouche Installer.") }
+    static var signatureFooter: String { s("system.signature.footer", "Cartouche renews itself, and the apps it installed on this iPhone, each time you open it in its last 3 days, and connects LocalDevVPN for it. Once expired, it no longer opens: install it again with the Cartouche Installer.") }
     static var renewNow: String { s("system.signature.renew", "Renew now") }
     static var renewing: String { s("system.signature.renewing", "Renewing…") }
+    static var renewingByItself: String { s("system.signature.renewing.auto", "Cartouche renews itself…") }
     static var renewUnavailable: String { s("system.signature.renew.unavailable", "The built-in SideStore did not load. Close Cartouche, open it again, then renew.") }
     static var renewFailed: String { s("system.signature.renew.failed", "The renewal did not go through") }
+    static var renewRevoked: String { s("system.signature.renew.revoked", "Apple revoked the certificate Cartouche is signed with, most likely because another app or computer took a new one with the same Apple ID. Cartouche can no longer renew or update itself with this certificate: install Cartouche again over this copy with the Cartouche Installer, on your computer, with the same Apple ID. Your games and saves stay.") }
     static var automaticRenewal: String { s("system.auto", "Automatic renewal") }
     static var renewEveryNight: String { s("system.auto.daily", "Renew every night") }
     static var alerts: String { s("system.auto.alerts", "Expiry alerts") }
@@ -366,10 +392,10 @@ enum CartoucheText {
     // MARK: Cartouche's updates
 
     static var updatesTitle: String { s("system.updates", "Updates") }
-    static var updatesFooter: String { s("system.updates.footer", "New versions install without a computer, with LocalDevVPN connected. Cartouche then closes: open it again. Your games and saves stay.") }
+    static var updatesFooter: String { s("system.updates.footer", "New versions install without a computer, through LocalDevVPN, which Cartouche connects. Cartouche then closes: open it again. Your games and saves stay.") }
     static var updateAvailable: String { s("system.updates.available", "New version") }
     static func updateTo(_ version: String) -> String { f("system.updates.install", "Install Cartouche %@", version) }
-    static var updateNeedsSetup: String { s("system.updates.needsSetup", "Finish setting up Cartouche first.") }
+    static var updateNeedsSetup: String { s("system.updates.needsSetup", "Finish setting up Cartouche first, or install this version from a computer with the Cartouche Installer, over this copy: your games and saves stay.") }
     static var updateNotes: String { s("system.updates.notes", "What’s new") }
     static func updateUpToDate(_ version: String) -> String { f("system.updates.upToDate", "Cartouche %@ is the latest version.", version) }
     static var updateNotChecked: String { s("system.updates.notChecked", "Cartouche has not looked for an update yet.") }
@@ -379,7 +405,7 @@ enum CartoucheText {
     static func updateSourceStatus(_ status: Int) -> String { f("updates.source.status", "its source answered with error %lld.", status) }
     static var updateUnavailable: String { s("updates.unavailable", "The built-in SideStore did not load. Close Cartouche, open it again, then update.") }
     static func updateOfferTitle(_ version: String) -> String { f("updates.offer.title", "Cartouche %@ is available", version) }
-    static func updateOfferMessage(_ running: String) -> String { f("updates.offer.message", "You have version %@. With LocalDevVPN connected, Cartouche installs the new one without a computer, then closes: open it again. Your games and saves stay.", running) }
+    static func updateOfferMessage(_ running: String) -> String { f("updates.offer.message", "You have version %@. Cartouche installs the new one without a computer, through LocalDevVPN, then closes: open it again. Your games and saves stay.", running) }
     static func updateSize(_ size: String) -> String { f("updates.offer.size", "Download: %@", size) }
     static var updateNow: String { s("updates.now", "Update") }
     static var updateLater: String { s("updates.later", "Later") }
@@ -393,16 +419,22 @@ enum CartoucheText {
     static var updateFailedTitle: String { s("updates.failed.title", "The update did not go through") }
     static func updateFailed(_ reason: String) -> String { f("updates.failed.message", "Check that LocalDevVPN is connected, then try again from the System page. SideStore says: %@", reason) }
     static var updateUnfinishedTitle: String { s("updates.unfinished.title", "The update did not finish") }
-    static func updateUnfinished(_ version: String) -> String { f("updates.unfinished.message", "Cartouche closed before version %@ was installed. Try again from the System page, with LocalDevVPN connected.", version) }
+    static func updateUnfinished(_ version: String) -> String { f("updates.unfinished.message", "Cartouche closed before version %@ was installed. Try again from the System page.", version) }
     static var updatedMessage: String { s("updates.done.message", "Your games, their saves and Cartouche’s settings are all still here.") }
+
+    // MARK: What's new (CartoucheWhatsNewView.swift)
+
+    static func whatsNewTitle(_ version: String) -> String { f("whatsNew.title", "What’s new in Cartouche %@", version) }
+    static var whatsNewContinue: String { s("whatsNew.continue", "Continue") }
+    static var releaseNotesTitle: String { s("system.releaseNotes", "What’s new") }
 
     // MARK: Renewing every night
 
-    static var dailyIntro: String { s("daily.intro", "An automation in Shortcuts can renew Cartouche, and the apps it installed on this iPhone, every night, with no computer. It runs Cartouche’s Refresh All Apps action, which does what Renew now does.") }
-    static var dailyStepVPN: String { s("daily.step1", "Leave LocalDevVPN connected. Its traffic stays on the iPhone, so it can stay on all day.") }
+    static var dailyIntro: String { s("daily.intro", "An automation in Shortcuts can renew Cartouche, and the apps it installed on this iPhone, every night, with no computer. It connects LocalDevVPN, then runs Cartouche’s Refresh All Apps action, which does what Renew now does.") }
     static var dailyStepAutomation: String { s("daily.step2", "In Shortcuts, open Automation, then tap +.") }
     static var dailyStepTime: String { s("daily.step3", "Choose Time of Day: a time when the iPhone charges and is online, such as 4 AM, every day. Then choose Run Immediately.") }
-    static var dailyStepAction: String { s("daily.step4", "Tap Next, choose New Blank Automation, and add the Refresh All Apps action of Cartouche, not LiveContainer’s.") }
+    static var dailyStepVPN: String { s("daily.vpnAction", "Tap Next, choose New Blank Automation, then add the Enable LocalDevVPN action: it connects LocalDevVPN without opening it. An older LocalDevVPN calls it Start LocalDevVPN.") }
+    static var dailyStepAction: String { s("daily.refreshAction", "Then add the Refresh All Apps action of Cartouche, not LiveContainer’s: Cartouche waits for LocalDevVPN to connect before it renews.") }
     static var dailyStepCheck: String { s("daily.step5", "Each renewal shows on the System page as the last renewal, and gives Cartouche seven more days.") }
     static var openShortcuts: String { s("daily.openShortcuts", "Open Shortcuts") }
 
@@ -431,6 +463,31 @@ enum CartoucheText {
     static var startFailed: String { s("work.start.failed", "The game did not start") }
     static var startFailedApp: String { s("work.start.failed.app", "The app did not start") }
     static var startCertificateRefused: String { s("work.start.certificateRefused", "iOS no longer accepts the certificate the game was signed with. Cartouche signs in again with your Apple ID to take the new one: try again in a moment.") }
+
+    // A game LiveContainer did not sign, or whose process stopped as it
+    // started (CartoucheGameSigning): why, in the player's words, then what
+    // to do, as they install it or start it.
+    static func notSignedTitle(_ name: String) -> String { f("work.notSigned.title", "%@ is not signed", name) }
+    static var notSignedFiles: String { s("work.notSigned.files", "Cartouche could not sign every file of the game for this iPhone.") }
+    static var notSignedCertificateRefused: String {
+        s("work.notSigned.certificateRefused", "iOS refuses the certificate Cartouche signs games with: Cartouche takes the new one with your Apple ID.")
+    }
+    static var notSignedNoCertificate: String {
+        s("work.notSigned.noCertificate", "Cartouche has no certificate to sign games with yet: finish its setup on the System page.")
+    }
+    static var notSignedEncrypted: String {
+        s("work.notSigned.encrypted", "This app is encrypted, as the App Store delivers it: Cartouche only runs apps that are not, such as the games nxnative builds.")
+    }
+    static var notSignedDamaged: String { s("work.notSigned.damaged", "The game’s files are damaged: install it again from its IPA.") }
+    static var notSignedAtInstall: String { s("work.notSigned.atInstall", "Cartouche signs it again as you start it.") }
+    static var notSignedAtStart: String { s("work.notSigned.atStart", "Sign it again; if it still fails, install it again from its IPA.") }
+    static var signAgainAndPlay: String { s("action.signAgain", "Sign again and play") }
+    static var gameSignatureRefused: String {
+        s("running.stopped.signature", "iOS refused the game’s signature as it started. Sign it again; if it still fails, install it again from its IPA.")
+    }
+    static var gameStoppedOnError: String {
+        s("running.stopped.error", "The game stopped on an error, which the report gives. If it happens again, install the game again from its IPA.")
+    }
     static func uninstallTitle(_ name: String) -> String { f("work.uninstall.title", "Uninstalling %@", name) }
     static var uninstallStep: String { s("work.uninstall.step", "Removing it from this iPhone") }
     static var uninstallFailed: String { s("work.uninstall.failed", "The game was not uninstalled") }
@@ -507,12 +564,18 @@ enum CartoucheText {
         var parts: [String] = []
         if let version = build.version { parts.append(buildVersion(version)) }
         if let installedOn {
-            parts.append(buildInstalled(installedOn.formatted(date: .abbreviated, time: .shortened)))
+            parts.append(buildInstalled(dateAndTime(installedOn)))
         } else if let builtAt = build.builtAt {
-            parts.append(buildBuilt(builtAt.formatted(date: .abbreviated, time: .shortened)))
+            parts.append(buildBuilt(dateAndTime(builtAt)))
         }
         if showsCommit, let commit = build.shortCommit { parts.append(buildCommit(build.isDirty ? commit + "+dirty" : commit)) }
         return parts.joined(separator: ", ")
+    }
+
+    /// A day and its time, in the reader's language: "Nov 14, 2026 at
+    /// 6:22 PM", "14 nov. 2026 à 18:22".
+    static func dateAndTime(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))
     }
 
     // MARK: A game behind the console
@@ -523,6 +586,8 @@ enum CartoucheText {
     static var pausedDetail: String { s("running.paused", "Paused behind Cartouche, where you left it.") }
     static var backToCartouche: String { s("running.back", "Back to Cartouche") }
     static var homeButtonHint: String { s("running.homeHint", "The controller’s Home button brings you back to Cartouche.") }
+    static var homeFadesHint: String { s("running.homeFades", "The Home button hides after a few seconds: touch just below to bring it back.") }
+    static var turnIPadSideways: String { s("running.turnIPadSideways", "Turn your iPad sideways to play.") }
     static func quitQuestion(_ name: String) -> String { f("running.quit.question", "Quit %@?", name) }
     static var quitGame: String { s("running.quit.confirm", "Quit the game") }
     static var quitMessage: String { s("running.quit.message", "Progress since the game last saved will be lost.") }
@@ -568,6 +633,9 @@ enum CartoucheText {
     static var tvMirrored: String {
         s("tv.mirrored", "The TV shows a copy of the iPhone’s screen, so the game stays hidden from it. To play on the iPhone, unplug the TV or stop Screen Mirroring.")
     }
+    static var tvCaptured: String {
+        s("tv.captured", "The iPhone’s screen is being recorded or shown on another screen, so the game stays hidden.")
+    }
     static var tvShowAnyway: String { s("tv.showAnyway", "Show the game anyway") }
 
     // MARK: Play time and size
@@ -587,7 +655,7 @@ enum CartoucheText {
 
     /// When a game was last played: "yesterday", "2 hours ago".
     static func lastPlayed(_ date: Date) -> String {
-        min(date, Date()).formatted(.relative(presentation: .named))
+        min(date, Date()).formatted(.relative(presentation: .named).locale(locale))
     }
 
     /// A play time: "12 h 30 min", "45 min", "< 1 min".
@@ -683,6 +751,12 @@ enum CartoucheText {
     static var storageAccountFooter: String { s("storage.account.footer", "The account of your Mac, PC or NAS. Leave the user name empty to sign in as a guest.") }
     static var storageConnect: String { s("storage.connect", "Sign in and list the shared folders") }
     static var storageNoShares: String { s("storage.noShares", "This account sees no shared folder there.") }
+    /// Why an SMB server did not sign the player in (CartoucheSMBRefusal),
+    /// after storage.signInFailed's colon.
+    static var storageSMBRefused: String { s("storage.smb.refused", "the server refused the user name or the password.") }
+    static var storageSMBNoGuests: String { s("storage.smb.noGuests", "the server does not let guests in. Type the user name and password of your account on it.") }
+    static var storageSMBLocked: String { s("storage.smb.locked", "the server locked this account after too many wrong passwords. Try again later, or unlock it on the server.") }
+    static var storageSMBHeldBack: String { s("storage.smb.heldBack", "the server does not let this account sign in as it is. On the server, turn the account on, or give it a new password.") }
     static var storageShare: String { s("storage.share", "Shared folder") }
     static var storageShareFooter: String { s("storage.share.footer", "On a Mac: System Settings › General › Sharing › File Sharing. On a PC: the folder’s Properties › Sharing.") }
     static var storageNameTitle: String { s("storage.name.title", "Name in Cartouche") }
@@ -800,6 +874,9 @@ enum CartoucheText {
         case "Encode thread": return s("setting.encodeThread", "Encode thread")
         case "Hold frames when late": return s("setting.holdFrames", "Hold frames when late")
         case "Performance HUD": return s("setting.hud", "Performance HUD")
+        case "Display mode": return s("setting.displayMode", "Display mode")
+        case "Press a button to join": return s("setting.pressToJoin", "Press a button to join")
+        case "Switch 2 controllers": return s("setting.switch2", "Switch 2 controllers")
 
         case "Docked": return modeName("docked")
         case "Handheld": return modeName("handheld")
@@ -808,10 +885,17 @@ enum CartoucheText {
         case "Fit": return s("setting.option.fit", "Fit")
         case "Fill": return s("setting.option.fill", "Fill")
         case "iPhone Duo screen (1.43:1)": return s("setting.option.duoScreen", "iPhone Duo screen (1.43:1)")
+        case "Match screen": return s("setting.option.matchScreen", "Match screen")
+        case "Window": return s("setting.option.window", "Window")
+        case "Fullscreen": return s("setting.option.fullscreen", "Fullscreen")
 
         case "Adjusts resolution between 70% and 100% under load. Turn off to keep full resolution for the selected console mode.":
             let low = percent(0.7), high = percent(1)
             return f("setting.note.dynamicResolution", "Adjusts resolution between %1$@ and %2$@ under load. Turn off to keep full resolution for the selected console mode.", low, high)
+        case "Lets the game lower its resolution under load. Turn off to keep full resolution for the selected console mode.":
+            return s("setting.note.dynamicResolutionLoad", "Lets the game lower its resolution under load. Turn off to keep full resolution for the selected console mode.")
+        case "Plays Joy-Con 2 and Pro Controller 2 over Bluetooth: hold Sync on one during the game to pair it. macOS asks once for Bluetooth access.":
+            return s("setting.note.switch2", "Plays Joy-Con 2 and Pro Controller 2 over Bluetooth: hold Sync on one during the game to pair it. macOS asks once for Bluetooth access.")
         case "Uses more GPU time and can increase heat.":
             return s("setting.note.upscaling", "Uses more GPU time and can increase heat.")
         case "Fill crops the game's 16:9 picture to cover the screen. Health bars, subtitles or maps near the edges can be cut off. A full-screen picture without cropping needs a patch for each game.":
@@ -840,7 +924,6 @@ enum CartoucheText {
     /// One of the game's languages, by its code (nxnative's nacp.py), in the
     /// reader's language; nxnative's English name when iOS has none.
     static func languageName(_ code: String, english: String) -> String {
-        let locale = Locale.current
         guard let name = locale.localizedString(forIdentifier: code), !name.isEmpty else { return gameSettingText(english) }
         return name.prefix(1).uppercased(with: locale) + name.dropFirst()
     }
@@ -848,7 +931,7 @@ enum CartoucheText {
     /// A language's name inside a sentence, in the reader's language
     /// ("French", "français"); nxnative's English name when iOS has none.
     static func languageNameInText(_ code: String, english: String) -> String {
-        guard let name = Locale.current.localizedString(forIdentifier: code), !name.isEmpty else { return gameSettingText(english) }
+        guard let name = locale.localizedString(forIdentifier: code), !name.isEmpty else { return gameSettingText(english) }
         return name
     }
 
@@ -864,8 +947,9 @@ enum CartoucheText {
         f("setting.language.iPhone.missing", "None of the iPhone’s languages is in this game: it starts in %@.", language)
     }
 
-    private static func percent(_ value: Double) -> String {
-        value.formatted(.percent.precision(.fractionLength(0)))
+    /// A share, as a percentage in the reader's language: "75%", "75\u{00A0}%".
+    static func percent(_ value: Double) -> String {
+        value.formatted(.percent.precision(.fractionLength(0)).locale(locale))
     }
 
     // MARK: Game measurements
@@ -878,7 +962,7 @@ enum CartoucheText {
     static var telemetryWhat: String { s("telemetry.what", "What is sent") }
     static var telemetryWhatGames: String { s("telemetry.what.games", "For each game session: frame rate, frame and GPU times, stutters and what caused them, shader preparation, memory, heat and power, sound, the screen’s sizes, how the game ended, and the game’s version and settings.") }
     static var telemetryWhatDevice: String { s("telemetry.what.device", "This iPhone’s model, iOS version and memory limit, Cartouche’s version and language, and a random number of this copy of Cartouche.") }
-    static var telemetryWhatEvents: String { s("telemetry.what.events", "Each start of Cartouche, game installs, updates, renewals, Apple ID sign-ins, signing certificates you import, how the Files picker of each import went, and errors, by their codes and the step they stopped at.") }
+    static var telemetryWhatEvents: String { s("telemetry.what.events", "Each start of Cartouche, game installs, updates, renewals, resets, Apple ID sign-ins, signing certificates you import, how the Files picker of each import went, and errors, by their codes and the step they stopped at.") }
     static var telemetryWhatNever: String { s("telemetry.what.never", "Never your Apple ID, your iPhone’s name, your files, the addresses of your storage or the game’s log itself.") }
     static var telemetryLastSent: String { s("telemetry.lastSent", "Last sent") }
     static var telemetryNever: String { s("telemetry.never", "Never") }
@@ -920,11 +1004,31 @@ enum CartoucheText {
     static var reportContents: String { s("report.contents", "What the report holds") }
     static var reportPrivacy: String { s("report.privacy", "It leaves this iPhone only when you send it, without passwords, server names or addresses, user names, Apple ID or team, even in what you write.") }
 
+    // MARK: A game's log (CartoucheGameLogView)
+
+    static var gameLogRow: String { s("gameLog.row", "Share the log") }
+    static var gameLogTitle: String { s("gameLog.title", "Game log") }
+    static var gameLogLast: String { s("gameLog.last", "Last session") }
+    static var gameLogBefore: String { s("gameLog.before", "Session before") }
+    static var gameLogCrashed: String { s("gameLog.crashed", "Ended in a crash") }
+    static var gameLogNone: String { s("gameLog.none", "The game has not written a log yet.") }
+    static var gameLogFooter: String { s("gameLog.footer", "What the game wrote as it ran: whoever helps you sees in it how it started and how it ended.") }
+    static var gameLogShare: String { s("gameLog.share", "Send the log…") }
+    static var gameLogPreparing: String { s("gameLog.preparing", "Preparing the log…") }
+    static func gameLogZipFailed(_ reason: String) -> String { f("gameLog.zipFailed", "The log could not be prepared: %@", reason) }
+    static var gameLogShareFooter: String { s("gameLog.share.footer", "By Messages, Mail or AirDrop, to whoever helps you: the log goes as the game wrote it, with the names of your folders in it.") }
+    static var gameLogWhatPrompt: String { s("gameLog.what.prompt", "What happened (optional)") }
+    static var gameLogWhatIsSent: String { s("gameLog.whatIsSent", "What Cartouche receives") }
+    static var gameLogSendFooter: String { s("gameLog.send.footer", "Cartouche receives the start and the end of each log, privately and cleaned: without the paths of your folders, addresses, names or identifiers.") }
+    static var gameLogSentFooter: String { s("gameLog.sent.footer", "What is in angle brackets, such as <path> or <address>, stands for what was taken out. Cartouche’s server passes the rest to the project, privately.") }
+    /// The word in the zip's name: "Mario Kart World log 2026-11-13 2105.zip".
+    static var gameLogFileWord: String { s("gameLog.fileWord", "log") }
+
     // MARK: Warnings before expiry
 
     static var warning24hTitle: String { s("warning.24h.title", "Cartouche expires in 24 hours") }
     static var warning6hTitle: String { s("warning.6h.title", "Cartouche expires in 6 hours") }
-    static var warningBody: String { s("warning.body", "Renew it on the System page, with LocalDevVPN connected.") }
+    static var warningBody: String { s("warning.body", "Renew it on the System page.") }
     static var warningExpiredTitle: String { s("warning.0h.title", "Cartouche has expired") }
     static var warningExpiredBody: String { s("warning.0h.body", "Install it again from a computer with the Cartouche Installer, over this copy: your games stay.") }
 
@@ -946,7 +1050,7 @@ enum CartoucheText {
     static func memoryAmount(mebibytes value: Int) -> String {
         let gibibytes = Double(value) / 1024
         let formatter = NumberFormatter()
-        formatter.locale = Locale.current
+        formatter.locale = locale
         formatter.minimumFractionDigits = 1
         formatter.maximumFractionDigits = 1
         let gib = formatter.string(from: NSNumber(value: gibibytes)) ?? String(format: "%.1f", gibibytes)
@@ -968,7 +1072,7 @@ enum CartoucheText {
     /// "23.4 GB", in decimal gigabytes as iOS counts storage.
     static func storageAmount(bytes: Int64) -> String {
         let formatter = NumberFormatter()
-        formatter.locale = Locale.current
+        formatter.locale = locale
         formatter.minimumFractionDigits = 1
         formatter.maximumFractionDigits = 1
         let value = Double(bytes) / 1_000_000_000
@@ -977,7 +1081,7 @@ enum CartoucheText {
 
     private static func grouped(_ value: Int) -> String {
         let formatter = NumberFormatter()
-        formatter.locale = Locale.current
+        formatter.locale = locale
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: value)) ?? String(value)
     }

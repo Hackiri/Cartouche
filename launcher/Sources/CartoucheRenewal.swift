@@ -4,8 +4,10 @@
 //
 //  Renewing Cartouche before its signature expires, and warning the player
 //  in time. The built-in SideStore does the renewal: from the System page,
-//  through CartoucheRefresh (launcher/SideStoreSupport), or every night,
-//  through an automation in Shortcuts that runs its Refresh All Apps action.
+//  and by itself each time Cartouche comes to the front in the last days of
+//  its signature (CartoucheAutomaticRenewal), through CartoucheRefresh
+//  (launcher/SideStoreSupport), or every night, through an automation in
+//  Shortcuts that runs its Refresh All Apps action.
 //
 
 import Foundation
@@ -47,14 +49,18 @@ enum CartoucheRenewal {
 
     /// Renews Cartouche without leaving the app; its SideStore renews no
     /// other app (app/patches/sidestore/0017). LocalDevVPN has to be
-    /// connected. A failure says why, as SideStore left it.
+    /// connected. A failure says why, as SideStore left it. AUTOMATIC:
+    /// Cartouche renews itself, as it came to the front, and renewal.done
+    /// says so, as it says whether Cartouche had LocalDevVPN connect for it
+    /// (VPN).
     ///
     /// SideStore can stop, or iOS end it, as it finishes, before it says how
     /// the renewal went: Cartouche then reads the signature SideStore
     /// records for it. Newer than before, the renewal went through;
     /// otherwise Cartouche asks a new SideStore, once.
     @MainActor
-    static func renew(progress: Progress) async throws {
+    static func renew(progress: Progress, automatic: Bool = false,
+                      vpn: CartoucheLocalDevVPN.Connection = .connectedAlready) async throws {
         guard !CartoucheImportedSigning.accountSigningDisabled else {
             throw Failure(message: CartoucheText.signingUpdateOnComputer, failure: nil)
         }
@@ -100,7 +106,9 @@ enum CartoucheRenewal {
                 if attempt > 1 {
                     fields["attempts"] = .number(Double(attempt))
                 }
-                CartoucheTelemetry.shared.event("renewal.done", fields: fields)
+                fields["automatic"] = .flag(automatic)
+                note(vpn, in: &fields)
+                CartoucheTelemetry.shared.renewed(fields: fields)
                 return
             case .quit where attempt == 1:
                 // A new SideStore starts in a new LiveProcess, LiveContainer's
@@ -113,10 +121,37 @@ enum CartoucheRenewal {
                 guard let message, let failure else {
                     throw Failure(message: CartoucheText.renewFailed, failure: failure)
                 }
-                // Never Apple's page for an error, as SideStore's words would show it.
-                throw Failure(message: CartoucheText.sideStoreMessage(message, failure: failure), failure: failure)
+                throw Failure(message: playerMessage(message, failure: failure), failure: failure)
             }
         }
+    }
+
+    /// What Cartouche tells the player when a renewal or an update of
+    /// Cartouche ended with the built-in SideStore's MESSAGE, FAILURE being
+    /// why: what to do, in its own words, when Apple revoked the certificate,
+    /// SideStore did not reach this iPhone, or LiveProcess, which SideStore
+    /// runs in, is missing from the app (CartoucheRenewalTrouble); otherwise
+    /// SideStore's words, never Apple's page for an error, as they would show
+    /// it (CartoucheText.sideStoreMessage).
+    static func playerMessage(_ message: String, failure: CartoucheFailure) -> String {
+        CartoucheRenewalTrouble.of(failure).map(advice) ?? CartoucheText.sideStoreMessage(message, failure: failure)
+    }
+
+    /// What to do about TROUBLE.
+    static func advice(_ trouble: CartoucheRenewalTrouble) -> String {
+        switch trouble {
+        case .certificateRevoked: return CartoucheText.renewRevoked
+        case .device(let device): return CartoucheText.deviceMessage(device)
+        case .liveProcessMissing: return CartoucheText.noLiveProcess
+        }
+    }
+
+    /// Whether Cartouche opened LocalDevVPN for what it measures, and how
+    /// long it then waited for it in front: `vpnOpened` and `vpnWait`.
+    static func note(_ vpn: CartoucheLocalDevVPN.Connection, in fields: inout [String: CartoucheTelemetryValue]) {
+        guard vpn.opened else { return }
+        fields["vpnOpened"] = .flag(true)
+        fields["vpnWait"] = .number(vpn.seconds)
     }
 
     // MARK: Warnings before expiry
@@ -183,4 +218,265 @@ enum CartoucheRenewal {
     static var notificationSettingsURL: URL? {
         URL(string: UIApplication.openNotificationSettingsURLString)
     }
+}
+
+/// LiveContainer's LiveProcess extension, in Cartouche's PlugIns, which the
+/// built-in SideStore runs in, for each of its actions: a renewal, an update
+/// of Cartouche, a sign-in, the registration of this iPhone. An install that
+/// removed the app's extensions leaves Cartouche without it, and
+/// LiveContainer's bridge then cannot start SideStore
+/// (CartoucheRenewalTrouble.liveProcessMissing).
+enum CartoucheLiveProcess {
+    /// Whether it is in the app, where LiveContainer's bridge looks for it
+    /// (SideStoreSupport's RefreshHandler): as a folder, which a Bundle of
+    /// it needs. The gallery has none, and says whether it is missing.
+    static var isInApp: Bool {
+        #if CARTOUCHE_GALLERY
+        return !GalleryState.liveProcessMissing
+        #else
+        guard let plugins = Bundle.main.builtInPlugInsURL else { return false }
+        var isFolder: ObjCBool = false
+        return FileManager.default.fileExists(atPath: plugins.appendingPathComponent("LiveProcess.appex").path,
+                                              isDirectory: &isFolder) && isFolder.boolValue
+        #endif
+    }
+
+    #if CARTOUCHE_GALLERY
+    /// What LiveContainer's bridge says when it is missing
+    /// (app/LiveContainer/SideStoreSupport/SideStore.swift), for the
+    /// gallery's screens.
+    static let bridgeSentenceForGallery = "Unable to locate LiveProcess bundle. To use the Refresh All Apps shortcut, "
+        + "reinstall LiveContainer+SideStore with LiveProcess installed. If you use SideStore, choose \"Keep App Extensions "
+        + "(Use Main Profile)\". If you use PlumeImpactor, choose \"Only Register Main Bundle\". For other sideloaders, "
+        + "select keep all extensions, i.e. DO NOT Remove any extension."
+    #endif
+}
+
+/// The renewal under way, from Renew now or by Cartouche itself as it comes
+/// to the front, and why the last one failed: one at a time, as the
+/// built-in SideStore takes its actions. The System page shows it, and
+/// Cartouche's update, its sign-in and the registration of this iPhone wait
+/// for its end before they hand SideStore their own: one started meanwhile
+/// would fail with "Another refresh task is in progress".
+@available(iOS 17.0, *)
+@MainActor
+final class CartoucheRenewals: ObservableObject {
+    static let shared = CartoucheRenewals()
+
+    /// How far the renewal under way has gone.
+    @Published private(set) var progress: Progress?
+    /// Whether Cartouche started it by itself.
+    @Published private(set) var isAutomatic = false
+    /// Why the last renewal failed, and the report on it.
+    @Published private(set) var report: CartoucheReport?
+
+    var isRenewing: Bool { progress != nil }
+
+    /// When Cartouche last renewed itself, or tried to, kept across
+    /// launches.
+    static let lastTryKey = "Cartouche.renewal.automatic.last"
+    /// When the signature whose certificate Apple revoked expires, as a
+    /// renewal or an update found it, kept across launches: an install of
+    /// Cartouche over itself gives it a signature that expires at another
+    /// time (CartoucheAutomaticRenewal.isRevoked).
+    static let revokedKey = "Cartouche.renewal.revokedSignature"
+
+    /// How long an update, a sign-in or the registration of this iPhone
+    /// waits for the renewal under way before it goes on: three minutes,
+    /// when the longest renewal the measurements saw in the week of
+    /// November 10 took 71 seconds. A renewal that never ends, SideStore no
+    /// longer answering, holds them up no longer: SideStore, still at it,
+    /// may then refuse them, and Cartouche says why.
+    var waitLimit: TimeInterval = 180
+
+    private init() {}
+
+    /// Whether the built-in SideStore is at an action of Cartouche's: a
+    /// renewal, an update, a sign-in or the registration of this iPhone,
+    /// under way or waiting for LocalDevVPN, or an install, a renewal or a
+    /// removal of an app Cartouche installed on this iPhone (decision 125).
+    var sideStoreBusy: Bool {
+        isRenewing || CartoucheUpdates.shared.phase != nil || CartoucheAccount.shared.phase != nil
+            || CartoucheIPhoneApps.shared.work != nil
+    }
+
+    /// Whether the player can renew now: Cartouche set up, and SideStore
+    /// free.
+    var canRenewNow: Bool {
+        CartoucheRenewal.canRenew && CartoucheSetup.shared.isComplete && !sideStoreBusy
+    }
+
+    /// Whether Apple revoked the certificate of the signature Cartouche has,
+    /// as a renewal or an update found it: Cartouche no longer renews itself,
+    /// which would fail the same way every six hours, and the System page
+    /// says to install it again over itself, with the Cartouche Installer,
+    /// until that gives it another signature. Renew now stays, for the
+    /// player who wants to see it fail again.
+    var certificateRevoked: Bool {
+        CartoucheAutomaticRenewal.isRevoked(current: CartoucheSignature.current().expirationDate,
+                                            revoked: UserDefaults.standard.object(forKey: Self.revokedKey) as? Date)
+    }
+
+    /// Whether LiveProcess, which the built-in SideStore runs in, is missing
+    /// from the app (CartoucheLiveProcess): Cartouche no longer renews
+    /// itself, which would fail the same way every six hours, LocalDevVPN
+    /// opened for each, and the System page says to install it again over
+    /// itself, with the Cartouche Installer, which puts it back. Renew now
+    /// stays, which then says the same.
+    var liveProcessMissing: Bool { !CartoucheLiveProcess.isInApp }
+
+    /// Notes the signature Cartouche has when FAILURE, why a renewal or an
+    /// update failed, says that Apple revoked its certificate.
+    func noteIfRevoked(_ failure: CartoucheFailure?) {
+        guard let failure, CartoucheRenewalTrouble.of(failure) == .certificateRevoked,
+              let expirationDate = CartoucheSignature.current().expirationDate else { return }
+        UserDefaults.standard.set(expirationDate, forKey: Self.revokedKey)
+        CartoucheReports.note("Apple revoked the certificate of this signature: Cartouche no longer renews itself on it")
+        objectWillChange.send()
+    }
+
+    /// What Cartouche finds as it comes to the front.
+    var situation: CartoucheAutomaticRenewal.Situation {
+        let setup = CartoucheSetup.shared
+        return CartoucheAutomaticRenewal.Situation(
+            daysLeft: CartoucheSignature.current().daysLeft,
+            canRenew: CartoucheRenewal.canRenew,
+            isSetUp: setup.isComplete && !setup.needsDevice,
+            vpnConnected: CartoucheLocalDevVPN.isConnected,
+            sideStoreBusy: sideStoreBusy,
+            signInsPaused: CartoucheAccount.shared.pausedUntil != nil,
+            gameRunning: CartoucheGameActions.shared.running != nil,
+            lastTry: UserDefaults.standard.object(forKey: Self.lastTryKey) as? Date,
+            certificateRevoked: certificateRevoked,
+            liveProcessMissing: liveProcessMissing)
+    }
+
+    /// Renew now, from the System page.
+    func renewNow() {
+        guard canRenewNow else { return }
+        start(automatic: false)
+    }
+
+    /// Renews Cartouche by itself when it is due (CartoucheAutomaticRenewal):
+    /// CartoucheSetupRefresh calls it each time Cartouche comes to the front,
+    /// and once the setup is found complete, a few seconds after the launch.
+    /// When only LocalDevVPN is missing, Cartouche has it connect first, if
+    /// it can open it (CartoucheLocalDevVPN): otherwise it counts no try,
+    /// and renews itself as it comes back once LocalDevVPN is connected.
+    func renewIfDue() {
+        let situation = self.situation
+        switch CartoucheAutomaticRenewal.wait(situation, at: Date()) {
+        case nil:
+            break
+        case .vpn:
+            guard CartoucheLocalDevVPN.shared.decide(playerAsked: false) == .open else { return }
+        default:
+            return
+        }
+        UserDefaults.standard.set(Date(), forKey: Self.lastTryKey)
+        CartoucheReports.note("Renewal started by itself, \(situation.daysLeft ?? 0) days left")
+        start(automatic: true)
+    }
+
+    /// Runs ACTION, which hands the built-in SideStore an action, once no
+    /// renewal is under way: at once when none is, otherwise once it has
+    /// ended, or after `waitLimit` at most. WHAT names the action in the
+    /// journal.
+    func afterRenewal(_ what: String, _ action: @escaping @MainActor () -> Void) {
+        guard isRenewing else {
+            action()
+            return
+        }
+        CartoucheReports.note(what + ": waiting for the renewal under way")
+        let limit = waitLimit
+        Task {
+            let started = Date()
+            while isRenewing, Date().timeIntervalSince(started) < limit {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            if isRenewing {
+                CartoucheReports.note(what + ": the renewal under way has not ended after \(Int(limit)) s, going on")
+            }
+            action()
+        }
+    }
+
+    private func start(automatic: Bool) {
+        let progress = Progress(totalUnitCount: 100)
+        self.progress = progress
+        isAutomatic = automatic
+        report = nil
+        if !automatic { CartoucheReports.note("Renewal started") }
+        Task {
+            // SideStore reaches this iPhone through LocalDevVPN, which
+            // Cartouche has connect first, when it is off.
+            let vpn = await CartoucheLocalDevVPN.shared.connect(for: "Renewal", playerAsked: !automatic)
+            do {
+                try await CartoucheRenewal.renew(progress: progress, automatic: automatic, vpn: vpn)
+                CartoucheReports.note("Renewal done")
+                UserDefaults.standard.removeObject(forKey: Self.revokedKey)
+            } catch {
+                noteIfRevoked((error as? CartoucheRenewal.Failure)?.failure)
+                fail(error, automatic: automatic, fraction: progress.fractionCompleted, vpn: vpn)
+            }
+            self.progress = nil
+            isAutomatic = false
+            // SideStore scheduled its own warnings, in English and about
+            // SideStore: Cartouche's take their place.
+            CartoucheRenewal.scheduleWarnings()
+        }
+    }
+
+    /// Why the renewal failed, as the System page shows it, and the report
+    /// on it, which says whether Cartouche had LocalDevVPN connect for it
+    /// (VPN).
+    private func fail(_ error: Error, automatic: Bool, fraction: Double,
+                      vpn: CartoucheLocalDevVPN.Connection = .connectedAlready) {
+        var failure = CartoucheFailure.of(error, fraction: fraction)
+        failure.details["automatic"] = .flag(automatic)
+        CartoucheRenewal.note(vpn, in: &failure.details)
+        report = CartoucheReports.make(.renewal, CartoucheText.renewFailed, message: error.localizedDescription,
+                                       error: error,
+                                       step: automatic ? "Renewing by itself, before it expires" : CartoucheText.renewing,
+                                       fraction: fraction, failure: failure)
+    }
+
+    #if CARTOUCHE_GALLERY
+    /// Cartouche renewing itself, FRACTION of the way, for the gallery's
+    /// screens (launcher/Gallery).
+    func showRenewingForGallery(at fraction: Double) {
+        let progress = Progress(totalUnitCount: 100)
+        progress.completedUnitCount = Int64(fraction * 100)
+        self.progress = progress
+        isAutomatic = true
+    }
+
+    /// The renewal Cartouche started by itself, failed with ERROR, for the
+    /// gallery's screens.
+    func showFailedForGallery(_ error: Error) {
+        fail(error, automatic: true, fraction: 0.3)
+    }
+
+    /// The renewal Cartouche started by itself, failed as Apple had revoked
+    /// its certificate, as SideStore tells it, for the gallery's screens:
+    /// without noting the signature, which the gallery's next screens keep.
+    func showRevokedForGallery() {
+        let failure = CartoucheFailure(.certificate, stage: "VerifyCertificate", fraction: 0.1, seconds: 4,
+                                       codes: "SideStore.OperationError 2",
+                                       details: ["kind": .text("certificateRevoked"), "vpn": .flag(true)])
+        let message = CartoucheRenewal.playerMessage("The certificate has been revoked.", failure: failure)
+        fail(CartoucheRenewal.Failure(message: message, failure: failure), automatic: true, fraction: 0.1)
+    }
+
+    /// The renewal Cartouche started by itself, failed as this iPhone did not
+    /// answer through LocalDevVPN, connected, as SideStore tells it, for the
+    /// gallery's screens.
+    func showUnansweredForGallery() {
+        let failure = CartoucheFailure(.vpn, stage: "InstallProvisioningProfiles", fraction: 0.6, seconds: 14,
+                                       details: ["kind": .text("noVPN"), "vpn": .flag(true)])
+        let message = CartoucheRenewal.playerMessage("VPN Connection Error:\nNo device found.\n\nPlease make sure LocalDevVPN is connected and running properly.",
+                                                     failure: failure)
+        fail(CartoucheRenewal.Failure(message: message, failure: failure), automatic: true, fraction: 0.6)
+    }
+    #endif
 }

@@ -3,7 +3,12 @@
 # launcher/Gallery/scenarios.json into OUT. Needs a Mac with Xcode and
 # XcodeGen (brew install xcodegen).
 #
-#     launcher/Gallery/capture.sh OUT
+#     launcher/Gallery/capture.sh [--part I/N] OUT
+#
+# --part I/N takes part I of N alone (parts.py): the CI takes them in three
+# parts, each on a Mac of its own (screens.yml). The sized scenarios are
+# shared between the parts before the last, the device scenarios are the
+# last's.
 #
 # A scenario with a size fits on the screen of the largest iPad simulator,
 # upright: the gallery draws it in the top left corner, at its size in
@@ -15,44 +20,69 @@
 # simctl opens the gallery on each scenario and takes the screen once the
 # gallery says it has settled (tmp/ready-<scenario>.json in its container),
 # on the display the gallery is on when the simulator has more than one, as
-# the iPhone Duo has. No XCTest: its UI test, which did this before, failed
-# now and then to close the gallery between two scenarios ("Failed to
-# terminate"). The gallery is opened once on each simulator before its
-# scenarios, with more time: its first launch after the install can take
-# minutes.
+# the iPhone Duo has. The simulator can still show iOS opening the gallery
+# then, its white launch screen or that screen fading out, as on Ad's Mac
+# under load: the screen is taken again, half a second apart, until it is
+# drawn and the same as the time before (settled.py). No XCTest: its UI
+# test, which did this before, failed now and then to close the gallery
+# between two scenarios ("Failed to terminate"). The gallery is opened once
+# on each simulator before its scenarios, with more time: its first launch
+# after the install can take minutes. The install itself, right after the
+# iPad's first boot on one of GitHub's Macs, can go unanswered for minutes:
+# it is tried once more a minute later (install.py).
 #
 # A scenario that fails is named, with the screen as it was
 # (failed-<scenario>.png in OUT), the others go on, and the script fails at
 # the end. When the gallery does not settle, the script prints its log and
-# where its main thread was (failed-<scenario>-sample.txt in OUT). For each
-# device simulator, <device>-notes.txt in OUT says what its displays are and
-# how each screen came out.
+# where its main thread was (failed-<scenario>-sample.txt in OUT). A screen
+# still blank a minute after the gallery said it had settled fails its
+# scenario; one still changing is kept, with a warning. For each device
+# simulator, <device>-notes.txt in OUT says what its displays are and how
+# each screen came out, with how many screenshots it took.
 
 set -euo pipefail
 
-[ $# -eq 1 ] || { echo "usage: $0 OUT" >&2; exit 2; }
+PART=1/1
+if [ "${1:-}" = "--part" ] && [ $# -ge 2 ]; then
+  PART="$2"
+  shift 2
+fi
+[ $# -eq 1 ] || { echo "usage: $0 [--part I/N] OUT" >&2; exit 2; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$1"
 OUT="$(cd "$1" && pwd)"
 BUILD="$HERE/Build"
 
-# The catalogue the launcher reads, and the project. The build of the UI
-# tests, when they ran first, stays (project.sh).
-"$HERE/project.sh"
+# The gallery, built once for every simulator (build.sh): when the UI tests
+# ran first on this Mac, this finds their build done. The CI takes the
+# screenshots on Macs of their own, as the UI tests run (screens.yml).
+"$HERE/build.sh"
 rm -rf "$BUILD/raw"
 mkdir -p "$BUILD/raw"
 
 # The tool that cuts a screen out of a screenshot, for this Mac.
 xcrun --sdk macosx swiftc -O "$HERE/screenshot.swift" -o "$BUILD/screenshot"
 
-python3 -u - "$HERE" "$OUT" "$BUILD" <<'PY'
+python3 -u - "$HERE" "$OUT" "$BUILD" "$PART" <<'PY'
 import json, re, subprocess, sys, time
 from pathlib import Path
 
 HERE, OUT, BUILD = (Path(path) for path in sys.argv[1:4])
+# When a screen is drawn and still, beside this script.
+sys.path.insert(0, str(HERE))
+import settled  # noqa: E402
+# How the gallery is installed on a simulator just booted.
+import install  # noqa: E402
+# The scenarios of this part of the screenshots.
+import parts  # noqa: E402
+# A line a minute, with what the Mac has left, while a step says nothing.
+import heartbeat  # noqa: E402
 BUNDLE = "io.github.clabeuhtegrite.cartouche.gallery"
 APP = BUILD / "DerivedData/Build/Products/Debug-iphonesimulator/CartoucheGallery.app"
 document = json.loads((HERE / "scenarios.json").read_text())
+# This part's scenarios alone, from here on: every one for 1/1.
+PART, PARTS = parts.parse(sys.argv[4])
+document["scenarios"] = parts.scenarios(document["scenarios"], PART, PARTS)
 failures = []
 
 
@@ -138,7 +168,8 @@ def simulator(wanted):
 
 def arguments(scenario):
     """The gallery's launch arguments (Sources/GalleryApp.swift)."""
-    language = document["language"]
+    # A scenario with a language of its own is shown in it, the gallery's otherwise.
+    language = scenario.get("language", document["language"])
     args = ["-AppleLanguages", f"({language})", "-AppleLocale", "fr_FR" if language == "fr" else "en_US",
             "-GalleryScreen", scenario["screen"],
             "-GallerySetup", "1" if scenario["setup"] else "0",
@@ -150,6 +181,8 @@ def arguments(scenario):
         args += ["-GalleryApps", ",".join(scenario["apps"])]
     if scenario.get("iphoneApps"):
         args += ["-GalleryIPhoneApps", ",".join(scenario["iphoneApps"])]
+    if scenario.get("model"):
+        args += ["-GalleryModel", scenario["model"]]
     if "device" not in scenario:
         args += ["-GalleryWidth", str(scenario["width"]), "-GalleryHeight", str(scenario["height"]),
                  "-GalleryInsets", ",".join(str(n) for n in scenario.get("insets", [0, 0, 0, 0]))]
@@ -163,6 +196,8 @@ def arguments(scenario):
         args += ["-GalleryWork", scenario["work"]]
     if scenario.get("category"):
         args += ["-GalleryCategory", scenario["category"]]
+    if scenario.get("signing"):
+        args += ["-GallerySigning", scenario["signing"]]
     return args
 
 
@@ -270,8 +305,10 @@ def display_for(screens, said):
 
 def capture(udid, scenario, screens):
     """Opens the gallery on SCENARIO, waits for it to settle and saves its
-    screen; returns what the gallery said about it. SCREENS, the displays,
-    takes the ones a screenshot lists when find_displays() had none."""
+    screen once the simulator shows it drawn and still (settled.py); returns
+    what the gallery said about it, with how many screenshots that took.
+    SCREENS, the displays, takes the ones a screenshot lists when
+    find_displays() had none."""
     name = scenario["name"]
     said, ready = launch(udid, scenario, name, 90)
     if scenario.get("orientation") == "landscape" and not said.get("orientation", "").startswith("landscape"):
@@ -282,18 +319,39 @@ def capture(udid, scenario, screens):
     if len(screens) > 1:
         display = said["display"] = display_for(screens, said)
     raw = BUILD / "raw" / f"{name}.png"
-    try:
-        screenshot(udid, raw, display)
-    except Failure as error:
-        listed = listed_displays(str(error))
-        if display or len(listed) < 2:
-            raise
-        screens.clear()
-        screens.update(listed)
-        display = said["display"] = display_for(screens, said)
-        screenshot(udid, raw, display)
+    out = OUT / f"{name}.png"
     size = [] if "device" in scenario else [str(scenario["width"]), str(scenario["height"])]
-    run(str(BUILD / "screenshot"), str(raw), str(ready), str(OUT / f"{name}.png"), *size)
+
+    def shoot():
+        """Saves the screen as it is now into OUT; returns its signature."""
+        nonlocal display
+        try:
+            screenshot(udid, raw, display)
+        except Failure as error:
+            listed = listed_displays(str(error))
+            if display or len(listed) < 2:
+                raise
+            screens.clear()
+            screens.update(listed)
+            display = said["display"] = display_for(screens, said)
+            screenshot(udid, raw, display)
+        printed = run(str(BUILD / "screenshot"), str(raw), str(ready), str(out), *size)
+        try:
+            return json.loads(printed)
+        except ValueError:
+            raise Failure(f"screenshot printed no signature: {printed.strip()[:200]!r}")
+
+    shots, problem = settled.settle(shoot)
+    said["shots"] = shots
+    if problem == settled.BLANK:
+        # Not the scenario's screen: iOS still showing its launch screen.
+        out.unlink(missing_ok=True)
+        raise Failure(f"the screen was still blank {settled.SECONDS} s after the gallery said it had settled, "
+                      f"{shots} screenshots")
+    if problem:
+        said["unsettled"] = problem
+        print(f"::warning::{name}: the screen was {problem} {settled.SECONDS} s after the gallery said it had "
+              f"settled: kept the last of {shots} screenshots", flush=True)
     return said
 
 
@@ -310,7 +368,6 @@ def crash_reports(since):
         print(f"   no crash report: {error}")
 
 
-built = None
 for device in sorted({s.get("device", "") for s in document["scenarios"]}):
     scenarios = [s for s in document["scenarios"] if s.get("device", "") == device]
     try:
@@ -322,19 +379,16 @@ for device in sorted({s.get("device", "") for s in document["scenarios"]}):
     # How long each part takes, for the run's log.
     since = time.monotonic()
     maybe("xcrun", "simctl", "boot", udid)
-    if built is None:
-        # Built once, for the simulators of this Mac.
-        built = subprocess.run(["xcodebuild", "build", "-quiet", "-project", str(HERE / "CartoucheGallery.xcodeproj"),
-                                "-scheme", "CartoucheGallery", "-destination", f"platform=iOS Simulator,id={udid}",
-                                "-derivedDataPath", str(BUILD / "DerivedData")]).returncode == 0
-        print(f"   gallery built in {time.monotonic() - since:.0f} s", flush=True)
-    if not built:
-        failures.append("the gallery does not build")
-        break
+    # The boot, the install and the first launch say nothing for minutes on
+    # GitHub's Macs, where GitHub cancelled the job now and then as the
+    # iPad's install went unanswered after a boot of 253 s (run
+    # 43755743324): a line a minute says how the Mac's memory went before.
     try:
-        run("xcrun", "simctl", "bootstatus", udid, "-b", timeout=900)
-        print(f"   booted {time.monotonic() - since:.0f} s after asked", flush=True)
-        run("xcrun", "simctl", "install", udid, str(APP))
+        with heartbeat.beating(f"booting {name}"):
+            run("xcrun", "simctl", "bootstatus", udid, "-b", timeout=900)
+        print(f"   booted {time.monotonic() - since:.0f} s after asked{heartbeat.left()}", flush=True)
+        with heartbeat.beating(f"installing the gallery on {name}"):
+            install.install(run, Failure, udid, APP, name)
     except Failure as error:
         failures.append(f"{name}: {error}")
         continue
@@ -346,8 +400,9 @@ for device in sorted({s.get("device", "") for s in document["scenarios"]}):
     # 90 s, while every later launch settled in 8 to 24 s.
     warm = time.monotonic()
     try:
-        launch(udid, scenarios[0], "warm-up", 300)
-        print(f"   first launch: settled in {time.monotonic() - warm:.0f} s", flush=True)
+        with heartbeat.beating(f"opening the gallery on {name}"):
+            launch(udid, scenarios[0], "warm-up", 300)
+        print(f"   first launch: settled in {time.monotonic() - warm:.0f} s{heartbeat.left()}", flush=True)
         warmed = True
     except Failure as error:
         print(f"::warning::first launch on {name}: {error}", flush=True)
@@ -373,7 +428,7 @@ for device in sorted({s.get("device", "") for s in document["scenarios"]}):
             keep_failed_screen(udid, scenario["name"], screens)
             crash_reports(started)
     print(f"   {len(scenarios)} scenarios in {time.monotonic() - shooting:.0f} s, "
-          f"{time.monotonic() - since:.0f} s on {name} in all", flush=True)
+          f"{time.monotonic() - since:.0f} s on {name} in all{heartbeat.left()}", flush=True)
     if device:
         slug = device.lower().replace(" ", "-")
         (OUT / f"{slug}-notes.txt").write_text("\n".join(notes) + "\n")
@@ -381,7 +436,8 @@ for device in sorted({s.get("device", "") for s in document["scenarios"]}):
     maybe("xcrun", "simctl", "shutdown", udid, timeout=300)
 
 missing = [s["name"] for s in document["scenarios"] if not (OUT / f"{s['name']}.png").exists()]
-print(f"== {len(document['scenarios']) - len(missing)} of {len(document['scenarios'])} screens in {OUT}")
+print(f"== {len(document['scenarios']) - len(missing)} of {len(document['scenarios'])} screens"
+      f"{f', part {PART} of {PARTS},' if PARTS > 1 else ''} in {OUT}")
 for failure in failures:
     print(f"::error::{failure}")
 if missing:

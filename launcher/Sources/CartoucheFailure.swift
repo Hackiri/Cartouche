@@ -142,6 +142,10 @@ struct CartoucheFailure: Codable, Equatable, Sendable {
         case notAnApp
         /// The game could not be signed.
         case notSigned
+        /// The game's process ended on an error, for a reason other than
+        /// its signature, as it started or later: LiveContainer, or the
+        /// game itself, said why (CartoucheGameSigning.startFailure).
+        case gameEndedOnError
         /// This copy of LiveContainer is not the one that installs games.
         case notPrimary
         /// The game is running: the player quits it first.
@@ -490,9 +494,14 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
     var service: String?
     var retryAfter: Int?
     /// What the action noted on its way: whether Apple asked for a code and
-    /// how, the account's certificates and teams; for SideStore's
-    /// invalidParameters (patch 0018), which of its sentences it is and the
-    /// step or value that sentence names.
+    /// how, the account's certificates and teams, how many of its requests
+    /// to Apple's sign-in server went again after Apple answered 429
+    /// ("resent", patch 0020); for SideStore's invalidParameters (patch
+    /// 0018), which of its sentences it is and the step or value that
+    /// sentence names; when minimuxer could not reach this iPhone (patch
+    /// 0022), which of minimuxer's sentences it gave ("reason"), the words
+    /// of the library behind it ("detail"), the kind of pairing file it
+    /// loaded ("pairingKind") and whether an IPsec interface was up.
     var facts: [String: CartoucheTelemetryValue]
     /// The apps Cartouche installed on this iPhone that a renewal failed
     /// (decision 125), by their bundle identifiers: shown under each, never
@@ -507,6 +516,8 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             case service, retryAfter
             case reason, missing
             case failed
+            case resent
+            case detail, pairingKind, ipsec
         }
 
         var version: Int
@@ -523,13 +534,13 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             action = try values.decode(String.self, forKey: .action)
             ok = try values.decode(Bool.self, forKey: .ok)
             date = try values.decode(Int.self, forKey: .date)
-            for key in [Key.seconds, .percent, .apple, .http, .network, .certificates, .teams, .retryAfter] {
+            for key in [Key.seconds, .percent, .apple, .http, .network, .certificates, .teams, .retryAfter, .resent] {
                 if let value = try? values.decodeIfPresent(Int.self, forKey: key) { ints[key] = value }
             }
-            for key in [Key.stage, .trail, .family, .kind, .codes, .host, .codeMode, .teamType, .service, .reason, .missing, .failed] {
+            for key in [Key.stage, .trail, .family, .kind, .codes, .host, .codeMode, .teamType, .service, .reason, .missing, .detail, .pairingKind, .failed] {
                 if let value = try? values.decodeIfPresent(String.self, forKey: key) { texts[key] = value }
             }
-            for key in [Key.codeAsked, .bundledCertificate, .activeCertificate] {
+            for key in [Key.codeAsked, .bundledCertificate, .activeCertificate, .ipsec] {
                 if let value = try? values.decodeIfPresent(Bool.self, forKey: key) { flags[key] = value }
             }
         }
@@ -572,16 +583,18 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         for (key, flag) in written.flags {
             facts[key.rawValue] = .flag(flag)
         }
-        for key in [Written.Key.certificates, .teams] {
+        for key in [Written.Key.certificates, .teams, .resent] {
             if let count = written.int(key, in: 0...10_000) { facts[key.rawValue] = .number(Double(count)) }
         }
-        for key in [Written.Key.codeMode, .teamType, .reason, .missing] {
+        for key in [Written.Key.codeMode, .teamType, .reason, .missing, .detail, .pairingKind] {
             if let name = written.name(key) { facts[key.rawValue] = .text(name) }
         }
         // The apps that failed a renewal, by their bundle identifiers (patch
         // 0026): for the System page alone, never among the facts, which
-        // the measurements send.
+        // the measurements send. The iPhone's alone: the Mac installs none.
+        #if os(iOS)
         failedApps = Array(CartoucheIPhoneAppList.failedIdentifiers(written.texts[.failed]).prefix(50))
+        #endif
         self.facts = facts
     }
 
@@ -702,6 +715,14 @@ extension CartoucheFailure {
         ("SideStore type is not an AppIntent", .intentMissing),
     ]
 
+    /// The bridge's sentences that also say where SideStore's action
+    /// stopped, when SideStore could leave nothing: `launch`, its process
+    /// quitting before it said it had launched
+    /// (app/patches/livecontainer/0016), rather than on its way.
+    static let bridgeStages: [(prefix: String, stage: String)] = [
+        ("Built-in SideStore quit unexpectedly while starting", "launch"),
+    ]
+
     /// Why an action of the built-in SideStore failed: from the OUTCOME it
     /// left, when it left one, otherwise from the bridge's MESSAGE, matched
     /// against its own sentences. VPN and PAIRING say whether LocalDevVPN was
@@ -731,7 +752,9 @@ extension CartoucheFailure {
         let said = bridgeSentences.first { text.hasPrefix($0.prefix) }?.cause
         guard let outcome else {
             let page: Cause? = pageStatus.map { $0 == 429 ? .tooManyAttempts : .appleServer }
-            return CartoucheFailure(said ?? page ?? .noOutcome, fraction: fraction, seconds: seconds, details: details)
+            let stage = bridgeStages.first { text.hasPrefix($0.prefix) }?.stage
+            return CartoucheFailure(said ?? page ?? .noOutcome, stage: stage, fraction: fraction, seconds: seconds,
+                                    details: details)
         }
         // SideStore's action went well, yet what ran it failed on the way back.
         details["outcomeOK"] = .flag(true)
