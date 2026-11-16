@@ -86,7 +86,7 @@ screens: no page of SideStore's ever shows (decision 24).
 
 ## Design, as decided
 
-### SideStore, by a new patch (`app/patches/sidestore/0022-...`)
+### SideStore, by a new patch (`app/patches/sidestore/0026-...`)
 
 - **Cartouche's own apps.** The app group defaults hold
   `CartoucheInstalledApps`, the bundle identifiers of the apps Cartouche
@@ -204,7 +204,7 @@ screens: no page of SideStore's ever shows (decision 24).
   that are not games; `docs/privacy.md` only if telemetry gains events,
   named as the renewal's are.
 
-### Added the same day: the App IDs (`app/patches/sidestore/0023-...`)
+### Added the same day: the App IDs (`app/patches/sidestore/0027-...`)
 
 - On the iPhone the first install was refused by Apple: *Your maximum App
   ID limit has been reached. You may create up to 10 App IDs every 7 days

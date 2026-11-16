@@ -454,12 +454,12 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         case refresh
         case update
         /// The apps Cartouche installs on this iPhone (decision 125,
-        /// app/patches/sidestore/0022): an install, a renewal of some of
+        /// app/patches/sidestore/0026): an install, a renewal of some of
         /// them, a removal.
         case install
         case apps
         case remove
-        /// The App IDs Apple keeps for the Apple ID, listed (patch 0023).
+        /// The App IDs Apple keeps for the Apple ID, listed (patch 0027).
         case appIDs
     }
 
@@ -579,7 +579,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
             if let name = written.name(key) { facts[key.rawValue] = .text(name) }
         }
         // The apps that failed a renewal, by their bundle identifiers (patch
-        // 0022): for the System page alone, never among the facts, which
+        // 0026): for the System page alone, never among the facts, which
         // the measurements send.
         failedApps = Array(CartoucheIPhoneAppList.failedIdentifiers(written.texts[.failed]).prefix(50))
         self.facts = facts

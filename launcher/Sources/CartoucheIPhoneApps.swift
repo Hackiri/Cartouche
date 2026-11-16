@@ -7,7 +7,7 @@
 //  (decision 125): install an IPA, renew one, uninstall one, open one, and
 //  list the App IDs Apple keeps for the Apple ID. Each action is SideStore's,
 //  run headless in LiveProcess through LiveContainer's bridge (CartoucheApps,
-//  launcher/SideStoreSupport; app/patches/sidestore/0022 and 0023), with its
+//  launcher/SideStoreSupport; app/patches/sidestore/0026 and 0027), with its
 //  request left in the app group defaults first and how it ended read from
 //  the keychain item SideStore leaves (CartoucheSideStoreOutcome), as Renew
 //  now runs Refresh All Apps (CartoucheRenewal). The list of the apps is
@@ -108,7 +108,7 @@ final class CartoucheIPhoneApps: ObservableObject {
 
     private static var widgetData: URL? { LCSharedUtils.appGroupPath()?.appendingPathComponent("widget_data.json") }
 
-    /// Where CartoucheAppIDsIntent leaves the App IDs (patch 0023).
+    /// Where CartoucheAppIDsIntent leaves the App IDs (patch 0027).
     private static var appIDsFile: URL? { LCSharedUtils.appGroupPath()?.appendingPathComponent("Cartouche/AppIDs.json") }
 
     /// Where an IPA waits for its install, in the app group LiveProcess reads.
@@ -287,7 +287,7 @@ final class CartoucheIPhoneApps: ObservableObject {
     }
 
     /// Fetches from Apple the App IDs it keeps for the Apple ID, which
-    /// SideStore leaves in the app group for the list (patch 0023).
+    /// SideStore leaves in the app group for the list (patch 0027).
     func fetchAppIDs() async {
         guard let method = Self.method(Self.appIDsSelector), work == nil, !Self.isBusyElsewhere else {
             failures[Self.appIDsFailure] = busy(CartoucheText.appIDsFailed, message: Self.unavailableReason ?? CartoucheText.appsBusy)

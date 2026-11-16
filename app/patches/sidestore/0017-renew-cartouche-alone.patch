@@ -17,7 +17,7 @@ run, and the background refresh now renew Cartouche, the app SideStore
 is built into, and the apps Cartouche itself installed on this iPhone
 through SideStore (decision 125), which Cartouche lists in the app
 group under CartoucheInstalledApps (CartoucheAppsRequest.swift, patch
-0022). Nothing of another store's: the SideStore that installed an
+0026). Nothing of another store's: the SideStore that installed an
 app renews it, as before.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>

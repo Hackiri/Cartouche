@@ -6,8 +6,8 @@
 //  the apps it installed that way, uninstall them and list the App IDs
 //  Apple keeps for the Apple ID, without showing SideStore (decision 125).
 //  The built-in SideStore starts in LiveProcess, as it does to renew the
-//  app (CartoucheRefresh), and runs the action app/patches/sidestore/0022
-//  or 0023 adds; what the action works on, the IPA's path in the app group
+//  app (CartoucheRefresh), and runs the action app/patches/sidestore/0026
+//  or 0027 adds; what the action works on, the IPA's path in the app group
 //  or the apps' bundle identifiers, waits in the app group defaults under
 //  CartoucheAppsRequest, written by the launcher before the call
 //  (CartoucheIPhoneApps). One action at a time: the bridge's RefreshHandler

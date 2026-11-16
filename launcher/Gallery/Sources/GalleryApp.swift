@@ -209,7 +209,7 @@ struct GalleryScenario {
          "refreshedDate": \(Date().addingTimeInterval(-86_400).timeIntervalSinceReferenceDate)}
         """]
         var listed: [[String: String]] = []
-        // And the App IDs Apple keeps, as SideStore's patch 0023 leaves them:
+        // And the App IDs Apple keeps, as SideStore's patch 0027 leaves them:
         // Cartouche's own and one per app, dates in seconds since 1970.
         var appIDs = ["""
         {"name": "Cartouche", "identifier": "GALLERY000", "bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "").GALLERY1234",
