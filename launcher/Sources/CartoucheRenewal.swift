@@ -63,7 +63,7 @@ enum CartoucheRenewal {
         }
         // A night's renewal left how it went in the keychain, which this
         // clears before it starts: what it said of the apps Cartouche
-        // installed on this iPhone is taken first (decision 90).
+        // installed on this iPhone is taken first (decision 125).
         CartoucheIPhoneApps.shared.takeNightlyOutcome()
         isRenewing = true
         defer { isRenewing = false }
@@ -81,7 +81,7 @@ enum CartoucheRenewal {
                 .flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .refresh) }
             CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
             // The apps Cartouche installed on this iPhone that the renewal
-            // left out: each one's row says so (decision 90).
+            // left out: each one's row says so (decision 125).
             CartoucheIPhoneApps.shared.noteRenewal(outcome: outcome, message: message)
             let seconds = Date().timeIntervalSince(started)
             let failure = message.map {

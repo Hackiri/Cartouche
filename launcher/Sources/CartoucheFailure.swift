@@ -453,7 +453,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         case device
         case refresh
         case update
-        /// The apps Cartouche installs on this iPhone (decision 90,
+        /// The apps Cartouche installs on this iPhone (decision 125,
         /// app/patches/sidestore/0022): an install, a renewal of some of
         /// them, a removal.
         case install
@@ -495,7 +495,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
     /// step or value that sentence names.
     var facts: [String: CartoucheTelemetryValue]
     /// The apps Cartouche installed on this iPhone that a renewal failed
-    /// (decision 90), by their bundle identifiers: shown under each, never
+    /// (decision 125), by their bundle identifiers: shown under each, never
     /// sent.
     var failedApps: [String] = []
 

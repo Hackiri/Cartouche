@@ -327,7 +327,7 @@ struct CartoucheRunningGameQuestions: ViewModifier {
     }
 
     /// Whether what runs behind the console is an app that is not a game
-    /// (decision 88): the question then says app, not game.
+    /// (decision 123): the question then says app, not game.
     private var isApp: Bool {
         guard let running = actions.quitQuestion else { return false }
         return CartoucheCatalog.shared.gameTitle(of: running.app) == nil

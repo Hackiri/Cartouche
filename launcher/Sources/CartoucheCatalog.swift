@@ -125,7 +125,7 @@ struct CartoucheEntry: Identifiable, Hashable {
     var player: CartouchePlayerInfo? = nil
     var playerCover: URL? = nil
     /// An app that is not a game, installed in Cartouche as its games are
-    /// (decision 88): on the shelf after the games, with a sheet of its own.
+    /// (decision 123): on the shelf after the games, with a sheet of its own.
     var isApp = false
 
     /// The name the player gave the game, else its own.
@@ -420,7 +420,7 @@ final class CartoucheCatalog: ObservableObject {
         var others: [CartoucheEntry] = []
         /// The player's apps that are not games, by name: installed in
         /// Cartouche as its games are, started and uninstalled by it
-        /// (decision 88). Never among all: the library is of games.
+        /// (decision 123). Never among all: the library is of games.
         var apps: [CartoucheEntry] = []
 
         var all: [CartoucheEntry] { owned + others }
@@ -451,7 +451,7 @@ final class CartoucheCatalog: ObservableObject {
         for app in apps {
             guard let found = gameTitle(of: app) else {
                 // An app that is not a game: Cartouche's own, on the shelf
-                // after the games (decision 88).
+                // after the games (decision 123).
                 let folder = app.appInfo.relativeBundlePath ?? app.appInfo.bundleIdentifier() ?? ""
                 result.apps.append(CartoucheEntry(id: "app:" + folder, game: nil, sheet: nil, app: app, isApp: true))
                 continue

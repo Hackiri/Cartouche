@@ -1,6 +1,6 @@
 # Local wireless: playing a game together, iPhone to iPhone
 
-Date: 2026-11-13. Status: designed, not built; to be decision 91 in
+Date: 2026-11-13. Status: designed, not built; to be decision 126 in
 [docs/decisions.md](../../decisions.md) when built. The plan is beside it in
 `../plans/`.
 
@@ -212,9 +212,9 @@ its own copy of the game, built from its own files (decision 1).
 
 ### Documents
 
-- `docs/decisions.md`: decision 91, with 1 and 66 cross-referenced.
+- `docs/decisions.md`: decision 126, with 1 and 66 cross-referenced.
 - `docs/roadmap.md`: under *Next*, "Local wireless between iPhones (decision
-  91), raced on two devices"; under *Later*, "Local wireless with no Wi-Fi
+  126), raced on two devices"; under *Later*, "Local wireless with no Wi-Fi
   around, over peer-to-peer Wi-Fi (AWDL): Bonjour discovery in the host and
   the Network framework's peer-to-peer connections".
 - `docs/getting-started.md` and `.fr.md`: a short *Play together* section:

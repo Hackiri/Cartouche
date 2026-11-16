@@ -105,7 +105,7 @@ struct CartoucheHomeView: View {
 
     enum Item: Hashable {
         case game(CartoucheEntry)
-        /// An app that is not a game (decision 88).
+        /// An app that is not a game (decision 123).
         case app(CartoucheEntry)
         case importGame
         case allGames
@@ -130,7 +130,7 @@ struct CartoucheHomeView: View {
     private static let dockRow = 1
 
     /// The player's games, installed or in their games folder, then their
-    /// apps that are not games (decision 88), then the covers that import
+    /// apps that are not games (decision 123), then the covers that import
     /// one and open every game. The games nxnative plays on the iPhone are
     /// in All games, under their filter.
     private var libraryShelf: [Item] {
@@ -526,7 +526,7 @@ struct CartoucheHomeView: View {
 
     /// An app that is not a game, in focus: its name, what it says of
     /// itself, and Open, or Resume and Quit while it is paused behind the
-    /// console, and Details (decision 88).
+    /// console, and Details (decision 123).
     private func appHero(_ entry: CartoucheEntry, metrics: Metrics) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
