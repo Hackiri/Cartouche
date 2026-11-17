@@ -45,12 +45,14 @@ enum Gallery {
         // with the copies of its saves and its Switch saves, the pages its
         // saves open, and its log; its System page, and the Storage page
         // that one opens, with the player's connections, its Game
-        // measurements page and its Report a problem page.
+        // measurements page and its Report a problem page; the guide to a
+        // first game on this Mac, and its card on the home, for a player
+        // who has built games and played none yet.
         case console, consoleLibrary = "console-library", consoleSettings = "console-settings", consoleInfo = "console-info"
         case consoleSheet = "console-sheet", consoleSheetNewer = "console-sheet-newer"
         case consoleSaves = "console-saves", consoleSwitchSave = "console-switch-save", consoleGameLog = "console-game-log"
         case consoleSystem = "console-system", consoleStorage = "console-storage", consoleMeasures = "console-measures"
-        case consoleReport = "console-report"
+        case consoleReport = "console-report", consoleGuide = "console-guide", consoleFirstGame = "console-first-game"
         // What the window's height leaves out: the settings' Builds tab, and
         // the storage page down to the games on this Mac, in a window as
         // tall as it.
@@ -67,11 +69,18 @@ enum Gallery {
         /// Whether the page is the console's, which is always dark.
         var isConsole: Bool {
             [.console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet, .consoleSheetNewer, .consoleSaves,
-             .consoleSwitchSave, .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport].contains(self)
+             .consoleSwitchSave, .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport,
+             .consoleGuide, .consoleFirstGame].contains(self)
         }
 
         /// Whether the page is a game's whole sheet, in a window as tall.
         var isWholeSheet: Bool { self == .consoleSheet || self == .consoleSheetNewer }
+
+        /// Whether the page is in a window taller than the screen, as tall
+        /// as the page, which AppKit would fit to the screen.
+        var isTall: Bool {
+            isWholeSheet || [.storageMac, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport].contains(self)
+        }
 
         /// The page of the sheet's saves it opens over the sheet.
         var savesPage: ConsoleSavesPage? {
@@ -112,6 +121,8 @@ enum Gallery {
             // What the player writes, the ways to send it, and the report
             // down to its last steps.
             case .consoleReport: return CGSize(width: 1024, height: 1500)
+            // The whole System page, down to Report a problem.
+            case .consoleSystem: return CGSize(width: 1024, height: 980)
             // The window at its smallest, with a game's sheet whose
             // nxnative commits are a paragraph each, as nxnative writes them.
             case .gameNarrow: return CGSize(width: Columns.window.width, height: 680)
@@ -226,8 +237,9 @@ enum Gallery {
         case .settings, .settingsBuilds:
             controller = settings(model, open: page == .settingsBuilds ? .builds : .general)
         case .console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet, .consoleSheetNewer, .consoleSaves, .consoleSwitchSave,
-             .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport:
-            ConsoleGallery.prepare(language: L10n.code, newer: page == .consoleSheetNewer)
+             .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport, .consoleGuide, .consoleFirstGame:
+            ConsoleGallery.prepare(language: L10n.code, newer: page == .consoleSheetNewer,
+                                   firstGame: page == .consoleGuide || page == .consoleFirstGame)
             model.show(.console)
             let sheet = page.isWholeSheet || page.savesPage != nil
             controller = hosted(MainView(showingLibrary: page == .consoleLibrary, showingSettings: page == .consoleSettings,
@@ -235,7 +247,8 @@ enum Gallery {
                                          showingSheetOf: sheet ? ConsoleGallery.sheetGame : nil,
                                          showingSaves: page.savesPage,
                                          showingSystem: page == .consoleSystem, showingStorage: page == .consoleStorage,
-                                         showingMeasures: page == .consoleMeasures, showingReport: page == .consoleReport), model)
+                                         showingMeasures: page == .consoleMeasures, showingReport: page == .consoleReport,
+                                         showingGuide: page == .consoleGuide), model)
         case .gameAfterConsole:
             // The console first, in the window, as the player had it.
             ConsoleGallery.prepare(language: L10n.code)
@@ -260,8 +273,7 @@ enum Gallery {
             }
         }
         let frame = CGRect(origin: CGPoint(x: 80, y: 80), size: size)
-        let window: NSWindow = page == .storageMac || page.isWholeSheet || page == .consoleStorage || page == .consoleMeasures
-            || page == .consoleReport
+        let window: NSWindow = page.isTall
             ? TallWindow(contentRect: frame, styleMask: page.styleMask, backing: .buffered, defer: false)
             : KeyWindow(contentRect: frame, styleMask: page.styleMask, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
