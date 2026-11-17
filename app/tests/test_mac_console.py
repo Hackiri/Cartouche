@@ -93,6 +93,34 @@ def outside_iphone_parts(swift: str, condition=IPHONE_CONDITION):
             yield number, code
 
 
+def footers_cut_on_the_mac(swift: str):
+    """The lines of SWIFT that open a section's footer in a list, the section
+    being SwiftUI's own rather than a CartoucheSection: a list on the Mac
+    gives a section's footer two lines at most, and cuts a longer one at both
+    ends. A file without a list, as a form, keeps its sections' footers."""
+    if not re.search(r"\bList\s*\{", swift):
+        return []
+    lines = [STRING.sub('""', line) for line in swift.splitlines()]
+    found = []
+    for index, line in enumerate(lines):
+        at = re.search(r"\}\s*footer:\s*\{", line)
+        if not at:
+            continue
+        # Back to the line that opens the section, past the blocks of its
+        # header and of its rows, each closed by the "}" before its label.
+        depth, number, code = 0, index, line[:at.start() + 1]
+        while True:
+            for character in reversed(code):
+                depth += {"}": 1, "{": -1}.get(character, 0)
+            if depth <= 0 or number == 0:
+                break
+            number -= 1
+            code = lines[number]
+        if not re.search(r"\bCartoucheSection\b", code):
+            found.append(index + 1)
+    return found
+
+
 def own_names(swift: str):
     """The launcher's names that SWIFT declares, and those it uses, in the
     parts the console builds."""
@@ -180,6 +208,31 @@ class MacConsoleSources(unittest.TestCase):
                 self.assertEqual(sorted(used - declared), [],
                                  "give the Mac a stand-in (Mac/ConsoleStandIns.swift), link the file that declares it, "
                                  "or wrap the part in #if os(iOS)")
+
+    def test_the_shared_files_footers_take_the_lines_they_need(self):
+        """A list on the Mac gives a section's footer two lines at most, and
+        cuts a longer one at both ends: the saves' footers on a game's sheet
+        were. A section with a footer in a list is a CartoucheSection
+        (CartoucheTheme.swift), whose footer is the section's last row on
+        the Mac."""
+        for link in sorted(SHARED.iterdir()):
+            with self.subTest(name=link.name):
+                found = footers_cut_on_the_mac(link.read_text(encoding="utf-8"))
+                self.assertEqual(found, [], "a section with a footer in a list: make it a CartoucheSection")
+
+    def test_the_check_sees_a_footer_cut_on_the_mac(self):
+        swift = "\n".join([
+            "List {",
+            "CartoucheSection {", "} footer: {", "    Text(a)", "}",
+            "Section {", "    if b { c }", "} footer: {", "    Text(d)", "}",
+            "Section {", "} header: {", "    Text(e)", "} footer: {", "    footer(f)", "}",
+            "return CartoucheSection {", '    Text("{")', "} header: {", "    Text(g)", "} footer: { Text(h) }",
+            "}",
+        ])
+        self.assertEqual(footers_cut_on_the_mac(swift), [8, 14])
+        # A form's footers take their lines on the Mac.
+        form = "\n".join(["Form {", "Section {", "} footer: {", "    Text(a)", "}", "}"])
+        self.assertEqual(footers_cut_on_the_mac(form), [])
 
     def test_the_check_sees_a_name_the_console_lacks(self):
         swift = "\n".join([
