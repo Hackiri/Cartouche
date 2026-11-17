@@ -2636,6 +2636,23 @@
         }
       }
     },
+    "mac.build.action.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build its app for the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Construire son app pour le Mac"
+          }
+        }
+      }
+    },
     "mac.build.action.queue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2772,6 +2789,91 @@
         }
       }
     },
+    "mac.build.for.both" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone and the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone et le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.iphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone"
+          }
+        }
+      }
+    },
+    "mac.build.for.iphoneThenMac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone, then the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone, puis le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.macAfterIphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done for the iPhone, now for the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fait pour l’iPhone, maintenant pour le Mac"
+          }
+        }
+      }
+    },
     "mac.build.improved" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2819,6 +2921,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "encore %@ environ"
+          }
+        }
+      }
+    },
+    "mac.build.macDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, its app for the Mac is to build"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, son app pour le Mac est à construire"
+          }
+        }
+      }
+    },
+    "mac.build.macFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, the last build of its app for the Mac failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, la dernière construction de son app pour le Mac a échoué"
+          }
+        }
+      }
+    },
+    "mac.build.macFailed.on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, the last build of its app for the Mac failed, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, la dernière construction de son app pour le Mac a échoué, %@"
           }
         }
       }
@@ -3135,13 +3288,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld games are due: nxnative improved them, or they were never built."
+            "value" : "%lld games are due: nxnative improved them, they were never built, or only their app for the Mac is left to build."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld jeux sont à construire : nxnative les a améliorés, ou ils n’ont jamais été construits."
+            "value" : "%lld jeux sont à construire : nxnative les a améliorés, ils n’ont jamais été construits, ou seule leur app pour le Mac reste à construire."
           }
         }
       }
@@ -3169,13 +3322,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 game is due: nxnative improved it, or it was never built."
+            "value" : "1 game is due: nxnative improved it, it was never built, or only its app for the Mac is left to build."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 jeu est à construire : nxnative l’a amélioré, ou il n’a jamais été construit."
+            "value" : "1 jeu est à construire : nxnative l’a amélioré, il n’a jamais été construit, ou seule son app pour le Mac reste à construire."
           }
         }
       }
@@ -3193,6 +3346,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Échec %@"
+          }
+        }
+      }
+    },
+    "mac.builds.failed.iphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed for the iPhone %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec pour l’iPhone %@"
+          }
+        }
+      }
+    },
+    "mac.builds.failed.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed for the Mac %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec pour le Mac %@"
           }
         }
       }
@@ -3652,6 +3839,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Son IPA seule, sans son dump"
+          }
+        }
+      }
+    },
+    "mac.game.macDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app is to build"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son app Mac est à construire"
+          }
+        }
+      }
+    },
+    "mac.game.macFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son app Mac a échoué"
+          }
+        }
+      }
+    },
+    "mac.game.macFailed.on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app failed %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de son app Mac %@"
           }
         }
       }

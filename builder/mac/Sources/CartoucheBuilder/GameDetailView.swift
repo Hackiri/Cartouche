@@ -13,6 +13,7 @@
 //
 
 import BuilderKit
+import CartoucheCore
 import SwiftUI
 
 struct GameDetailView: View {
@@ -804,16 +805,18 @@ struct UnbuiltCard: View {
     }
 }
 
-/// A game building now, or waiting its turn: its IPA, then its app for
-/// this Mac, or the Mac app alone.
+/// A game building now, or waiting its turn: what its build makes, its
+/// IPA, for the iPhone, then its app for this Mac, or one of the two, and
+/// the part it makes now (decision 127).
 struct ProgressCard: View {
+    @EnvironmentObject private var model: AppModel
     let progress: GameProgress
 
     var body: some View {
         Card(padding: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                if progress.buildsMac {
-                    Text(platformLine)
+                if let targets = model.targets(progress) {
+                    TargetLabel(targets: targets)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -838,10 +841,5 @@ struct ProgressCard: View {
                 }
             }
         }
-    }
-
-    private var platformLine: String {
-        if progress.macOnly == true { return tr("For this Mac", "Pour ce Mac") }
-        return progress.onMacNow ? tr("iPhone done, now this Mac", "iPhone fait, maintenant ce Mac") : tr("For the iPhone, then this Mac", "Pour l’iPhone, puis ce Mac")
     }
 }
