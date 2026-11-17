@@ -322,6 +322,8 @@ struct CartoucheStorageMacForm: View {
             await remote.disconnect()
         }
         CartoucheStoredGames.shared.refresh()
+        // The player's connections to the new Mac, and its own here.
+        CartoucheConnectionsExchange.shared.exchange()
         dismiss()
     }
 

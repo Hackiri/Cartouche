@@ -118,6 +118,9 @@ public enum CartoucheMacSavesPage: Sendable {
     case copies
     /// Its saves between the player's Switch and this Mac.
     case switchSaves
+    /// What the game wrote of its last sessions, to share
+    /// (CartoucheGameLogView).
+    case log
 }
 
 extension CartoucheMacConsole {
@@ -209,6 +212,13 @@ final class CartoucheSaveBackups: ObservableObject {
 
     func problem(of target: CartoucheSaveTarget) -> CartoucheReport? {
         problems[target.key]
+    }
+
+    /// Why the last sync failed, and the report on it, as the Storage page
+    /// says it under the saves folder: on the Mac, where each game's saves
+    /// go on their own, the newest of the games' failures.
+    var problemReport: CartoucheReport? {
+        problems.values.max { $0.date < $1.date }
     }
 
     /// Whether nxnative's own cloud saves keep TARGET's saves, chosen in
@@ -373,30 +383,33 @@ extension View {
     /// saves or its Switch saves: its title, and the way back to the sheet
     /// above it, which Escape takes too, as the settings page has them
     /// (ConsoleView.swift), rather than in the window's toolbar, which the
-    /// console's two stacks share.
-    func cartoucheConsolePage(_ title: String) -> some View {
-        modifier(CartoucheConsolePage(title: title))
+    /// console's two stacks share. A page the console's home opens, as
+    /// System, says where its way back goes: BACK.
+    func cartoucheConsolePage(_ title: String, back: String = CartoucheText.backToSheet) -> some View {
+        modifier(CartoucheConsolePage(title: title, backTitle: back))
     }
 }
 
 private struct CartoucheConsolePage: ViewModifier {
     let title: String
+    let backTitle: String
     @Environment(\.dismiss) private var dismiss
 
     func body(content: Content) -> some View {
         content
             .navigationBarBackButtonHidden(true)
             .safeAreaInset(edge: .top, spacing: 0) {
-                CartoucheConsoleBar(title: title) { dismiss() }
+                CartoucheConsoleBar(title: title, back: { dismiss() }, backTitle: backTitle)
             }
     }
 }
 
 /// The bar above a page beside the console: its title, and the way back to
-/// the game's sheet, which Escape takes too.
+/// the game's sheet, or BACKTITLE's page, which Escape takes too.
 struct CartoucheConsoleBar: View {
     let title: String
     let back: () -> Void
+    var backTitle = CartoucheText.backToSheet
 
     var body: some View {
         ZStack {
@@ -405,7 +418,7 @@ struct CartoucheConsoleBar: View {
                 .lineLimit(1)
             HStack {
                 Button(action: back) {
-                    Label(CartoucheText.backToSheet, systemImage: "chevron.backward")
+                    Label(backTitle, systemImage: "chevron.backward")
                 }
                 .buttonStyle(.borderless)
                 .keyboardShortcut(.cancelAction)

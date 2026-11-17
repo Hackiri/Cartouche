@@ -599,7 +599,7 @@ enum CartoucheText {
     /// The games of the games folder built without their game files whose
     /// romfs.img is not there, by their names.
     static func storageGameFilesMissing(_ names: [String]) -> String {
-        let list = names.formatted(.list(type: .and))
+        let list = names.formatted(.list(type: .and).locale(locale))
         if names.count == 1 {
             return f("storage.gameFiles.missing.one", "%@ was built without its game files: put its romfs.img beside its IPA, and Cartouche installs the two together.", list)
         }
@@ -608,7 +608,7 @@ enum CartoucheText {
     /// The images of game files no IPA of the games folder needs, by their
     /// paths in it.
     static func storageGameFilesLoose(_ names: [String]) -> String {
-        let list = names.formatted(.list(type: .and))
+        let list = names.formatted(.list(type: .and).locale(locale))
         if names.count == 1 {
             return f("storage.gameFiles.loose.one", "%@: a game’s files, but no IPA here was built to go with them. Put beside them the IPA nxnative built with them, or build the game with Cartouche Builder.", list)
         }
@@ -621,7 +621,7 @@ enum CartoucheText {
     static var storageChooseFolder: String { s("storage.chooseFolder", "Choose a folder") }
     static var storageGamesFooter: String { s("storage.games.footer", "Your library shows the IPAs of this folder, ready to install. Copy a game here before you uninstall it.") }
     static var storageServers: String { s("storage.servers", "Places") }
-    static var storageServersFooter: String { s("storage.servers.footer", "Only storage of your own, with your own account: Cartouche keeps the password, the secret key or the Google sign-in in this iPhone’s keychain.") }
+    static var storageServersFooter: String { s("storage.servers.footer", "Only storage of your own, with your own account: Cartouche keeps the password, the secret key or the Google sign-in in this iPhone’s keychain. The Mac you pair with Cartouche Builder keeps the same connections, passwords included, over the bridge’s encryption.") }
     static var storageAddSMB: String { s("storage.addSMB", "Add a shared folder (SMB)") }
     static var storageAddFolder: String { s("storage.addFolder", "Add a folder in Files") }
     static var storageAddS3: String { s("storage.addS3", "Add S3 storage") }
