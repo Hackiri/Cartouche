@@ -1,6 +1,6 @@
 # Apps on this iPhone: installing, seeing and renewing apps outside Cartouche
 
-Date: 2026-11-13. Status: built the same day, as decision 125 in
+Date: 2026-11-13. Status: built the same day, as decision 137 in
 [docs/decisions.md](../../decisions.md); the plan is beside it in `../plans/`.
 
 ## Intent
@@ -76,7 +76,7 @@ screens: no page of SideStore's ever shows (decision 24).
   Uninstall and Install an IPA on this iPhone live under the signature and
   renewal they depend on. Import on the home keeps installing inside
   Cartouche. Chosen by the player (2026-11-13): the shelf stays one shelf of
-  things that open in Cartouche (decision 123).
+  things that open in Cartouche (decision 135).
 - **B. On the home shelf**, beside the apps installed inside Cartouche, with
   Import asking where each IPA goes. One place for every app, but a question
   on every import and a shelf that mixes apps that open in Cartouche with
@@ -197,7 +197,7 @@ screens: no page of SideStore's ever shows (decision 24).
 
 ### Documents
 
-- Decision 125, with 24 and 123 cross-referenced; decision 64 (SideStore renews
+- Decision 137, with 24 and 135 cross-referenced; decision 64 (SideStore renews
   Cartouche alone, patch 0017) amended: Cartouche and the apps it installed; `app/patches/README.md` for the new patch
   and 0017's wider scope; `launcher/README.md` for the section, the model
   and the bridge; `README.md` where it says what Cartouche does with IPAs

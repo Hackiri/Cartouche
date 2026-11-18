@@ -7,11 +7,11 @@
     },
     "CartoucheAppSettingsView.swift": {
       "kind": "iphone",
-      "why": "The App settings of an app that is not a game installed in Cartouche, LiveContainer's own settings of it and its JIT script for StikDebug (decision 123, decision 124): the Mac's console installs no such app."
+      "why": "The App settings of an app that is not a game installed in Cartouche, LiveContainer's own settings of it and its JIT script for StikDebug (decision 135, decision 136): the Mac's console installs no such app."
     },
     "CartoucheAppSheetView.swift": {
       "kind": "iphone",
-      "why": "The sheet of an app that is not a game installed in Cartouche through LiveContainer (decision 123): the Mac's console installs no such app."
+      "why": "The sheet of an app that is not a game installed in Cartouche through LiveContainer (decision 135): the Mac's console installs no such app."
     },
     "CartoucheArrangement.swift": {
       "kind": "mac",
@@ -87,15 +87,15 @@
     },
     "CartoucheIPhoneAppList.swift": {
       "kind": "iphone",
-      "why": "The list of the apps Cartouche installed on this iPhone through the built-in SideStore, and the App IDs Apple keeps (decision 125): the Mac has no built-in SideStore."
+      "why": "The list of the apps Cartouche installed on this iPhone through the built-in SideStore, and the App IDs Apple keeps (decision 137): the Mac has no built-in SideStore."
     },
     "CartoucheIPhoneApps.swift": {
       "kind": "iphone",
-      "why": "Installs, renews and uninstalls apps of their own on this iPhone through the built-in SideStore's headless actions (decision 125): the Mac has no built-in SideStore."
+      "why": "Installs, renews and uninstalls apps of their own on this iPhone through the built-in SideStore's headless actions (decision 137): the Mac has no built-in SideStore."
     },
     "CartoucheIPhoneAppsView.swift": {
       "kind": "iphone",
-      "why": "The System page's Apps on this iPhone (decision 125), which the Mac's System page does not show: the Mac has no built-in SideStore."
+      "why": "The System page's Apps on this iPhone (decision 137), which the Mac's System page does not show: the Mac has no built-in SideStore."
     },
     "CartoucheImportPicker.swift": {
       "kind": "mac",

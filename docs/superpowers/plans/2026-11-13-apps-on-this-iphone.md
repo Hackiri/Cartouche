@@ -18,7 +18,7 @@
 - The three-app limit of a free Apple ID is checked before anything goes to Apple, counting every active free-team app in the shared database.
 - Imported-signing mode (`CartoucheImportedSigning.accountSigningDisabled`): the section shows `CartoucheText.signingUpdateOnComputer` and nothing else.
 - Strings: every new key in `CartoucheText.swift` has an entry in `Cartouche.xcstrings` in `en` and `fr`, `extractionState` manual, French colons preceded by U+202F; English apostrophes are ’. `python3 -m unittest discover -s app/tests -p 'test_launcher_*.py'` must stay green after each task that adds words.
-- Decision numbers: this work is decision 125; decision 64 is amended, not contradicted.
+- Decision numbers: this work is decision 137; decision 64 is amended, not contradicted.
 - The checkout `/Users/wm/orca/Cartouche-main` has no `.git`. The scratch clone `/private/tmp/claude-501/-Users-wm-orca-Cartouche-main/c71335ee-0006-4d9a-8a07-2f86d1559fd4/scratchpad/upstream` (branch `local`, submodules fetched) is its git history: "commit" means copying the changed files there at the same paths and committing. Python tests that read submodules run there; tests that read the launcher alone run in either.
 - Patches are authored against the pinned SideStore with the earlier patches applied: `scratchpad/ss-patched` is `ss-src` copied, `app/patches/sidestore/0001..0021` applied with `patch -s -N -t -p1`, then `git init && git add -A && git commit -q -m base`. A patch file is `git -C ss-patched format-patch -1 --stdout` with the subject and body written in the project's voice (see 0017's).
 - Commit messages in the project's voice, one sentence of what and why; the attribution line the session reminder gives.
@@ -57,7 +57,7 @@ Expected: FAIL, `"CartoucheInstalledApps"` not found.
 Run: `python3 -m unittest discover -s app/tests -p 'test_renewal.py'` in the scratch clone
 Expected: the two 0017 tests pass; the others as before.
 
-- [ ] **Step 5: Amend `app/patches/README.md` row 42**: "renew Cartouche and the apps Cartouche installed on this iPhone (`CartoucheInstalledApps`, decision 125), never the apps of another SideStore of the same Apple ID".
+- [ ] **Step 5: Amend `app/patches/README.md` row 42**: "renew Cartouche and the apps Cartouche installed on this iPhone (`CartoucheInstalledApps`, decision 137), never the apps of another SideStore of the same Apple ID".
 
 - [ ] **Step 6: Commit** `app/patches/sidestore/0017-renew-cartouche-alone.patch app/tests/test_renewal.py app/patches/README.md`.
 
@@ -108,7 +108,7 @@ Expected: every test FAILS (no patch 0026, no bridge, no model).
 Run, in the scratch clone after syncing: `python3 -m unittest discover -s app/tests -p 'test_sidestore_outcome.py'` and `-p 'test_iphone_apps.py'`
 Expected: `test_sidestore_outcome` passes; in `test_iphone_apps` only the bridge and launcher tests still fail.
 
-- [ ] **Step 7: Add the row to `app/patches/README.md`** after 0025, in the table's voice: what the three intents do, that Cartouche's screens run them headless, decision 125.
+- [ ] **Step 7: Add the row to `app/patches/README.md`** after 0025, in the table's voice: what the three intents do, that Cartouche's screens run them headless, decision 137.
 
 - [ ] **Step 8: Commit** the patch, the two test files and the README.
 
@@ -140,7 +140,7 @@ Expected: `test_the_bridge_runs_the_three_intents` PASS.
 - Modify: `launcher/Sources/CartoucheReport.swift:51-67` (`Origin` gains `case apps` with a doc comment)
 - Modify: `launcher/Sources/CartoucheFailure.swift:444-500` (`Action` gains `install`, `apps`, `remove`; `Written.Key` gains `failed`, read as a text; `cause` maps family `"cartouche"` kinds `anotherStoresApp`, `appLimit`, `notListed`, `noRequest` to new `Cause` cases `anotherStore`, `appLimit`, `appNotListed`, `noRequest`)
 - Modify: `launcher/Sources/CartoucheRenewal.swift:64-72` (after the outcome is read, `CartoucheIPhoneApps.shared.noteRenewal(outcome: outcome, message: message)`)
-- Modify: `launcher/Sources/CartoucheText.swift` (new MARK "Apps on this iPhone (decision 125)"), `launcher/Sources/Cartouche.xcstrings`
+- Modify: `launcher/Sources/CartoucheText.swift` (new MARK "Apps on this iPhone (decision 137)"), `launcher/Sources/Cartouche.xcstrings`
 
 **Interfaces:**
 - Consumes: Task 1's list shape, Task 2's request shape, outcome actions and `failed` key, Task 3's bridge names; `LCUtils.appGroupUserDefault`, `LCSharedUtils.appGroupPath()`, `CartoucheStoreKeychain`, `CartoucheSideStoreOutcome(data:expecting:)`, `CartoucheFailure.sideStore(...)`, `CartoucheReports.make(...)`, `CartoucheVPN.isConnected`, `CartouchePairing.exists`, `CartoucheImportedSigning.accountSigningDisabled`.
@@ -242,12 +242,12 @@ Expected: both pass (the main-thread watch included; run on an otherwise idle Ma
 
 - [ ] **Step 8: Commit** the view, `CartoucheSystemView.swift`, the Gallery files, the UI tests.
 
-### Task 6: Documents and decision 125
+### Task 6: Documents and decision 137
 
 **Files:**
-- Modify: `docs/decisions.md` (row 64 amended; row 125 added after 124), `launcher/README.md` (the System page's bullets: a bullet for Apps on this iPhone naming the model, the view, the bridge, the patch; Renew now's words), `README.md:36` (one sentence: an IPA can also be installed on the iPhone itself, outside Cartouche, from the System page), `docs/superpowers/specs/2026-11-13-apps-on-this-iphone-design.md` (status: built)
+- Modify: `docs/decisions.md` (row 64 amended; row 137 added after 136), `launcher/README.md` (the System page's bullets: a bullet for Apps on this iPhone naming the model, the view, the bridge, the patch; Renew now's words), `README.md:36` (one sentence: an IPA can also be installed on the iPhone itself, outside Cartouche, from the System page), `docs/superpowers/specs/2026-11-13-apps-on-this-iphone-design.md` (status: built)
 
-- [ ] **Step 1: Write decision 125** in the table's voice: what (the section, the intents, the list, 0017 widened, the two refusals, Uninstall through `deleteApp`, per-app failures), why (the player's ask of 2026-11-13, no standalone SideStore for them, decision 24 kept, 64's reason kept by the list), cross-references to 24, 64, 86, the patch files and the three launcher files. Amend 64: "Amended by 125: Cartouche and the apps Cartouche itself installed on this iPhone".
+- [ ] **Step 1: Write decision 137** in the table's voice: what (the section, the intents, the list, 0017 widened, the two refusals, Uninstall through `deleteApp`, per-app failures), why (the player's ask of 2026-11-13, no standalone SideStore for them, decision 24 kept, 64's reason kept by the list), cross-references to 24, 64, 86, the patch files and the three launcher files. Amend 64: "Amended by 137: Cartouche and the apps Cartouche itself installed on this iPhone".
 
 - [ ] **Step 2: Update the READMEs** as listed.
 

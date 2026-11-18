@@ -170,7 +170,7 @@ final class CartoucheGameActions: ObservableObject {
     /// The running game the player asked to quit: the console asks first.
     @Published var quitQuestion: CartoucheRunningGame?
     /// An app that waits for StikDebug's JIT, once the player came back
-    /// without it: whether to open it without JIT (decision 124).
+    /// without it: whether to open it without JIT (decision 136).
     @Published private(set) var jitQuestion: CartoucheJITQuestion?
     /// The wait for StikDebug, which answerJIT ends.
     private var jitAnswer: CheckedContinuation<Bool, Never>?
@@ -1159,7 +1159,7 @@ final class CartoucheGameActions: ObservableObject {
                     ])
                 }
                 // An app that is not a game asks for JIT when its settings
-                // say so (decision 124), as jitLaunch below; a game never does.
+                // say so (decision 136), as jitLaunch below; a game never does.
                 try await app.runApp(multitask: false, forceJIT: isApp ? nil : false)
             } catch {
                 // LiveContainer's signing, which the start runs first, says
@@ -1714,7 +1714,7 @@ extension CartoucheGameActions: LCAppModelDelegate {
 
     nonisolated func changeAppVisibility(app: LCAppModel) {}
 
-    // MARK: JIT, through StikDebug (decision 124)
+    // MARK: JIT, through StikDebug (decision 136)
 
     // A game never asks for JIT (forceJIT: false): nxnative runs without.
     // An app that is not a game does when its settings say so

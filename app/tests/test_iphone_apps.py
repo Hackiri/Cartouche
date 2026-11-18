@@ -1,5 +1,5 @@
 """Checks that the apps Cartouche installs on this iPhone through the built-in
-SideStore (app/patches/sidestore/0026 and 0027, decision 125) line up across
+SideStore (app/patches/sidestore/0026 and 0027, decision 137) line up across
 the three sides that make them work:
 
 - the patches add the four actions, install, refresh, remove and the list

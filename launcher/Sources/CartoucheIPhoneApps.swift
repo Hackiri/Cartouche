@@ -4,7 +4,7 @@
 //
 //  The apps Cartouche installed on this iPhone through the built-in
 //  SideStore, as apps of their own, and what the System page does with them
-//  (decision 125): install an IPA, renew one, uninstall one, open one, and
+//  (decision 137): install an IPA, renew one, uninstall one, open one, and
 //  list the App IDs Apple keeps for the Apple ID. Each action is SideStore's,
 //  run headless in LiveProcess through LiveContainer's bridge (CartoucheApps,
 //  launcher/SideStoreSupport; app/patches/sidestore/0026 and 0027), with its

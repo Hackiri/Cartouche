@@ -186,7 +186,7 @@ struct Launch {
     var holdMainThread: Double?
     /// The apps Cartouche installed on this iPhone through the built-in
     /// SideStore, as "Name:bundle.identifier:daysLeft" (-GalleryIPhoneApps,
-    /// GalleryApp.swift, decision 125).
+    /// GalleryApp.swift, decision 137).
     var iphoneApps: [String] = []
     /// The device of catalog/devices.json the gallery draws the console
     /// as (-GalleryModel): the iPhone when nil, iPad15,3 for an iPad.

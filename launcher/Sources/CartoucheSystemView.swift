@@ -376,7 +376,7 @@ struct CartoucheSystemView: View {
             }
             // As for an update: SideStore needs the setup done, and takes
             // one action at a time, those for the apps on this iPhone too
-            // (decision 125). Up to 0.12.0, Renew now failed on copies not
+            // (decision 137). Up to 0.12.0, Renew now failed on copies not
             // signed in.
             .disabled(!renewals.canRenewNow || apps.work != nil)
             if !setup.isComplete {

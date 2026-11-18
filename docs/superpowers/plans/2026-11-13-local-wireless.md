@@ -18,7 +18,7 @@
 - The fork `Hackiri/nxnative`, branch `ldn`, is upstream `main` + #846 rebased + one commit of ours (the settings row). Nothing else. Its commits are signed as hackiri (`commit.gpgsign` is on in this user's git config; a commit with another author fails on GPG).
 - Cartouche's repository is `/Users/wm/orca/Cartouche`, branch `dev` (origin = `Hackiri/Cartouche`); `main` mirrors upstream and is never touched by this plan. The export `/Users/wm/orca/Cartouche-main` is refreshed from `dev` at the end (`git archive dev | tar -x -C …`).
 - Strings: the prompt's texts live in `package.sh` (`LOCAL_NETWORK_EN`, `LOCAL_NETWORK_FR`), English apostrophes ’, French colons preceded by U+202F; no `CartoucheText` key is added unless Task 5 adds the sheet line.
-- Decision numbers: this work is decision 126; 1 and 66 are cross-referenced, not amended.
+- Decision numbers: this work is decision 138; 1 and 66 are cross-referenced, not amended.
 - Commit messages in the project's voice; the attribution line the session reminder gives.
 
 ## Review Focus
@@ -38,7 +38,7 @@
 - Scratch clone: `/Users/wm/orca/nxnative` (durable, not the session scratchpad), remotes `origin` = the fork, `upstream` = `seedds/nxnative`.
 
 **Interfaces:**
-- Produces: branch `ldn` whose head builds the host tests and the iOS app; the commits of #846 (`gh pr checkout 846`, head `63fffb94…` or its current head) rebased on `upstream/main` of the day, recorded in the commit message of the merge or in `docs/decisions.md` row 126.
+- Produces: branch `ldn` whose head builds the host tests and the iOS app; the commits of #846 (`gh pr checkout 846`, head `63fffb94…` or its current head) rebased on `upstream/main` of the day, recorded in the commit message of the merge or in `docs/decisions.md` row 138.
 
 - [ ] **Step 1: Fork and clone.** `gh repo fork seedds/nxnative --clone=false`; `git clone https://github.com/Hackiri/nxnative.git /Users/wm/orca/nxnative`; `git remote add upstream https://github.com/seedds/nxnative.git`; `git fetch upstream`; `git fetch upstream pull/846/head:pr-846`.
 
@@ -48,7 +48,7 @@
 
 - [ ] **Step 4: iOS build smoke.** `scripts/build_ipa_from_nsp.py` needs a game; instead compile the iOS target alone as nxnative's `docs/development.md` describes (xcodegen on `dm/ios/project.yml`, `xcodebuild -sdk iphoneos CODE_SIGNING_ALLOWED=NO`), expected: `hle_ldn.c`, `hle_net_backend.c` compile for arm64 iOS with `TARGET_OS_IOS` and no warning above upstream's baseline (`.clang-tidy`).
 
-- [ ] **Step 5: Push.** `git push -u origin ldn`. Record the upstream head and #846's head in `ldn`'s first commit of ours (Task 2) and in decision 126.
+- [ ] **Step 5: Push.** `git push -u origin ldn`. Record the upstream head and #846's head in `ldn`'s first commit of ours (Task 2) and in decision 138.
 
 ### Task 2: The settings row: `DM_NETWORK` on nxnative's list
 
@@ -116,12 +116,12 @@
 
 - [ ] **Step 3: `python3 -m unittest discover -s app/tests -p 'test_launcher_*.py'`**; expected PASS. **Commit.**
 
-### Task 6: Documents and decision 126
+### Task 6: Documents and decision 138
 
 **Files:**
-- Modify: `docs/decisions.md` (row 126), `docs/roadmap.md` (*Next* and *Later*), `docs/getting-started.md` and `docs/getting-started.fr.md` (*Play together* / *Jouer ensemble*), `docs/privacy.md` (the local network paragraph), `README.md` (the fork's section: one bullet and, if captured, the settings picture), `docs/superpowers/specs/2026-11-13-local-wireless-design.md` (status line).
+- Modify: `docs/decisions.md` (row 138), `docs/roadmap.md` (*Next* and *Later*), `docs/getting-started.md` and `docs/getting-started.fr.md` (*Play together* / *Jouer ensemble*), `docs/privacy.md` (the local network paragraph), `README.md` (the fork's section: one bullet and, if captured, the settings picture), `docs/superpowers/specs/2026-11-13-local-wireless-design.md` (status line).
 
-- [ ] **Step 1: Decision 126.** "Games play their local wireless mode between iPhones, iPads and Macs on one Wi-Fi, through nxnative's LDN bridge (pull request #846: `nn::ldn` in ldn_mitm's wire format, real sockets, a unicast sweep of the subnet for discovery, since iOS gives no broadcast to an app without Apple's multicast entitlement), carried by the fork branch `Hackiri/nxnative` `ldn` that Cartouche Builder builds from until upstream merges; off by default, one **Local wireless** setting per game on nxnative's own list, drawn by Game settings; the local network prompt names it, for the app and the game's process. No server, no online play (1), no measurement of it. Why: a player with two iPhones asked to race Mario Kart 8 Deluxe together (2026-11-13); the host is where every service answer lives; #846 had done the work and waited since 2026-11-01." Cross-reference 1 and 66.
+- [ ] **Step 1: Decision 138.** "Games play their local wireless mode between iPhones, iPads and Macs on one Wi-Fi, through nxnative's LDN bridge (pull request #846: `nn::ldn` in ldn_mitm's wire format, real sockets, a unicast sweep of the subnet for discovery, since iOS gives no broadcast to an app without Apple's multicast entitlement), carried by the fork branch `Hackiri/nxnative` `ldn` that Cartouche Builder builds from until upstream merges; off by default, one **Local wireless** setting per game on nxnative's own list, drawn by Game settings; the local network prompt names it, for the app and the game's process. No server, no online play (1), no measurement of it. Why: a player with two iPhones asked to race Mario Kart 8 Deluxe together (2026-11-13); the host is where every service answer lives; #846 had done the work and waited since 2026-11-01." Cross-reference 1 and 66.
 
 - [ ] **Step 2: Roadmap, getting started, privacy, README, launcher README** as the spec's *Documents* says. Getting started's section: same Wi-Fi or one iPhone's Personal Hotspot; the setting on each device; the game's own Wireless Play menu; a guest network that isolates clients finds nothing; same game, same version, each from its own files.
 
@@ -130,7 +130,7 @@
 ### Task 7: Build the games and the app, and prove it on two devices
 
 **Files:**
-- No source change expected; findings go into decision 126's row and the spec's status.
+- No source change expected; findings go into decision 138's row and the spec's status.
 
 - [ ] **Step 1: Games.** On the Mac, Cartouche Builder with `engine_url`/`engine_branch` set to the fork: build Mario Kart 8 Deluxe 4.0.1 from the player's own files; install it on both devices from the games folder. Its sheet shows the build's commit as the fork's.
 
@@ -142,4 +142,4 @@
 
 - [ ] **Step 5: Failure cases, by hand.** The setting off on one device: the other finds no room. A guest network with client isolation, if one is at hand: no room, no crash. Network trace on: the report copied from Cartouche's console shows the sweep and the peers' addresses, nothing beyond the local network.
 
-- [ ] **Step 6: Record and finish.** Decision 126's row gains the measured facts (which process asked, times, frame rate); the spec's status becomes "built"; `git archive dev | tar -x -C /Users/wm/orca/Cartouche-main`; push `dev`; a comment on upstream #846 with the two-device result.
+- [ ] **Step 6: Record and finish.** Decision 138's row gains the measured facts (which process asked, times, frame rate); the spec's status becomes "built"; `git archive dev | tar -x -C /Users/wm/orca/Cartouche-main`; push `dev`; a comment on upstream #846 with the two-device result.
