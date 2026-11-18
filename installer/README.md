@@ -14,7 +14,7 @@ It installs nothing but Cartouche: an IPA whose bundle identifier is not Cartouc
 
 ## Download and first open
 
-Download it [for Mac](https://cartouche-app.github.io/Cartouche/download/#installer-mac) or [for Windows](https://cartouche-app.github.io/Cartouche/download/#installer-windows): these links, like the buttons of [Cartouche's site](https://cartouche-app.github.io/Cartouche/#install), give the file itself, at once.
+Download it [for Mac](https://cartouche.cloud/download/#installer-mac) or [for Windows](https://cartouche.cloud/download/#installer-windows): these links, like the buttons of [Cartouche's site](https://cartouche.cloud/#install), give the file itself, at once.
 
 Each version is the GitHub release `installer-v<version>`, published without GitHub's *Latest* mark, which is meant for Cartouche. While Cartouche's versions are 0.x pre-releases, GitHub still gives that mark to the newest release that is not one, the Installer's or Cartouche Builder's. Nothing reads it: the installer and Cartouche take Cartouche's newest version from its source, and the site takes the Installer's and the Builder's from their releases each time it is published ([site/README.md](../site/README.md#publishing)).
 
@@ -56,7 +56,7 @@ On Windows, isideload's cryptography needs Strawberry Perl, make, and the Visual
 
 ## CI and publishing
 
-[`.github/workflows/installer.yml`](../.github/workflows/installer.yml) runs on every pull request that touches `installer/` or Cartouche's source, which its tests read: on a Mac and on Windows, the tests and the window's tests, then on the Mac the app for Apple silicon and Intel in a disk image, and on Windows the setup. Both are kept with the run for 30 days.
+[`.github/workflows/installer.yml`](../.github/workflows/installer.yml) runs on every pull request that touches `installer/`: on a Mac and on Windows, the tests and the window's tests, then on the Mac the app for Apple silicon and Intel in a disk image, and on Windows the setup. Both are kept with the run for 30 days. A pull request that changes only Cartouche's source, as the Release workflow's *Source: Cartouche X* does, builds neither: on every pull request, the CI's *App sources* reads the source as the installer does, its structs and `latest_in`, and fails should the installer read it otherwise ([`app/tests/test_installer_source.py`](../app/tests/test_installer_source.py)).
 
 To publish a version:
 

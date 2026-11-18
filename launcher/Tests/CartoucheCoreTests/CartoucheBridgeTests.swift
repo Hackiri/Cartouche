@@ -366,6 +366,39 @@ final class CartoucheBridgeTests: XCTestCase {
         XCTAssertEqual(body, Data([1, 2, 3]))
         XCTAssertThrowsError(try CartoucheBridgeMessage.decode(CartoucheBridgeRequest.self, from: Data([0, 0, 1, 0])))
     }
+
+    func testInfoTellsTheMacsAddressesInTheTailnet() throws {
+        // With Tailscale on the Mac, its Cartouche Builder tells them; the
+        // iPhone tries them away from home (CartoucheStorageMac.swift).
+        var told = CartoucheBridgeResponse()
+        told.name = "MacBook Air"
+        told.tailscale = ["100.101.102.103", "fd7a:115c:a1e0::1"]
+        let data = try CartoucheBridgeMessage.encode(told, body: Data())
+        let (info, _) = try CartoucheBridgeMessage.decode(CartoucheBridgeResponse.self, from: data)
+        XCTAssertEqual(info.tailscale, ["100.101.102.103", "fd7a:115c:a1e0::1"])
+
+        // A Cartouche Builder older than this one says nothing of them.
+        var older = CartoucheBridgeResponse()
+        older.name = "MacBook Air"
+        let (before, _) = try CartoucheBridgeMessage.decode(CartoucheBridgeResponse.self,
+                                                            from: try CartoucheBridgeMessage.encode(older, body: Data()))
+        XCTAssertNil(before.tailscale)
+        XCTAssertEqual(before.name, "MacBook Air")
+    }
+
+    /// The causes the measurements give the bridge's errors
+    /// (CartoucheFailure.bridgeCauses) are those of kinds it has, as their
+    /// domain carries them, "CartoucheBridge.timeout": a kind renamed here
+    /// would leave its errors "other" again.
+    func testTheMeasurementsKnowTheBridgesKinds() {
+        for kind in CartoucheFailure.bridgeCauses.keys {
+            XCTAssertNotNil(CartoucheBridgeError.Kind(rawValue: kind), kind)
+        }
+        for kind in [CartoucheBridgeError.Kind.timeout, .closed] {
+            let error = NSError(domain: CartoucheFailure.bridgeDomain + kind.rawValue, code: 0)
+            XCTAssertEqual(CartoucheFailure.of(error).cause, .network, kind.rawValue)
+        }
+    }
 }
 
 /// The devices the Mac kept, from its task.

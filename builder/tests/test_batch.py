@@ -376,7 +376,11 @@ class Batches(BatchHome):
         self.assertEqual((seen[0]["state"], seen[0]["running"]), ("preparing", True))
         self.assertEqual([(g["title_id"], g["name"], g["state"]) for g in seen[0]["games"]],
                          [(MKW, "Mario Kart World, as the app showed it", "queued")])
+        # What its build makes is not known before the plan: the app says it
+        # from the game's own settings until then.
+        self.assertEqual([g["makes"] for g in seen[0]["games"]], [[]])
         self.assertEqual([(g["title_id"], g["name"], g["state"]) for g in statuses.read(paths)["games"]], [(MKW, "Mario Kart World", "built")])
+        self.assertEqual([g["makes"] for g in statuses.read(paths)["games"]], [["ios", "mac"]])
         # Asked for again, up to date: not built, and no longer in the batch.
         plan, summary = self.run_due(only={MKW})
         self.assertEqual(summary.built, [])
@@ -454,6 +458,9 @@ class MacApps(BatchHome):
         for title_id, name in NAMES.items():
             game = games[title_id]
             self.assertEqual((game["state"], game["mac"], game["mac_app"], game["platform"], game["mac_only"]), ("built", "built", f"{name}.app", "mac", False))
+            # What its build made, for the app and the iPhone to say: the
+            # iPhone's, then this Mac's.
+            self.assertEqual(game["makes"], ["ios", "mac"], title_id)
         kinds = [kind for kind, title_id, _ in self.events if title_id == MKW]
         self.assertLess(kinds.index("built"), kinds.index("mac_start"))
         self.assertLess(kinds.index("mac_start"), kinds.index("mac_built"))
@@ -511,6 +518,8 @@ class MacApps(BatchHome):
         status = json.loads(ctx.paths.status.read_text())
         game = next(g for g in status["games"] if g["title_id"] == MKW)
         self.assertEqual((game["state"], game["mac"], game["mac_only"], game["ipa"]), ("built", "built", True, ""))
+        # Its build made this Mac's app alone.
+        self.assertEqual(game["makes"], ["mac"])
         # The notification counts the game once.
         runner = batch.Runner(ctx, plan, [], check_tools=False)
         runner.summary = summary
@@ -672,6 +681,72 @@ class MacApps(BatchHome):
         self.assertEqual((entry.build, entry.reasons, entry.mac_reason), (False, ["up_to_date"], "up_to_date"))
         self.assertTrue(kept.is_file())
 
+    def test_installed_from_the_file_another_mac_sent(self):
+        """An app another Mac sent to the iPhone's games folder, on one of the
+        player's connections, which the app fetched: installed as the games
+        folder's own would be, in the Mac apps folder, wherever the games
+        folder keeps this Mac's apps, and recorded nowhere, the builder
+        having built nothing of it; never while the game runs from it, nor
+        from a file that holds another game's app."""
+        self.enterContext(mock.patch.dict(os.environ, {macapps.PACKED_ENV: "1"}))
+        chosen = self.tmp / "Games on this Mac"
+        self.settings(mac_apps=str(chosen))
+        self.run_due(only={MKW})
+        kept = self.games / f"Mario Kart World [{MKW}].app.zip"
+        fetched = self.tmp / "Fetched" / kept.name
+        fetched.parent.mkdir()
+        fetched.write_bytes(kept.read_bytes())
+        answer = api.mac_install(batch.context(), MKW, fetched)
+        copy = chosen / "Mario Kart World.app"
+        self.assertEqual((answer["app"]["path"], answer["title_id"]), (str(copy), MKW))
+        self.assertEqual(macapps.read_info(copy).title_id, MKW)
+        self.assertIsNone(batch.context().store.get(MKW).mac_copy)
+        # Again, in the place of the game's app there, never while it runs.
+        with mock.patch.object(macapps, "running", side_effect=lambda path: path == copy):
+            with self.assertRaises(batch.Blocked):
+                api.mac_install(batch.context(), MKW, fetched)
+        api.mac_install(batch.context(), MKW, fetched)
+        self.assertEqual(self.app_names(chosen), ["Mario Kart World.app"])
+        # Another game's: nothing installed.
+        with self.assertRaises(ValueError):
+            api.mac_install(batch.context(), ODYSSEY, fetched)
+        self.assertEqual(self.app_names(chosen), ["Mario Kart World.app"])
+        # A games folder that keeps the apps as they are installs it too.
+        self.enterContext(mock.patch.dict(os.environ, {macapps.PACKED_ENV: "0"}))
+        shutil_rmtree(copy)
+        api.mac_install(batch.context(), MKW, fetched)
+        self.assertEqual(macapps.read_info(copy).title_id, MKW)
+
+    def test_packed_in_one_file_for_the_iphones_games_folder(self):
+        """The app a games folder on this Mac's own disk keeps as it is, packed
+        in one file as a NAS keeps it, for the app to send it to the
+        iPhone's games folder; an app a batch put in its place meanwhile
+        leaves no file."""
+        self.run_due(only={MKW})
+        out = self.tmp / "Out"
+        answer = api.mac_pack(batch.context(), MKW, out)
+        packed = out / f"Mario Kart World [{MKW}].app.zip"
+        self.assertEqual((answer["file"]["path"], answer["file"]["size"], answer["title_id"]),
+                         (str(packed), packed.stat().st_size, MKW))
+        self.assertEqual(sorted(p.name for p in out.iterdir()), [packed.name])
+        # It installs as the games folder's own file would.
+        chosen = self.tmp / "Installed"
+        installed = macapps.install(packed, chosen, MKW, "Mario Kart World")
+        self.assertEqual(macapps.read_info(installed).commit, macapps.read_info(self.app("Mario Kart World")).commit)
+        # Changed while it was packed: no file, and the app asks again.
+        packed.unlink()
+        with mock.patch.object(api, "_app_state", side_effect=[(1,), (2,)]):
+            with self.assertRaises(batch.Busy):
+                api.mac_pack(batch.context(), MKW, out)
+        self.assertEqual(list(out.iterdir()), [])
+        # None for a game without its app, nor for a games folder that
+        # keeps the apps in one file: that file goes.
+        with self.assertRaises(batch.Blocked):
+            api.mac_pack(batch.context(), ODYSSEY, out)
+        self.enterContext(mock.patch.dict(os.environ, {macapps.PACKED_ENV: "1"}))
+        with self.assertRaises(batch.Blocked):
+            api.mac_pack(batch.context(), MKW, out)
+
     def test_installed_only_from_a_nas(self):
         self.run_due(only={MKW})
         with self.assertRaises(batch.Blocked):
@@ -696,6 +771,10 @@ class MacApps(BatchHome):
         ctx = batch.context()
         self.assertFalse((ctx.workspace.build_folder(MKW) / "mac_runs.txt").exists())
         self.assertFalse((ctx.workspace.build_folder(ODYSSEY) / "runs.txt").exists())
+        # What each build made, as the app and the iPhone say it: the IPA
+        # alone, the Mac app alone.
+        status = json.loads(ctx.paths.status.read_text())
+        self.assertEqual({g["title_id"]: g["makes"] for g in status["games"]}, {MKW: ["ios"], ODYSSEY: ["mac"]})
         # Every game, in the settings.
         self.settings(mac=False)
         plan = batch.survey(batch.context(), update=False)

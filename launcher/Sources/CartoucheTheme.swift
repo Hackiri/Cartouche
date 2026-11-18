@@ -157,6 +157,51 @@ enum CartouchePlayStatus: Hashable {
     }
 }
 
+/// A section of a list whose footer takes the lines it needs. A list on the
+/// Mac gives a section's footer one line, or two at most, whatever its text,
+/// and cuts a longer one at both ends: there, the footer goes as the
+/// section's last row, in a footer's type, as a row takes the lines it
+/// needs. On the iPhone, the section's own footer.
+struct CartoucheSection<Content: View, Header: View, Footer: View>: View {
+    private let content: Content
+    private let header: Header
+    private let footer: Footer
+
+    init(@ViewBuilder content: () -> Content, @ViewBuilder header: () -> Header, @ViewBuilder footer: () -> Footer) {
+        self.content = content()
+        self.header = header()
+        self.footer = footer()
+    }
+
+    var body: some View {
+        #if os(macOS)
+        Section {
+            content
+            footer
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .listRowSeparator(.hidden, edges: .bottom)
+        } header: {
+            header
+        }
+        #else
+        Section {
+            content
+        } header: {
+            header
+        } footer: {
+            footer
+        }
+        #endif
+    }
+}
+
+extension CartoucheSection where Header == EmptyView {
+    init(@ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
+        self.init(content: content, header: { EmptyView() }, footer: footer)
+    }
+}
+
 @available(iOS 17.0, *)
 extension View {
     /// Liquid Glass in this shape on iOS 26 and later, frosted material

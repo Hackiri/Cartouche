@@ -74,6 +74,10 @@ final class TelemetryTests: XCTestCase {
                                                 "settings": .flag(false)]
         let saves: [String: TelemetryValue] = ["place": .text("share"), "step": .text("keepAndFetch"), "when": .text("before")]
         let installed: [String: TelemetryValue] = ["again": .flag(false), "appMB": .number(1904), "seconds": .number(38)]
+        let sent: [String: TelemetryValue] = ["fileMB": .number(2915), "kind": .text("mac"), "packed": .flag(true), "seconds": .number(412),
+                                              "server": .text("s3")]
+        let installedFromThere: [String: TelemetryValue] = ["again": .flag(true), "appMB": .number(1904), "from": .text("connection"),
+                                                            "seconds": .number(95), "server": .text("s3")]
         let events: [(name: String, game: String?, fields: [String: TelemetryValue])] = [
             ("builder.opened", nil, opened),
             ("builder.setup", nil, setup),
@@ -101,6 +105,8 @@ final class TelemetryTests: XCTestCase {
             ("builder.saves", "0100152000022000", saves),
             ("builder.macInstalled", "0100152000022000", installed),
             ("builder.skipped", "0100000000010000", noRoom),
+            ("builder.sent", "0100000000010000", sent),
+            ("builder.macInstalled", "0100000000010000", installedFromThere),
         ]
         var made: [TelemetryEvent] = []
         for (index, event) in events.enumerated() {
@@ -124,12 +130,14 @@ final class TelemetryTests: XCTestCase {
 
     /// telemetry/test/builder-reports.json holds these reports, field for
     /// field, so that the Worker's tests check that the server keeps every
-    /// field the app sends (telemetry/test/worker.test.js).
+    /// field the app sends (telemetry/test/worker.test.js). Its sessions,
+    /// the games played on this Mac, are the console's
+    /// (CartoucheConsoleTests/ConsoleTelemetryTests.swift).
     func testTheServersTestsHaveEveryFieldTheAppSends() throws {
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("../../../../telemetry/test/builder-reports.json").standardizedFileURL
         let file = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        let kept = try XCTUnwrap(file["reports"] as? [[String: Any]])
+        let kept = try XCTUnwrap(file["reports"] as? [[String: Any]]).filter { $0["kind"] as? String == TelemetryEvent.kind }
         let made = try madeEvents()
         let bodies = try made.map { try TelemetryFormat.json($0) }
         XCTAssertEqual(kept.count, made.count)
@@ -234,6 +242,37 @@ final class TelemetryTests: XCTestCase {
         }
     }
 
+    /// A game built alone from the commit before nxnative's shader splitter
+    /// changed, the newest splitting its shaders otherwise than its profile
+    /// says (decision 133): its IPA's event and its Mac app's say so, beside
+    /// the older commit; the other games and the batch are on the newest.
+    func testAGameBuiltFromBeforeTheSplitterChanged() throws {
+        let json = #"""
+            {"state": "done", "scheduled": false, "head": "7f2a1b3c4d5e6f70", "latest": "7f2a1b3c4d5e6f70", "fallback": null,
+             "started": "2026-11-17T20:00:00+00:00", "ended": "2026-11-17T21:00:00+00:00",
+             "games": [
+               {"title_id": "0400C3F00006E000", "name": "Mario Kart World", "state": "built", "reasons": ["new"], "duration": 3600.2,
+                "commit": "24e007be1c3f", "fallback": true, "split": true, "platform": "mac", "mac": "built", "mac_only": false, "mac_duration": 900.4},
+               {"title_id": "0100000000010000", "name": "Super Mario Odyssey", "state": "built", "reasons": ["shared"], "duration": 1200,
+                "commit": "7f2a1b3c4d5e", "fallback": false, "split": false}]}
+            """#
+        let status = try JSONDecoder().decode(BatchStatus.self, from: Data(json.utf8))
+        let events = BuilderTelemetry.batchEvents(status, library: nil, jobs: 1)
+        XCTAssertEqual(events.map(\.name), ["builder.built", "builder.built", "builder.macBuilt", "builder.batch"])
+        XCTAssertEqual(events[0].fields, ["fallback": .flag(true), "nxnative": .text("24e007be1c3f"), "reasons": .text("new"),
+                                          "seconds": .number(3600), "split": .flag(true)])
+        XCTAssertEqual(events[1].fields, ["nxnative": .text("7f2a1b3c4d5e"), "reasons": .text("shared"), "seconds": .number(1200)])
+        XCTAssertEqual(events[2].fields, ["alone": .flag(false), "fallback": .flag(true), "nxnative": .text("24e007be1c3f"), "reasons": .text("new"),
+                                          "seconds": .number(900), "split": .flag(true)])
+        XCTAssertEqual(events[3].fields["nxnative"], .text("7f2a1b3c4d5e"))
+        XCTAssertNil(events[3].fields["fallback"])
+        XCTAssertNil(events[3].fields["split"])
+        for (index, event) in events.enumerated() {
+            XCTAssertNotNil(TelemetryEvent(id: "6a1d9e3c-0000-4000-8000-00000000030\(index)", seq: index + 1, context: context,
+                                           name: event.name, game: event.game, fields: event.fields), event.name)
+        }
+    }
+
     /// A game played on this Mac, and its saves kept in step with the
     /// iPhone's: how it ended and what moved, as names and numbers; words
     /// that are no name are not sent as they are.
@@ -247,13 +286,28 @@ final class TelemetryTests: XCTestCase {
                        ["place": .text("share"), "step": .text("offline"), "when": .text("round")])
         XCTAssertEqual(BuilderTelemetry.savesFields(step: "send", when: "after", onShare: false),
                        ["place": .text("mac"), "step": .text("send"), "when": .text("after")])
+        // The newest copy waits for the game's update: the step alone, never
+        // the versions.
+        XCTAssertEqual(BuilderTelemetry.savesFields(step: MacSaveEvent.heldBack, when: "before", onShare: true),
+                       ["place": .text("share"), "step": .text("heldBack"), "when": .text("before")])
         // Its app installed from a NAS, in place of an older copy.
         XCTAssertEqual(BuilderTelemetry.installedFields(bytes: 1_904_211_000, seconds: 37.6, again: true),
                        ["again": .flag(true), "appMB": .number(1904), "seconds": .number(38)])
         XCTAssertEqual(BuilderTelemetry.installedFields(bytes: nil, seconds: -1, again: false), ["again": .flag(false), "seconds": .number(0)])
+        // Its app another Mac sent to the iPhone's games folder, installed
+        // from there: the connection's kind alone, never its name.
+        XCTAssertEqual(BuilderTelemetry.installedFields(bytes: 1_904_211_000, seconds: 95.2, again: false, server: "drive"),
+                       ["again": .flag(false), "appMB": .number(1904), "from": .text("connection"), "seconds": .number(95), "server": .text("drive")])
+        // A game's file sent there, its Mac app packed first.
+        XCTAssertEqual(BuilderTelemetry.sentFields(kind: "mac", bytes: 2_915_400_000, seconds: 411.6, packed: true, server: "s3"),
+                       ["fileMB": .number(2915), "kind": .text("mac"), "packed": .flag(true), "seconds": .number(412), "server": .text("s3")])
+        XCTAssertEqual(BuilderTelemetry.sentFields(kind: "ipa", bytes: 0, seconds: -3, packed: false, server: "My NAS"),
+                       ["fileMB": .number(0), "kind": .text("ipa"), "packed": .flag(false), "seconds": .number(0), "server": .text("other")])
         let made = [("builder.played", BuilderTelemetry.playedFields(ended: "gpu", exit: 70, seconds: 1, fromBuilder: true, settings: false)),
                     ("builder.saves", BuilderTelemetry.savesFields(step: "keepAndFetch", when: "before", onShare: true)),
-                    ("builder.macInstalled", BuilderTelemetry.installedFields(bytes: 1_904_211_000, seconds: 38, again: false))]
+                    ("builder.macInstalled", BuilderTelemetry.installedFields(bytes: 1_904_211_000, seconds: 38, again: false)),
+                    ("builder.macInstalled", BuilderTelemetry.installedFields(bytes: 1_904_211_000, seconds: 95, again: true, server: "smb")),
+                    ("builder.sent", BuilderTelemetry.sentFields(kind: "ipa", bytes: 1_830_000_000, seconds: 64, packed: false, server: "sftp"))]
         for (index, event) in made.enumerated() {
             XCTAssertNotNil(TelemetryEvent(id: "6a1d9e3c-0000-4000-8000-00000000020\(index)", seq: index + 1, context: context,
                                            name: event.0, game: "0100152000022000", fields: event.1), event.0)
@@ -424,5 +478,55 @@ final class TelemetryTests: XCTestCase {
 
         let odd = BuilderTelemetry(file: nil, endpoint: nil, version: "dev")
         XCTAssertEqual(odd.context.cartouche, "0.0.0")
+    }
+
+    /// The console's reports, the sessions of the games played on this Mac
+    /// (CartoucheConsole/Mac/ConsoleTelemetry.swift), go in the app's queue
+    /// numbered after its events, and only with telemetry on and a server.
+    @MainActor
+    func testTheConsolesReportsGoInTheSameQueueAsTheEvents() throws {
+        // Nothing listens on the discard port: what is sent fails and waits.
+        let telemetry = BuilderTelemetry(file: nil, endpoint: try XCTUnwrap(URL(string: "http://127.0.0.1:9")), version: "0.2.1")
+        telemetry.event("builder.opened", fields: ["games": .count(3)])
+        XCTAssertEqual(telemetry.waiting, 1)
+        var asked: [Int] = []
+        telemetry.report { context, seq in
+            asked.append(seq)
+            XCTAssertEqual(context, telemetry.context)
+            return (id: "6a1d9e3c-0000-4000-8000-000000000027", body: #"{"kind":"session"}"#)
+        }
+        XCTAssertEqual(asked, [2], "numbered after the event")
+        XCTAssertEqual(telemetry.waiting, 2)
+        XCTAssertEqual(telemetry.lastReport, #"{"kind":"session"}"#)
+
+        telemetry.report { _, seq in
+            asked.append(seq)
+            return nil
+        }
+        XCTAssertEqual(telemetry.waiting, 2, "no report, nothing queued")
+        XCTAssertEqual(telemetry.lastReport, #"{"kind":"session"}"#)
+        telemetry.event("builder.paired", fields: ["allowed": .flag(true)])
+        telemetry.report { _, seq in
+            asked.append(seq)
+            return (id: "6a1d9e3c-0000-4000-8000-000000000028", body: #"{"kind":"session","seq":4}"#)
+        }
+        XCTAssertEqual(asked, [2, 3, 4], "a report not made takes no number")
+        XCTAssertEqual(telemetry.waiting, 4)
+
+        telemetry.setOn(false)
+        XCTAssertEqual(telemetry.waiting, 0)
+        telemetry.report { _, _ in
+            XCTFail("never asked with telemetry off")
+            return nil
+        }
+        let withoutServer = BuilderTelemetry(file: nil, endpoint: nil, version: "0.2.1")
+        withoutServer.report { _, _ in
+            XCTFail("never asked without a server")
+            return nil
+        }
+        XCTAssertEqual(withoutServer.waiting, 0)
+        XCTAssertNil(withoutServer.lastReport)
+        XCTAssertFalse(withoutServer.hasServer)
+        XCTAssertTrue(telemetry.hasServer)
     }
 }

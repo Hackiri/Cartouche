@@ -18,7 +18,7 @@ extension CartoucheText {
     static var storageMacTitle: String { s("storage.mac.title", "Your Mac") }
     static var storageMacNearby: String { s("storage.mac.nearby", "Macs nearby") }
     static var storageMacLooking: String { s("storage.mac.looking", "Looking for Cartouche Builder on this network…") }
-    static var storageMacHow: String { s("storage.mac.how", "On your Mac, open Cartouche Builder and turn on Share with Cartouche on the iPhone, on its iPhone page. This iPhone and the Mac must be on the same Wi-Fi.") }
+    static var storageMacHow: String { s("storage.mac.how", "On your Mac, open Cartouche Builder and turn on Share with Cartouche on the iPhone, on its iPhone page. This iPhone and the Mac must be on the same Wi-Fi, or both on Tailscale: then pair it by its address, below.") }
     static var storageMacPairAgain: String { s("storage.mac.pairAgain", "Choose your Mac again to pair once more, when it no longer knows this iPhone.") }
     static var storageMacPaired: String { s("storage.mac.paired", "Paired") }
     static var storageMacAdded: String { s("storage.mac.added", "Added") }
@@ -30,7 +30,16 @@ extension CartoucheText {
     static var storageMacUseSaves: String { s("storage.mac.useSaves", "Keep your saves on this Mac") }
     static var storageMacUseFooter: String { s("storage.mac.use.footer", "Its Games folder holds the games Cartouche Builder builds, on the Mac or on your NAS, and its Saves folder the copies of your saves. You can change both later in Storage.") }
     static var storageMacLastAddress: String { s("storage.mac.lastAddress", "Last address") }
+    static var storageMacTailnetAddress: String { s("storage.mac.tailnetAddress", "Through Tailscale") }
+    static var storageMacByAddress: String { s("storage.mac.byAddress", "By its address") }
+    static var storageMacAddressPlaceholder: String { s("storage.mac.address.placeholder", "Tailscale name or address of the Mac") }
+    static var storageMacAddressPair: String { s("storage.mac.address.pair", "Pair with this Mac") }
+    static func storageMacAddressUnanswered(_ address: String) -> String { f("storage.mac.address.unanswered", "%@ does not answer: check its address, that Share with Cartouche on the iPhone is on in Cartouche Builder, and that Tailscale is connected on this iPhone and on the Mac.", address) }
+    static var storageMacAddressInvalid: String { s("storage.mac.address.invalid", "This is neither a name nor an address: type the Mac’s name in Tailscale, or its address there, without anything before or after it.") }
+    static var storageMacAddressFooter: String { s("storage.mac.address.footer", "Away from home, or on a network where Bonjour does not find it: with Tailscale on this iPhone and on the Mac, type the Mac’s name in Tailscale, such as macbook-air, or its address there, which starts with 100.") }
     static func storageMacOffline(_ mac: String) -> String { f("storage.mac.offline", "%@ does not answer on this network. Open Cartouche Builder on it with Share with Cartouche on the iPhone turned on: Cartouche tries again as soon as the iPhone is back on its Wi-Fi or on your VPN.", mac) }
+    static func storageMacOfflineTailscaleOff(_ mac: String) -> String { f("storage.mac.offline.tailscaleOff", "%@ does not answer on this network. Away from home, turn on Tailscale on this iPhone for Cartouche to reach it. At home, open Cartouche Builder on it with Share with Cartouche on the iPhone turned on.", mac) }
+    static func storageMacOfflineTailscale(_ mac: String) -> String { f("storage.mac.offline.tailscale", "%@ answers neither on this network nor through Tailscale. Open Cartouche Builder on it with Share with Cartouche on the iPhone turned on, and check that Tailscale is connected on the Mac too.", mac) }
     static func storageMacNotFound(_ item: String) -> String { f("storage.mac.notFound", "%@ is not on the Mac.", item) }
     static func storageMacDenied(_ item: String) -> String { f("storage.mac.denied", "The Mac does not let Cartouche reach %@.", item) }
     static func storageMacExists(_ item: String) -> String { f("storage.mac.exists", "%@ is already on the Mac.", item) }
@@ -65,10 +74,22 @@ extension CartoucheText {
     static var macBuildNotFollowed: String { s("mac.build.notFollowed", "Not followed on the Mac: built there only when you ask") }
     static var macBuildNoProfile: String { s("mac.build.noProfile", "nxnative has no profile for it yet: the Mac builds it once it has one") }
     static var macBuildIPAOnly: String { s("mac.build.ipaOnly", "Only its IPA is on the Mac: its dump is not in the Mac’s sources folder") }
+    static var macBuildMacDue: String { s("mac.build.macDue", "Its IPA is up to date, its app for the Mac is to build") }
+    static var macBuildMacFailed: String { s("mac.build.macFailed", "Its IPA is up to date, the last build of its app for the Mac failed") }
+    static func macBuildMacFailedOn(_ date: String) -> String { f("mac.build.macFailed.on", "Its IPA is up to date, the last build of its app for the Mac failed, %@", date) }
+
+    // What a build on the Mac makes (decision 127): its IPA, for the
+    // iPhone, its app, for the Mac, or both; building, the part it makes now.
+    static var macBuildForIPhone: String { s("mac.build.for.iphone", "For the iPhone") }
+    static var macBuildForMac: String { s("mac.build.for.mac", "For the Mac") }
+    static var macBuildForBoth: String { s("mac.build.for.both", "For the iPhone and the Mac") }
+    static var macBuildForIPhoneThenMac: String { s("mac.build.for.iphoneThenMac", "For the iPhone, then the Mac") }
+    static var macBuildForMacAfterIPhone: String { s("mac.build.for.macAfterIphone", "Done for the iPhone, now for the Mac") }
     static var macBuildActionBuild: String { s("mac.build.action.build", "Build on the Mac") }
     static var macBuildActionRebuild: String { s("mac.build.action.rebuild", "Rebuild on the Mac") }
     static var macBuildActionAgain: String { s("mac.build.action.again", "Build again on the Mac") }
     static var macBuildActionQueue: String { s("mac.build.action.queue", "Add to the Mac’s queue") }
+    static var macBuildActionMac: String { s("mac.build.action.mac", "Build its app for the Mac") }
     static var macBuildAsking: String { s("mac.build.asking", "Asking the Mac…") }
     static var macBuildStop: String { s("mac.build.stop", "Stop its build") }
     static var macBuildStopping: String { s("mac.build.stopping", "Stopping…") }
@@ -89,8 +110,8 @@ extension CartoucheText {
     static var macBuildsDue: String { s("mac.builds.due", "Build what is due") }
     static var macBuildsAddDue: String { s("mac.builds.due.add", "Add what is due") }
     static var macBuildsDueNone: String { s("mac.builds.due.none", "Nothing is due on the Mac.") }
-    static var macBuildsDueOne: String { s("mac.builds.due.one", "1 game is due: nxnative improved it, or it was never built.") }
-    static func macBuildsDueMany(_ count: Int) -> String { f("mac.builds.due.many", "%lld games are due: nxnative improved them, or they were never built.", count) }
+    static var macBuildsDueOne: String { s("mac.builds.due.one", "1 game is due: nxnative improved it, it was never built, or only its app for the Mac is left to build.") }
+    static func macBuildsDueMany(_ count: Int) -> String { f("mac.builds.due.many", "%lld games are due: nxnative improved them, they were never built, or only their app for the Mac is left to build.", count) }
     static var macBuildsStopAll: String { s("mac.builds.stopAll", "Stop all") }
     static var macBuildsBuilding: String { s("mac.builds.building", "Building") }
     static var macBuildsWaiting: String { s("mac.builds.waiting", "Waiting their turn") }
@@ -98,6 +119,8 @@ extension CartoucheText {
     static func macBuildsRemove(_ game: String) -> String { f("mac.builds.remove", "Remove %@ from the queue", game) }
     static var macBuildsFailures: String { s("mac.builds.failures", "Builds that failed") }
     static func macBuildsFailed(_ date: String) -> String { f("mac.builds.failed", "Failed %@", date) }
+    static func macBuildsFailedIPhone(_ date: String) -> String { f("mac.builds.failed.iphone", "Failed for the iPhone %@", date) }
+    static func macBuildsFailedMac(_ date: String) -> String { f("mac.builds.failed.mac", "Failed for the Mac %@", date) }
     static var macBuildsGames: String { s("mac.builds.games", "The Mac’s games") }
     static var macBuildsGamesFooter: String { s("mac.builds.games.footer", "The Mac builds a game it follows again when nxnative improves it, and a game it does not follow only when you ask.") }
     static func macBuildsGameActions(_ game: String) -> String { f("mac.builds.game.actions", "What to do with %@", game) }
@@ -114,4 +137,7 @@ extension CartoucheText {
     static var macGameNotFollowed: String { s("mac.game.notFollowed", "Not followed") }
     static var macGameNoProfile: String { s("mac.game.noProfile", "No nxnative profile yet") }
     static var macGameIPAOnly: String { s("mac.game.ipaOnly", "Its IPA alone, without its dump") }
+    static var macGameMacDue: String { s("mac.game.macDue", "Its Mac app is to build") }
+    static var macGameMacFailed: String { s("mac.game.macFailed", "Its Mac app failed") }
+    static func macGameMacFailedOn(_ date: String) -> String { f("mac.game.macFailed.on", "Its Mac app failed %@", date) }
 }

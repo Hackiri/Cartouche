@@ -16,6 +16,7 @@
         "exit": null,
         "failure": {},
         "fallback": false,
+        "split": false,
         "frac": null,
         "ipa": "",
         "k": 2,
@@ -30,6 +31,10 @@
         "mac_log": "",
         "mac_only": false,
         "mac_room": {},
+        "makes": [
+          "ios",
+          "mac"
+        ],
         "message": "",
         "n": 2,
         "name": "Mario Kart World",

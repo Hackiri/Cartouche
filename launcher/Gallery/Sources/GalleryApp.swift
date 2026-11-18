@@ -62,6 +62,9 @@
 //        storage-drive-guide             the steps that make that client
 //        storage-mac                     Add your Mac, the form that pairs
 //                                        this iPhone with a Mac nearby
+//        storage-names                   How to name your games, as the
+//                                        Storage page opens it, at its top
+//                                        or down to -GalleryCategory
 //        storage-smb                     Add a shared folder, with a NAS
 //                                        nearby (GallerySMB)
 //        switch-save                     the saves of the sheet's game
@@ -176,6 +179,16 @@
 //                                        waiting for it
 //        mac-refused                     no Mac nearby, iOS refusing
 //                                        Cartouche the local network
+//        mac-tailscale                   the player's Mac, paired, as the
+//                                        games folder and the saves folder,
+//                                        with its addresses in the tailnet,
+//                                        Tailscale connected on this iPhone;
+//                                        on Add your Mac (screen
+//                                        storage-mac), that Mac's own form
+//        mac-tailscale-off               the same Mac out of reach, away
+//                                        from home, Tailscale off on this
+//                                        iPhone, with two games' saves
+//                                        waiting for it
 //        mac-too-old                     the player's Mac, paired, whose
 //                                        app is 0.5.0 or older: too old to
 //                                        share its builds, and no longer
@@ -221,6 +234,11 @@
 //                                        folder in Files as the saves folder,
 //                                        which Cartouche's own sync uses
 //                                        (GallerySaves)
+//        saves-newer                     the same, the newest copy of the
+//                                        game's saves waiting for its update,
+//                                        version 1.2.0 of the game having
+//                                        written it, and this iPhone's being
+//                                        1.0.0
 //        sidestore-quit                  a sign-in whose built-in SideStore
 //                                        quit as it launched, LocalDevVPN
 //                                        connected
@@ -238,6 +256,16 @@
 //        signed-elsewhere                the IPA for an Apple ID, signed by a
 //                                        signing app without its app group,
 //                                        which cannot sign in
+//        signing-no-own-profile          signed on the iPhone (-GallerySigning
+//                                        iphone) by a signing app that put no
+//                                        profile in Cartouche: the import of
+//                                        a certificate, which the setup
+//                                        refused
+//        signing-profile-file            the same, Cartouche's profile in
+//                                        it, for a profile (.mobileprovision)
+//                                        chosen in the certificate's place
+//        signing-wrong-password          the same, for a .p12 whose password
+//                                        is not the one typed
 //        smb-no-guests                   on Add a shared folder (screen
 //                                        storage-smb), the NAS refusing a
 //                                        guest, without a user name
@@ -247,6 +275,13 @@
 //                                        player signed in with
 //        starting                        on the TV (screen tv), the game
 //                                        starting
+//        tailscale                       Tailscale connected on this iPhone,
+//                                        away from home: no Mac nearby on
+//                                        Add your Mac (screen storage-mac)
+//        tailscale-turned-off            Tailscale turned off half an hour
+//                                        ago by LocalDevVPN, which Cartouche
+//                                        connected to renew itself: the
+//                                        console's top bar says so
 //        stopped-on-error                the sheet's game's process ended on
 //                                        another error (CartoucheGameActions
 //                                        stoppedOnError)
@@ -287,6 +322,9 @@
 //                                        such as Controls
 //        cartouche.saves                 on a game's settings, its cloud
 //                                        saves
+//        dumps                           on how to name the games (screen
+//                                        storage-names), the page down to
+//                                        Cartouche Builder's dumps folder
 //        manage                          on the sheet, the sheet opened on
 //                                        the game's management
 //        nightly                         on the Mac's builds (screen
@@ -297,8 +335,14 @@
 //        results                         on a game's sheet, the testers'
 //                                        results, what they wrote in French
 //                                        as the iPhone translates it
+//        saves                           on how to name the games (screen
+//                                        storage-names), the page down to
+//                                        the saves folder
 //        signature                       on the System page, the page
 //                                        scrolled down to its signature
+//        tailscale                       on the Storage page or Renew every
+//                                        night (screen nightly), the page
+//                                        scrolled down to Tailscale
 //        update                          on the System page, the page
 //                                        scrolled down to its updates
 //
@@ -388,6 +432,33 @@ struct GalleryScenario {
     /// The title IDs of the player's games.
     var ownedTitles: [String] { owned.map { item in String(item.prefix { $0 != ":" }) } }
 
+    /// The certificate the player chose and the password they typed, in a
+    /// Cartouche signed on the iPhone, for an import that the setup refused
+    /// as the scenario's work says (works signing-…): the import's page, and
+    /// the guide's and the setup's step, say why.
+    var signingTrial: (certificate: Data, password: String)? {
+        switch work {
+        case "signing-wrong-password", "signing-no-own-profile": return (Self.standInPKCS12, "cartouche")
+        case "signing-profile-file": return (Self.standInProfile, "cartouche")
+        default: return nil
+        }
+    }
+
+    /// The first bytes of a .p12, as iOS reads them: a SEQUENCE whose first
+    /// value is the INTEGER 3, its version (RFC 7292); no key, no
+    /// certificate.
+    static let standInPKCS12 = Data([0x30, 0x82, 0x01, 0x00, 0x02, 0x01, 0x03] + [UInt8](repeating: 0, count: 253))
+
+    /// A provisioning profile for the gallery's team, a year from expiring:
+    /// its property list, in the CMS envelope's place.
+    static let standInProfile: Data = {
+        let plist: [String: Any] = ["Name": "Gallery", "TeamIdentifier": ["GALLERY123"],
+                                    "ExpirationDate": Date(timeIntervalSinceNow: 365 * 86_400), "DeveloperCertificates": [Data]()]
+        let xml = (try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)) ?? Data()
+        // A CMS envelope's first bytes: a SEQUENCE, then signedData's OID.
+        return Data([0x30, 0x80, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x07, 0x02]) + xml
+    }()
+
     /// The checks of this iPhone that minimuxer failed, LocalDevVPN
     /// connected, by work: SideStore's
     /// kind of error, minimuxer's reason and the library's words behind it,
@@ -451,6 +522,10 @@ struct GalleryScenario {
         GalleryState.setupDone = setupDone
         GalleryState.signing = signing == "iphone" ? .iPhone : signing == "installer" ? .installer : .account
         GalleryState.ownSignature = ownSignature
+        GalleryState.ownProfile = signingTrial != nil && work != "signing-no-own-profile" ? Self.standInProfile : nil
+        // errSecAuthFailed, as iOS answers a password that does not open a
+        // .p12.
+        GalleryState.pkcs12Status = work == "signing-wrong-password" ? -25293 : nil
         GalleryState.certificateRefused = work == "certificate"
         GalleryState.appGroupMissing = work == "signed-elsewhere"
         GalleryState.liveProcessMissing = work?.hasSuffix("-no-liveprocess") == true
@@ -536,6 +611,14 @@ struct GalleryScenario {
             // The System page down to the scenario's section, or on the
             // Mac's builds, down to theirs.
             CartoucheSystemView.openingSection = screen == "system" ? category : nil
+            CartoucheStorageView.opensOnTailscale = screen == "storage" && category == "tailscale"
+            CartoucheNightlyRenewalView.opensOnTailscale = screen == "nightly" && category == "tailscale"
+            // Tailscale as the scenario has it, never as the Mac the
+            // simulator runs on does.
+            CartoucheStorageReach.shared.showTailscaleForGallery(["mac-tailscale", "tailscale"].contains(work))
+            if work == "tailscale-turned-off" {
+                CartoucheStorageReach.shared.showTailscaleTurnedOffForGallery()
+            }
             CartoucheSystemView.opensMacBuilds = screen == "mac-builds"
             CartoucheMacBuildsPage.openingRow = screen == "mac-builds" && category == "nightly" ? CartoucheMacBuildsPage.nightlyRow : nil
             if work == "renewing" {
@@ -551,6 +634,10 @@ struct GalleryScenario {
                 CartoucheRenewals.shared.showUnansweredForGallery()
             }
             CartoucheSetup.shared.refresh()
+            if let trial = signingTrial {
+                // The import the setup refused, as the player tried it.
+                Task { await CartoucheSetup.shared.importSigning(certificate: trial.certificate, password: trial.password, profile: nil) }
+            }
             CartoucheGuide.shared.startOverForGallery()
             if work == "build-skipped" { CartoucheGuide.shared.skipBuild() }
             if controller { CartoucheGamepad.shared.showHints() }
@@ -660,6 +747,11 @@ struct GalleryScenario {
             if screen == "storage-smb" {
                 CartoucheStorageServerForm.gallery = GallerySMB.signIn(work)
             }
+            if work == "tailscale" {
+                // Away from home: Bonjour finds no Mac, and nothing refuses
+                // it the local network.
+                CartoucheMacBrowser.gallery = (found: [], refused: false)
+            }
             if ["mac-nearby", "mac-code", "mac-refused"].contains(work) {
                 let refused = work == "mac-refused"
                 CartoucheMacBrowser.gallery = (found: refused ? [] : GalleryMac.nearby, refused: refused)
@@ -667,8 +759,12 @@ struct GalleryScenario {
                     CartoucheMacPairing.gallery = (mac: GalleryMac.nearby[0], code: "482915")
                 }
             }
-            if work == "saves", let titleId = sheet ?? ownedTitles.first {
+            if work == "saves" || work == "saves-newer", let titleId = sheet ?? ownedTitles.first {
                 GallerySaves.prepare(titleId: titleId)
+                if work == "saves-newer" {
+                    CartoucheSaveBackups.shared.showNewerForGallery("org.nxnative." + titleId.lowercased() + "|gallery",
+                                                                    CartoucheSaveNewer(copy: "1.2.0", game: "1.0.0"))
+                }
                 if screen == "switch-save" {
                     // The save JKSV exported, picked as the page opens.
                     CartoucheSwitchSaveView.galleryPick = { await GallerySaves.switchExport() }
@@ -684,17 +780,21 @@ struct GalleryScenario {
             if work == "erasing" {
                 CartoucheReset.shared.showForGallery(.erasing)
             }
-            if ["mac", "mac-offline", "mac-builds", "mac-too-old"].contains(work) {
+            if ["mac", "mac-offline", "mac-builds", "mac-too-old", "mac-tailscale", "mac-tailscale-off"].contains(work) {
                 // The player's Mac, paired, with the games Cartouche Builder
                 // built in its Games folder; offline, away from home, the
                 // saves of two games wait for it; builds, Cartouche Builder
                 // at work, which the games' sheets and System show; too
-                // old, a Cartouche Builder 0.5.0, which shares no builds.
-                let mac = GalleryMac.paired()
+                // old, a Cartouche Builder 0.5.0, which shares no builds;
+                // Tailscale, its addresses in the tailnet known.
+                var mac = GalleryMac.paired()
+                if work == "mac-tailscale" || work == "mac-tailscale-off" {
+                    mac.tailnet = GalleryMac.tailnet
+                }
                 CartoucheStorageSettings.shared.showForGallery(mac, games: CartoucheBridge.gamesFolder,
                                                                saves: CartoucheBridge.savesFolder)
                 CartoucheStoredGames.shared.showForGallery(storedGames(in: CartoucheBridge.gamesFolder), server: mac.name)
-                if work == "mac-offline" {
+                if work == "mac-offline" || work == "mac-tailscale-off" {
                     CartoucheStorageReach.shared.showOfflineForGallery([mac.id])
                     CartoucheSaveBackups.shared.showWaitingForGallery(2)
                 }
@@ -1146,7 +1246,7 @@ struct CartoucheGalleryApp: App {
             CartoucheSignInView()
         case "signing":
             NavigationStack {
-                CartoucheSigningView()
+                CartoucheSigningView(certificate: scenario.signingTrial?.certificate)
             }
         case "guide":
             NavigationStack {
@@ -1174,9 +1274,12 @@ struct CartoucheGalleryApp: App {
                 CartoucheStorageServerForm(server: GallerySMB.server(scenario.work))
             }
         case "storage-mac":
-            // As the Storage page opens it, for a Mac not paired yet.
+            // As the Storage page opens it, for a Mac not paired yet, or for
+            // the player's Mac (work mac-tailscale).
             NavigationStack {
-                CartoucheStorageMacForm(server: CartoucheStorageServer(kind: .mac, name: ""))
+                CartoucheStorageMacForm(server: scenario.work == "mac-tailscale"
+                                        ? CartoucheStorageSettings.shared.servers.first(where: { $0.kind == .mac }) ?? GalleryMac.paired()
+                                        : CartoucheStorageServer(kind: .mac, name: ""))
             }
         case "storage-drive":
             // As the Storage page opens it, to add a Google Drive.
@@ -1186,6 +1289,11 @@ struct CartoucheGalleryApp: App {
         case "storage-drive-guide":
             NavigationStack {
                 CartoucheDriveGuideView()
+            }
+        case "storage-names":
+            // As the Storage page opens it.
+            NavigationStack {
+                CartoucheNamingView(opening: scenario.category.flatMap(CartoucheNaming.Place.init(rawValue:)))
             }
         case "telemetry":
             NavigationStack {
@@ -1268,6 +1376,10 @@ enum GalleryMac {
         CartoucheNearbyMac(name: "Mac mini", macID: "c2e7a4d1-8b5f-4e3a-a6d9-1f4b7c0e9a28", endpoint: service("Mac mini")),
     ]
 
+    /// The Mac's addresses in the player's tailnet, as its Cartouche Builder
+    /// tells them with Tailscale on: made up, never the project's.
+    static let tailnet = ["100.101.102.103", "fd7a:115c:a1e0::1"]
+
     /// The Mac as Cartouche keeps it once paired, at the address it last
     /// reached it at.
     static func paired() -> CartoucheStorageServer {
@@ -1275,34 +1387,51 @@ enum GalleryMac {
     }
 
     /// Cartouche Builder at work on the Mac, as it tells Cartouche (work:
-    /// mac-builds): Mario Kart World building, Donkey Kong Bananza waiting
-    /// its turn, Link's Awakening built this morning, and three games the
+    /// mac-builds): Mario Kart World building, its IPA for the iPhone, then
+    /// its app for the Mac; Donkey Kong Bananza waiting its turn, for both;
+    /// Link's Awakening built for the iPhone this morning; and games the
     /// player has not installed: one whose last build failed yesterday,
-    /// one nxnative improved since its last build, and one the Mac does
-    /// not follow. What is due built every night at 3:30. Its words in the
-    /// gallery's language, as a Mac in that language says them (stageText
-    /// in the Mac's Theme.swift).
+    /// one nxnative improved since its last build, one the Mac does not
+    /// follow, one whose app for the Mac failed since its IPA was built,
+    /// one whose app for the Mac is to build, its IPA up to date, and one
+    /// built for the Mac alone (decision 127). What is due built every
+    /// night at 3:30. Its words in the gallery's language, as a Mac in
+    /// that language says them (stageText in the Mac's Theme.swift).
     static func builds(now: Date = Date()) -> CartoucheBridgeBuilds {
         let hour: TimeInterval = 3_600
         let french = CartoucheText.bundle.preferredLocalizations.first == "fr"
+        let both = ["ios", "mac"]
         return CartoucheBridgeBuilds(running: true, games: [
             .init(id: "0400C3F00006E000", name: "Mario Kart World", state: "building", reasons: ["changes"],
                   progress: 0.42, step: french ? "Compilation des shaders pour l’iPhone" : "Compiling shaders for the iPhone",
-                  left: 21 * 60, built: now.addingTimeInterval(-3 * 24 * hour), followed: true, stoppable: true, stopping: false),
+                  left: 21 * 60, built: now.addingTimeInterval(-3 * 24 * hour), followed: true, stoppable: true, stopping: false,
+                  platforms: both, makes: both, now: "ios",
+                  mac: CartoucheBridgeBuilds.MacApp(built: now.addingTimeInterval(-3 * 24 * hour + 1_800))),
             .init(id: "040074A01BF12000", name: "Donkey Kong Bananza", state: "queued", reasons: ["changes"], turn: 1,
-                  built: now.addingTimeInterval(-6 * 24 * hour), followed: true, stoppable: true, stopping: false),
+                  built: now.addingTimeInterval(-6 * 24 * hour), followed: true, stoppable: true, stopping: false,
+                  platforms: both, makes: both, mac: CartoucheBridgeBuilds.MacApp(built: now.addingTimeInterval(-6 * 24 * hour + 2_400))),
             .init(id: "01006BB00C6F0000", name: "The Legend of Zelda: Link's Awakening", state: "up_to_date",
-                  built: now.addingTimeInterval(-9 * hour), followed: true),
+                  built: now.addingTimeInterval(-9 * hour), followed: true, platforms: ["ios"]),
             .init(id: "01003FC01670C000", name: "13 Sentinels: Aegis Rim", state: "failed",
                   failed: now.addingTimeInterval(-26 * hour),
                   error: french ? "La construction de l’app s’est arrêtée\u{00A0}: Xcode n’a trouvé aucun SDK iOS."
                                 : "Building the app stopped: Xcode found no iOS SDK.",
-                  followed: true),
+                  followed: true, platforms: ["ios"]),
             .init(id: "0100B7C00933A000", name: "Pikmin 4", state: "due", reasons: ["changes"],
-                  built: now.addingTimeInterval(-12 * 24 * hour), followed: true),
+                  built: now.addingTimeInterval(-12 * 24 * hour), followed: true,
+                  platforms: both, mac: CartoucheBridgeBuilds.MacApp(built: now.addingTimeInterval(-12 * 24 * hour + 1_500))),
             .init(id: "0100000000010000", name: "Super Mario Odyssey", state: "not_followed",
-                  built: now.addingTimeInterval(-20 * 24 * hour), followed: false),
-        ], due: 1, nightly: CartoucheBridgeBuilds.Nightly(on: true, hour: 3, minute: 30))
+                  built: now.addingTimeInterval(-20 * 24 * hour), followed: false, platforms: ["ios"]),
+            .init(id: "01004D300C5AE000", name: "Kirby and the Forgotten Land", state: "up_to_date",
+                  built: now.addingTimeInterval(-20 * hour), followed: true, platforms: both,
+                  mac: CartoucheBridgeBuilds.MacApp(built: now.addingTimeInterval(-8 * 24 * hour), failed: now.addingTimeInterval(-19 * hour),
+                             error: french ? "Les shaders pour le Mac n’ont pas pu être compilés\u{00A0}: Metal a refusé un pipeline."
+                                           : "The shaders for the Mac could not be compiled: Metal refused a pipeline.")),
+            .init(id: "010093801237C000", name: "Metroid Dread", state: "up_to_date",
+                  built: now.addingTimeInterval(-2 * 24 * hour), followed: true, platforms: both, mac: CartoucheBridgeBuilds.MacApp(due: true)),
+            .init(id: "0400380020056000", name: "Splatoon Raiders", state: "up_to_date",
+                  built: now.addingTimeInterval(-4 * 24 * hour), followed: true, platforms: ["mac"]),
+        ], due: 2, nightly: CartoucheBridgeBuilds.Nightly(on: true, hour: 3, minute: 30))
     }
 
     private static func service(_ name: String) -> NWEndpoint {

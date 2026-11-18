@@ -16,6 +16,7 @@
         "exit": 1,
         "failure": {},
         "fallback": false,
+        "split": false,
         "frac": 1.0,
         "ipa": "",
         "k": 1,
@@ -30,6 +31,10 @@
         "mac_log": "",
         "mac_only": false,
         "mac_room": {},
+        "makes": [
+          "ios",
+          "mac"
+        ],
         "message": "the fake build failed on purpose",
         "n": 2,
         "name": "Super Mario Odyssey",

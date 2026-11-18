@@ -868,6 +868,23 @@
         }
       }
     },
+    "daily.tailscale" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Tailscale, add its Connect action last, among those of the Tailscale app: LocalDevVPN turned Tailscale off, and the automation turns it on again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec Tailscale, ajoutez en dernier son action Connect, parmi celles de l’app Tailscale : LocalDevVPN a éteint Tailscale, et l’automatisation le rallume."
+          }
+        }
+      }
+    },
     "daily.vpnAction" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3061,6 +3078,23 @@
         }
       }
     },
+    "mac.build.action.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build its app for the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Construire son app pour le Mac"
+          }
+        }
+      }
+    },
     "mac.build.action.queue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3197,6 +3231,91 @@
         }
       }
     },
+    "mac.build.for.both" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone and the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone et le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.iphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone"
+          }
+        }
+      }
+    },
+    "mac.build.for.iphoneThenMac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the iPhone, then the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour l’iPhone, puis le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour le Mac"
+          }
+        }
+      }
+    },
+    "mac.build.for.macAfterIphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done for the iPhone, now for the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fait pour l’iPhone, maintenant pour le Mac"
+          }
+        }
+      }
+    },
     "mac.build.improved" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3244,6 +3363,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "encore %@ environ"
+          }
+        }
+      }
+    },
+    "mac.build.macDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, its app for the Mac is to build"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, son app pour le Mac est à construire"
+          }
+        }
+      }
+    },
+    "mac.build.macFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, the last build of its app for the Mac failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, la dernière construction de son app pour le Mac a échoué"
+          }
+        }
+      }
+    },
+    "mac.build.macFailed.on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its IPA is up to date, the last build of its app for the Mac failed, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son IPA est à jour, la dernière construction de son app pour le Mac a échoué, %@"
           }
         }
       }
@@ -3560,13 +3730,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld games are due: nxnative improved them, or they were never built."
+            "value" : "%lld games are due: nxnative improved them, they were never built, or only their app for the Mac is left to build."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld jeux sont à construire : nxnative les a améliorés, ou ils n’ont jamais été construits."
+            "value" : "%lld jeux sont à construire : nxnative les a améliorés, ils n’ont jamais été construits, ou seule leur app pour le Mac reste à construire."
           }
         }
       }
@@ -3594,13 +3764,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 game is due: nxnative improved it, or it was never built."
+            "value" : "1 game is due: nxnative improved it, it was never built, or only its app for the Mac is left to build."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 jeu est à construire : nxnative l’a amélioré, ou il n’a jamais été construit."
+            "value" : "1 jeu est à construire : nxnative l’a amélioré, il n’a jamais été construit, ou seule son app pour le Mac reste à construire."
           }
         }
       }
@@ -3618,6 +3788,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Échec %@"
+          }
+        }
+      }
+    },
+    "mac.builds.failed.iphone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed for the iPhone %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec pour l’iPhone %@"
+          }
+        }
+      }
+    },
+    "mac.builds.failed.mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed for the Mac %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec pour le Mac %@"
           }
         }
       }
@@ -4081,6 +4285,57 @@
         }
       }
     },
+    "mac.game.macDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app is to build"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son app Mac est à construire"
+          }
+        }
+      }
+    },
+    "mac.game.macFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son app Mac a échoué"
+          }
+        }
+      }
+    },
+    "mac.game.macFailed.on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its Mac app failed %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de son app Mac %@"
+          }
+        }
+      }
+    },
     "mac.game.new" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4179,6 +4434,414 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En attente de son tour"
+          }
+        }
+      }
+    },
+    "naming.buildFolder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A folder ending in _build, where nxnative builds, or in _dump, and the Finder’s __MACOSX: never a game."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dossier finissant par _build, où nxnative construit, ou par _dump, et le __MACOSX du Finder : jamais un jeu."
+          }
+        }
+      }
+    },
+    "naming.built" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An IPA or a romfs.img is no dump: put them in the games folder."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une IPA ou un romfs.img n’est pas un dump : mettez-les dans le dossier des jeux."
+          }
+        }
+      }
+    },
+    "naming.copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A copy of the game’s saves, named after when it was made, in UTC. The %lld newest are kept."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une copie des sauvegardes du jeu, nommée d’après le moment où elle a été faite, en UTC. Les %lld plus récentes sont gardées."
+          }
+        }
+      }
+    },
+    "naming.dump" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A dump, as nxnative lays it out (base/exefs and base/romfs, or exefs and romfs, then updates and dlc), or zipped: any name, its title ID is read inside."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dump, rangé comme nxnative le lit (base/exefs et base/romfs, ou exefs et romfs, puis updates et dlc), ou zippé : n’importe quel nom, son ID du titre est lu à l’intérieur."
+          }
+        }
+      }
+    },
+    "naming.dumps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dumps folder, for Cartouche Builder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier des dumps, pour Cartouche Builder"
+          }
+        }
+      }
+    },
+    "naming.dumps.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loose or each in its folder, up to %lld folders down. A name without its title ID works too: Cartouche Builder then reads it inside, which takes your prod.keys for a package."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En vrac ou chacun dans son dossier, jusqu’à %lld dossiers plus bas. Un nom sans ID du titre convient aussi : Cartouche Builder le lit alors à l’intérieur, ce qui demande vos prod.keys pour un paquet."
+          }
+        }
+      }
+    },
+    "naming.found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnu"
+          }
+        }
+      }
+    },
+    "naming.gameFiles" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The image of a game’s files, for an IPA built without them: any name ending in romfs.img, beside its IPA or elsewhere in the folder."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’image des fichiers d’un jeu, pour une IPA construite sans eux : tout nom finissant par romfs.img, à côté de son IPA ou ailleurs dans le dossier."
+          }
+        }
+      }
+    },
+    "naming.gameFolder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A folder per game, which Cartouche makes: any name, as long as it ends with the game’s title ID."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dossier par jeu, que Cartouche crée : n’importe quel nom, tant qu’il finit par l’ID du titre du jeu."
+          }
+        }
+      }
+    },
+    "naming.games.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche Builder puts each game’s IPA here, named so; a game copied here from its sheet is named the same way."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche Builder dépose ici l’IPA de chaque jeu, nommée ainsi ; un jeu copié ici depuis sa fiche est nommé de la même façon."
+          }
+        }
+      }
+    },
+    "naming.intro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche and Cartouche Builder know a game by its title ID: the 16 letters and digits in square brackets in its name, as they name what they write. A game’s sheet shows its title ID."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche et Cartouche Builder reconnaissent un jeu à son ID du titre : les 16 lettres et chiffres entre crochets dans son nom, comme ils nomment ce qu’ils écrivent. La fiche d’un jeu montre son ID du titre."
+          }
+        }
+      }
+    },
+    "naming.leftAside" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left aside"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissé de côté"
+          }
+        }
+      }
+    },
+    "naming.macApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A game built for the Mac, which Cartouche Builder keeps beside its IPA on a NAS: leave it there."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un jeu construit pour le Mac, que Cartouche Builder garde à côté de son IPA sur un NAS : laissez-le là."
+          }
+        }
+      }
+    },
+    "naming.namedIPA" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An IPA, named as Cartouche and Cartouche Builder name it: the game, then its title ID."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une IPA, nommée comme Cartouche et Cartouche Builder la nomment : le jeu, puis son ID du titre."
+          }
+        }
+      }
+    },
+    "naming.notACopy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not a copy Cartouche made: it stays as it is, never put back."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas une copie faite par Cartouche : elle reste telle quelle, jamais remise en place."
+          }
+        }
+      }
+    },
+    "naming.nup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Switch 2 game, in its .nup."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un jeu Switch 2, dans son .nup."
+          }
+        }
+      }
+    },
+    "naming.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How to name your games"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment nommer vos jeux"
+          }
+        }
+      }
+    },
+    "naming.package" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A game’s package: .nsp, .xci, .nsz or .xcz, read with your prod.keys."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le paquet d’un jeu : .nsp, .xci, .nsz ou .xcz, lu avec vos prod.keys."
+          }
+        }
+      }
+    },
+    "naming.saves.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche names these itself: leave their names as they are."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche les nomme lui-même : laissez leurs noms tels quels."
+          }
+        }
+      }
+    },
+    "naming.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naming your games"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nommer vos jeux"
+          }
+        }
+      }
+    },
+    "naming.tooDeep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two folders down: Cartouche reads the folder and the folders right in it, no deeper."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deux dossiers plus bas : Cartouche lit le dossier et les dossiers juste dedans, pas plus loin."
+          }
+        }
+      }
+    },
+    "naming.unnamedFolder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without the game’s title ID: Cartouche makes the game’s own folder beside it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans l’ID du titre du jeu : Cartouche crée le dossier du jeu à côté."
+          }
+        }
+      }
+    },
+    "naming.unnamedIPA" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any other name ending in .ipa: Cartouche then reads the game inside, a little slower."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout autre nom finissant par .ipa : Cartouche lit alors le jeu à l’intérieur, un peu plus lentement."
+          }
+        }
+      }
+    },
+    "naming.update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its update, beside it: an update’s title ID is its game’s with 800 at its end instead of 000. Its DLC go beside it too."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sa mise à jour, à côté : l’ID du titre d’une mise à jour est celui de son jeu, avec 800 au lieu de 000 à la fin. Ses DLC vont aussi à côté."
           }
         }
       }
@@ -6172,6 +6835,23 @@
         }
       }
     },
+    "saves.newerGame" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The newest copy of these saves comes from version %1$@ of the game, newer than the one installed here (%2$@): it comes once the game is updated. Until then, the saves played here go to your saves folder as a copy of their own."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copie la plus récente de ces sauvegardes vient de la version %1$@ du jeu, plus récente que celle installée ici (%2$@) : elle viendra une fois le jeu mis à jour. D’ici là, les sauvegardes jouées ici partent dans votre dossier des sauvegardes comme une copie à part."
+          }
+        }
+      }
+    },
     "saves.noCopy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6287,6 +6967,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elle remplace les sauvegardes du jeu sur cet iPhone. Cartouche les envoie d’abord dans votre dossier des sauvegardes : vous pourrez y revenir."
+          }
+        }
+      }
+    },
+    "saves.putBack.newer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This copy comes from version %1$@ of the game, newer than the one installed here (%2$@): update the game to put it back."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette copie vient de la version %1$@ du jeu, plus récente que celle installée ici (%2$@) : mettez le jeu à jour pour la remettre."
           }
         }
       }
@@ -10235,23 +10932,6 @@
         }
       }
     },
-    "signing.invalidKey" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This certificate does not open. Check its password, and that the .p12 holds its private key."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce certificat ne s’ouvre pas. Vérifiez son mot de passe, et que le .p12 contient bien sa clé privée."
-          }
-        }
-      }
-    },
     "signing.invalidProfile" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10265,6 +10945,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ce profil n’est pas valide, a expiré ou ne correspond pas à ce certificat."
+          }
+        }
+      }
+    },
+    "signing.noPrivateKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This .p12 holds the certificate without its private key, which signing needs. Choose a .p12 exported with its private key."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce .p12 contient le certificat sans sa clé privée, qui sert à signer. Choisissez un .p12 exporté avec sa clé privée."
+          }
+        }
+      }
+    },
+    "signing.notCertificate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is not a certificate. Choose the file whose name ends in .p12."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier n’est pas un certificat. Choisissez le fichier dont le nom finit par .p12."
           }
         }
       }
@@ -10303,6 +11017,40 @@
         }
       }
     },
+    "signing.ownProfileExpired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The profile your signing app signed Cartouche with has expired. Sign Cartouche again with a valid profile, then choose the certificate here."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le profil avec lequel votre app de signature a signé Cartouche a expiré. Signez Cartouche à nouveau avec un profil valide, puis choisissez le certificat ici."
+          }
+        }
+      }
+    },
+    "signing.ownProfileUnreadable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche cannot read the profile your signing app signed it with. Sign Cartouche again in your signing app with your certificate and its profile (.mobileprovision), then choose the certificate here."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ne lit pas le profil avec lequel votre app de signature l’a signé. Signez Cartouche à nouveau dans votre app de signature avec votre certificat et son profil (.mobileprovision), puis choisissez le certificat ici."
+          }
+        }
+      }
+    },
     "signing.password" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10320,6 +11068,23 @@
         }
       }
     },
+    "signing.passwordNeeded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This certificate has a password. Type the one that came with it, then try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce certificat a un mot de passe. Tapez celui qui l’accompagnait, puis réessayez."
+          }
+        }
+      }
+    },
     "signing.profileChosen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10333,6 +11098,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisir un autre profil (.mobileprovision)"
+          }
+        }
+      }
+    },
+    "signing.profileFile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is a profile (.mobileprovision), not the certificate. Choose the .p12 file that came with it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier est un profil (.mobileprovision), pas le certificat. Choisissez le fichier .p12 qui l’accompagnait."
           }
         }
       }
@@ -10388,6 +11170,23 @@
         }
       }
     },
+    "signing.signerRefused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its password is right, but Cartouche cannot sign with this certificate. Export the .p12 again with its private key, or use another certificate."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son mot de passe est le bon, mais Cartouche ne peut pas signer avec ce certificat. Exportez à nouveau le .p12 avec sa clé privée, ou utilisez un autre certificat."
+          }
+        }
+      }
+    },
     "signing.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10401,6 +11200,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importer un certificat de signature"
+          }
+        }
+      }
+    },
+    "signing.unreadableKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS cannot read this .p12: it may be damaged or incomplete. Download or copy it again, then choose it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS ne lit pas ce .p12 : il est peut-être abîmé ou incomplet. Téléchargez-le ou copiez-le à nouveau, puis choisissez-le."
           }
         }
       }
@@ -10469,6 +11285,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Attendez la fin de la connexion ou de la mise à jour avant de changer de certificat."
+          }
+        }
+      }
+    },
+    "signing.wrongPassword" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This password does not open this certificate. Type the one that came with the .p12, capital letters included."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce mot de passe n’ouvre pas ce certificat. Tapez celui fourni avec le .p12, majuscules comprises."
+          }
+        }
+      }
+    },
+    "signing.wrongPasswordOnIPhone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This password does not open this certificate. Type the one that came with the .p12, which your signing app asked for too, capital letters included."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce mot de passe n’ouvre pas ce certificat. Tapez celui fourni avec le .p12, que votre app de signature vous a aussi demandé, majuscules comprises."
+          }
+        }
+      }
+    },
+    "signing.zipFile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is a .zip. Tap it in the Files app first, which opens it as a folder, then choose the .p12 file in that folder."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier est un .zip. Touchez-le d’abord dans l’app Fichiers, qui l’ouvre en dossier, puis choisissez le fichier .p12 de ce dossier."
           }
         }
       }
@@ -12411,6 +13278,91 @@
         }
       }
     },
+    "storage.mac.address.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Away from home, or on a network where Bonjour does not find it: with Tailscale on this iPhone and on the Mac, type the Mac’s name in Tailscale, such as macbook-air, or its address there, which starts with 100."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hors de chez vous, ou sur un réseau où Bonjour ne le trouve pas : avec Tailscale sur cet iPhone et sur le Mac, tapez le nom du Mac dans Tailscale, comme macbook-air, ou son adresse là-bas, qui commence par 100."
+          }
+        }
+      }
+    },
+    "storage.mac.address.invalid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is neither a name nor an address: type the Mac’s name in Tailscale, or its address there, without anything before or after it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce n’est ni un nom ni une adresse : tapez le nom du Mac dans Tailscale, ou son adresse là-bas, sans rien avant ni après."
+          }
+        }
+      }
+    },
+    "storage.mac.address.pair" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair with this Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Associer ce Mac"
+          }
+        }
+      }
+    },
+    "storage.mac.address.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale name or address of the Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom Tailscale ou adresse du Mac"
+          }
+        }
+      }
+    },
+    "storage.mac.address.unanswered" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ does not answer: check its address, that Share with Cartouche on the iPhone is on in Cartouche Builder, and that Tailscale is connected on this iPhone and on the Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond pas : vérifiez son adresse, que Partager avec Cartouche sur l’iPhone est activé dans Cartouche Builder, et que Tailscale est connecté sur cet iPhone et sur le Mac."
+          }
+        }
+      }
+    },
     "storage.mac.busy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12424,6 +13376,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ associe un autre iPhone, ou a été trop sollicité : réessayez dans quelques minutes."
+          }
+        }
+      }
+    },
+    "storage.mac.byAddress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By its address"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par son adresse"
           }
         }
       }
@@ -12502,13 +13471,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On your Mac, open Cartouche Builder and turn on Share with Cartouche on the iPhone, on its iPhone page. This iPhone and the Mac must be on the same Wi-Fi."
+            "value" : "On your Mac, open Cartouche Builder and turn on Share with Cartouche on the iPhone, on its iPhone page. This iPhone and the Mac must be on the same Wi-Fi, or both on Tailscale: then pair it by its address, below."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sur votre Mac, ouvrez Cartouche Builder et activez Partager avec Cartouche sur l’iPhone, dans sa page iPhone. Cet iPhone et le Mac doivent être sur le même Wi-Fi."
+            "value" : "Sur votre Mac, ouvrez Cartouche Builder et activez Partager avec Cartouche sur l’iPhone, dans sa page iPhone. Cet iPhone et le Mac doivent être sur le même Wi-Fi, ou tous deux sur Tailscale : associez-le alors par son adresse, plus bas."
           }
         }
       }
@@ -12649,6 +13618,40 @@
         }
       }
     },
+    "storage.mac.offline.tailscale" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ answers neither on this network nor through Tailscale. Open Cartouche Builder on it with Share with Cartouche on the iPhone turned on, and check that Tailscale is connected on the Mac too."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond ni sur ce réseau ni par Tailscale. Ouvrez-y Cartouche Builder avec Partager avec Cartouche sur l’iPhone activé, et vérifiez que Tailscale est connecté sur le Mac aussi."
+          }
+        }
+      }
+    },
+    "storage.mac.offline.tailscaleOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ does not answer on this network. Away from home, turn on Tailscale on this iPhone for Cartouche to reach it. At home, open Cartouche Builder on it with Share with Cartouche on the iPhone turned on."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond pas sur ce réseau. Hors de chez vous, allumez Tailscale sur cet iPhone pour que Cartouche le rejoigne. Chez vous, ouvrez-y Cartouche Builder avec Partager avec Cartouche sur l’iPhone activé."
+          }
+        }
+      }
+    },
     "storage.mac.pairAgain" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12730,6 +13733,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ n’a pas autorisé cet iPhone."
+          }
+        }
+      }
+    },
+    "storage.mac.tailnetAddress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Through Tailscale"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par Tailscale"
           }
         }
       }
@@ -13002,6 +14022,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ hors ligne"
+          }
+        }
+      }
+    },
+    "storage.offline.tailscaleOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ answers only through Tailscale, which is off on this iPhone: turn it on in the Tailscale app, and Cartouche tries again at once."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond que par Tailscale, éteint sur cet iPhone : allumez-le dans l’app Tailscale, et Cartouche réessaie aussitôt."
+          }
+        }
+      }
+    },
+    "storage.offline.tailscaleOff.short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: Tailscale off"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : Tailscale éteint"
           }
         }
       }
@@ -13488,13 +14542,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only storage of your own, with your own account: Cartouche keeps the password, the secret key or the Google sign-in in this iPhone’s keychain."
+            "value" : "Only storage of your own, with your own account: Cartouche keeps the password, the secret key or the Google sign-in in this iPhone’s keychain. The Mac you pair with Cartouche Builder keeps the same connections, passwords included, over the bridge’s encryption."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uniquement votre propre stockage, avec votre propre compte : Cartouche garde le mot de passe, la clé secrète ou la connexion Google dans le trousseau de cet iPhone."
+            "value" : "Uniquement votre propre stockage, avec votre propre compte : Cartouche garde le mot de passe, la clé secrète ou la connexion Google dans le trousseau de cet iPhone. Le Mac que vous associez avec Cartouche Builder garde les mêmes connexions, mots de passe compris, par le chiffrement du pont."
           }
         }
       }
@@ -13784,6 +14838,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ne plus utiliser ce dossier"
+          }
+        }
+      }
+    },
+    "storage.tailscale.appStore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale on the App Store"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale dans l’App Store"
+          }
+        }
+      }
+    },
+    "storage.tailscale.connected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté"
+          }
+        }
+      }
+    },
+    "storage.tailscale.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Tailscale, installed apart on this iPhone and on your Mac or NAS, Cartouche reaches them wherever you are: your Mac by itself, a NAS by its name or its address in Tailscale. iOS keeps one VPN at a time: LocalDevVPN, which Cartouche connects to renew and update itself, turns Tailscale off until you turn it on again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec Tailscale, installé à part sur cet iPhone et sur votre Mac ou votre NAS, Cartouche les rejoint où que vous soyez : votre Mac de lui-même, un NAS par son nom ou son adresse dans Tailscale. iOS ne garde qu’un VPN à la fois : LocalDevVPN, que Cartouche connecte pour se renouveler et se mettre à jour, éteint Tailscale jusqu’à ce que vous le rallumiez."
+          }
+        }
+      }
+    },
+    "storage.tailscale.off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éteint"
+          }
+        }
+      }
+    },
+    "storage.tailscale.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Away from home"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hors de chez vous"
           }
         }
       }
@@ -16368,6 +17507,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Système"
+          }
+        }
+      }
+    },
+    "tailscale.turnedOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LocalDevVPN turned Tailscale off, as iOS keeps one VPN at a time: open Tailscale to turn it on again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LocalDevVPN a éteint Tailscale, iOS ne gardant qu’un VPN à la fois : ouvrez Tailscale pour le rallumer."
+          }
+        }
+      }
+    },
+    "tailscale.turnedOff.short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale off"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale éteint"
           }
         }
       }

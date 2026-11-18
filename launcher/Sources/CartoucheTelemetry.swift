@@ -473,6 +473,9 @@ final class CartoucheTelemetry: ObservableObject {
             // The Apple ID's, or the player's own certificate, given by the
             // Cartouche Installer or on the iPhone (docs/imported-signing.md).
             "signing": .text(CartoucheImportedSigning.mode.rawValue),
+            // Whether Tailscale is connected, which the player installs
+            // apart: never their tailnet, its names or its addresses.
+            "tailscale": .flag(CartoucheTailscale.isConnected),
         ]
         // What it is made of: never the Apple ID, only whether there is one.
         fields.merge(setup.facts.fields) { _, made in made }
@@ -480,6 +483,11 @@ final class CartoucheTelemetry: ObservableObject {
         // never the team nor the profile.
         if let signature = CartoucheOwnSignature.current {
             fields.merge(signature.fields.mapValues { .text($0) }) { _, signed in signed }
+        } else if CartoucheImportedSigning.isImportedInstall {
+            // A profile Cartouche does not read: none in it, as two copies
+            // signed on the iPhone seemed to have on 16 November, or one
+            // that does not read.
+            fields["ownProfile"] = .text(CartoucheImportedSigning.ownProfile == nil ? "missing" : "unreadable")
         }
         if let days = CartoucheSignature.current().daysLeft {
             fields["signatureDays"] = .number(Double(days))

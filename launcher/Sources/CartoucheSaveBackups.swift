@@ -22,6 +22,10 @@
 //  - A copy can be put back from the game's sheet: the saves it replaces go
 //    to the saves folder first, and the copy put back becomes the newest
 //    one there, which the player's other iPhones take at their next start.
+//  - A copy a newer version of the game wrote, on a Mac or an iPhone that
+//    has the game's update, never comes to an older one: the saves here go
+//    as a copy under it, and the game's sheet says the copy waits for the
+//    game's update (CartoucheSaveSync.heldBack).
 //
 //  Away from the saves folder's server, as from a NAS at home, the saves
 //  wait: Cartouche finds the server offline within a few seconds
@@ -59,6 +63,9 @@ final class CartoucheSaveBackups: ObservableObject {
     /// The games whose saves wait for the saves folder's server, offline
     /// from here, by target key: they go once it answers again.
     @Published private(set) var waiting: Set<String> = []
+    /// The games whose newest copy a newer version of the game wrote, which
+    /// waits for the game's update, by target key.
+    @Published private(set) var newer: [String: CartoucheSaveNewer]
 
     private let settings: CartoucheStorageSettings
     private let defaults: UserDefaults
@@ -70,6 +77,7 @@ final class CartoucheSaveBackups: ObservableObject {
     private static let basesKey = "Cartouche.saves.bases"
     private static let syncedKey = "Cartouche.saves.synced"
     private static let newsKey = "Cartouche.saves.news"
+    private static let newerKey = "Cartouche.saves.newer"
     /// What Cartouche kept before it synced the saves: how each game's saves
     /// looked at their last copy, "<server ID>|<path>|<look>", and the date
     /// that named the copy.
@@ -82,6 +90,7 @@ final class CartoucheSaveBackups: ObservableObject {
         let decoder = JSONDecoder()
         bases = defaults.data(forKey: Self.basesKey).flatMap { try? decoder.decode([String: CartoucheSaveBase].self, from: $0) } ?? [:]
         news = defaults.data(forKey: Self.newsKey).flatMap { try? decoder.decode([String: CartoucheSaveNews].self, from: $0) } ?? [:]
+        newer = defaults.data(forKey: Self.newerKey).flatMap { try? decoder.decode([String: CartoucheSaveNewer].self, from: $0) } ?? [:]
         let synced = (defaults.dictionary(forKey: Self.syncedKey) as? [String: Date]) ?? [:]
         let copied = (defaults.dictionary(forKey: Self.lastKey) as? [String: Date]) ?? [:]
         lastSync = synced.merging(copied) { synced, _ in synced }
@@ -89,6 +98,13 @@ final class CartoucheSaveBackups: ObservableObject {
 
     /// Whether the player chose a saves folder.
     var isOn: Bool { settings.location(.saves) != nil }
+
+    /// Why the last sync failed, and the report on it, as TARGET's sheet
+    /// shows it: on the iPhone, whose syncs go in rounds, the last round's
+    /// for every game; on the Mac, each game's own (Mac/ConsoleSaves.swift).
+    func problem(of target: CartoucheSaveTarget) -> CartoucheReport? {
+        problemReport
+    }
 
     /// After a game: sends the saves of the TARGETS that changed since they
     /// were last in step with the saves folder, unless syncs are under way.
@@ -121,6 +137,12 @@ final class CartoucheSaveBackups: ObservableObject {
     /// gallery (launcher/Gallery).
     func showWaitingForGallery(_ count: Int) {
         waiting = Set((0 ..< count).map { "gallery-\($0)" })
+    }
+
+    /// The newest copy of the saves of the game of KEY waiting for its
+    /// update, for the launcher's gallery.
+    func showNewerForGallery(_ key: String, _ held: CartoucheSaveNewer) {
+        newer[key] = held
     }
     #endif
 
@@ -277,9 +299,21 @@ final class CartoucheSaveBackups: ObservableObject {
         }
         lastSync[target.key] = Date()
         defaults.set(lastSync, forKey: Self.syncedKey)
+        // The newest copy waits for the game's update, until it comes or
+        // the saves here go over it.
+        if let held = outcome.newer {
+            note(newer: CartoucheSaveNewer(copy: held, game: target.gameVersion ?? ""), of: target)
+        } else if outcome.fetched != nil || outcome.sent != nil || outcome.step == .same {
+            note(newer: nil, of: target)
+        }
         let fetched = outcome.fetched.flatMap(CartoucheSaveSync.date(inName:))
         let kept = outcome.kept.flatMap(CartoucheSaveSync.date(inName:))
-        if fetched != nil || kept != nil {
+        if outcome.newer != nil {
+            // What the sheet says of the newest copy, which waits, takes the
+            // place of the news, the copy kept under it with them.
+            guard news[target.key] != nil else { return }
+            news[target.key] = nil
+        } else if fetched != nil || kept != nil {
             news[target.key] = CartoucheSaveNews(fetched: fetched, kept: kept)
         } else if outcome.sent != nil {
             // Played since: what came before is old news.
@@ -290,12 +324,23 @@ final class CartoucheSaveBackups: ObservableObject {
         defaults.set(try? JSONEncoder().encode(news), forKey: Self.newsKey)
     }
 
+    /// Keeps whether TARGET's newest copy waits for the game's update.
+    private func note(newer held: CartoucheSaveNewer?, of target: CartoucheSaveTarget) {
+        guard newer[target.key] != held else { return }
+        newer[target.key] = held
+        defaults.set(try? JSONEncoder().encode(newer), forKey: Self.newerKey)
+        if let held {
+            CartoucheReports.note("Saves of \(target.name): the newest copy is of version \(held.copy) of the game, "
+                                  + "newer than this iPhone's \(held.game); it waits for the game's update")
+        }
+    }
+
     /// The journal's lines on a round: the saves sent, those that came, and
     /// those kept under newer ones.
     private func note(_ outcomes: [String: CartoucheSaveOutcome], of targets: [CartoucheSaveTarget]) {
         let sent = targets.filter { outcomes[$0.key]?.sent != nil }.count
         if sent > 0 {
-            CartoucheReports.note("Saves sent to the saves folder: \(sent) " + (sent == 1 ? "game" : "games"))
+            CartoucheReports.note("Saves sent to the saves folder: \(sent) " + (sent == 1 ? "game" : "games"), own: true)
         }
         for target in targets {
             guard let outcome = outcomes[target.key] else { continue }
@@ -306,7 +351,8 @@ final class CartoucheSaveBackups: ObservableObject {
                     line += "; this iPhone's kept there as \(kept)"
                 }
             } else if let kept = outcome.kept {
-                line = "Saves of \(target.name): newer ones in the saves folder, for the next start; "
+                line = "Saves of \(target.name): newer ones in the saves folder, "
+                line += outcome.newer == nil ? "for the next start; " : "for the game's update; "
                 line += "this iPhone's kept there as \(kept)"
             } else {
                 continue
@@ -322,7 +368,8 @@ final class CartoucheSaveBackups: ObservableObject {
         let added = Set(targets.map { $0.key }).subtracting(waiting)
         guard !added.isEmpty else { return }
         waiting.formUnion(added)
-        CartoucheReports.note("Saves waiting for the saves folder: \(waiting.count) " + (waiting.count == 1 ? "game" : "games"))
+        CartoucheReports.note("Saves waiting for the saves folder: \(waiting.count) " + (waiting.count == 1 ? "game" : "games"),
+                              own: true)
     }
 
     /// The saves folder, as a base names it: "<server ID>|<path>".

@@ -6,8 +6,17 @@
 //  the player signs in to a shared folder of their Mac, PC or NAS, a
 //  bucket, a server or their Google Drive (CartoucheStorageDriveView.swift),
 //  or picks a folder in Files, and chooses the games folder and the saves
-//  folder; and, on a game's sheet, the copies of its saves, which can be put
-//  back.
+//  folder. A game's saves on its sheet, and their copies, which can be put
+//  back, are in CartoucheSavesView.swift.
+//
+//  Cartouche's console on the Mac shows the same page, its connections the
+//  same as the paired iPhones' (CartoucheConnections.swift): this Mac's
+//  folders, the Builder's, stand in place of the games folder and the saves
+//  folder (builder/mac, ConsoleStorage.swift), and neither a Mac nor a
+//  folder of Files is added there. When the saves folder chosen on the
+//  iPhone is on one of the connections, the Builder keeps the saves of the
+//  Mac's games there too, and the page shows it as the iPhone does, the
+//  choice staying the iPhone's.
 //
 
 import Combine
@@ -37,33 +46,71 @@ struct CartoucheStorageView: View {
     // the synthesized initializer private.
     init() {}
 
+    /// Whether the page opens scrolled down to Tailscale, for the launcher's
+    /// gallery (launcher/Gallery); never in Cartouche.
+    #if CARTOUCHE_GALLERY
+    static var opensOnTailscale = false
+    #else
+    static let opensOnTailscale = false
+    #endif
+
+    /// Tailscale's row, which the gallery opens the page on.
+    private static let tailscaleRow = "tailscale"
+
     var body: some View {
-        List {
-            Section {
-                Text(CartoucheText.storageIntro)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        ScrollViewReader { reader in
+            List {
+                Section {
+                    Text(CartoucheText.storageIntro)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                #if os(macOS)
+                // This Mac's folders, the Builder's (ConsoleStorage.swift),
+                // and the iPhone's saves folder, where the Builder keeps the
+                // saves of this Mac's games when it is on a connection.
+                CartoucheMacFoldersSection()
+                if settings.keepsMacSavesOnConnection {
+                    placeSection(.saves)
+                }
+                #else
+                placeSection(.games)
+                placeSection(.saves)
+                #endif
+                serversSection
+                #if os(iOS)
+                // The iPhone's way home from afar. A Mac's Tailscale is its
+                // own, which Cartouche Builder tells the iPhone about
+                // (BridgeServer.swift); the console reaches this Mac's
+                // folders itself.
+                tailscaleSection
+                #endif
             }
-            placeSection(.games)
-            placeSection(.saves)
-            serversSection
+            .cartoucheStageBackground()
+            .task {
+                guard Self.opensOnTailscale else { return }
+                // Once the list has laid out its rows; the section's header
+                // shows above its first row.
+                try? await Task.sleep(for: .milliseconds(500))
+                reader.scrollTo(Self.tailscaleRow, anchor: UnitPoint(x: 0.5, y: 0.6))
+            }
         }
-        .cartoucheStageBackground()
         .navigationTitle(CartoucheText.storageTitle)
         .sheet(item: $editing) { server in
             NavigationStack {
+                #if os(iOS)
                 if server.kind == .mac {
                     CartoucheStorageMacForm(server: server)
-                } else if server.kind == .drive {
-                    CartoucheStorageDriveForm(server: server)
-                } else if server.kind == .s3 {
-                    CartoucheStorageS3Form(server: server)
-                } else if server.kind == .ftp || server.kind == .sftp {
-                    CartoucheStorageFTPForm(server: server)
                 } else {
-                    CartoucheStorageServerForm(server: server)
+                    form(server)
                 }
+                #else
+                form(server)
+                #endif
             }
+            #if os(macOS)
+            .frame(minWidth: 480, idealWidth: 520, minHeight: 540, idealHeight: 640)
+            #endif
             .preferredColorScheme(.dark)
         }
         .sheet(item: $browsing) { browsing in
@@ -81,6 +128,7 @@ struct CartoucheStorageView: View {
             }
             .preferredColorScheme(.dark)
         }
+        #if os(iOS)
         .sheet(isPresented: $choosingFolder) {
             CartoucheFolderPicker { url in
                 choosingFolder = false
@@ -88,12 +136,30 @@ struct CartoucheStorageView: View {
             }
             .ignoresSafeArea()
         }
+        #endif
+    }
+
+    /// The form of SERVER, by its kind.
+    @ViewBuilder
+    private func form(_ server: CartoucheStorageServer) -> some View {
+        if server.kind == .drive {
+            CartoucheStorageDriveForm(server: server)
+        } else if server.kind == .s3 {
+            CartoucheStorageS3Form(server: server)
+        } else if server.kind == .ftp || server.kind == .sftp {
+            CartoucheStorageFTPForm(server: server)
+        } else {
+            CartoucheStorageServerForm(server: server)
+        }
     }
 
     // MARK: The games folder and the saves folder
 
+    /// The row that opens how to name the games, which the UI tests tap.
+    static let namingRow = "storage.naming"
+
     private func placeSection(_ role: CartoucheStorageRole) -> some View {
-        Section {
+        CartoucheSection {
             if let place = settings.place(role), let server = settings.server(place.server) {
                 LabeledContent {
                     Text(Self.placeName(server: server, path: place.path))
@@ -122,7 +188,7 @@ struct CartoucheStorageView: View {
                             .foregroundStyle(Color.orange)
                     }
                     if offline {
-                        let away = CartoucheStorageOffline(server)
+                        let away = CartoucheStorageOffline(server, tailscale: reach.tailscaleConnected)
                         Label(away.localizedDescription, systemImage: away.symbol)
                             .font(.footnote)
                             .foregroundStyle(Color.orange)
@@ -141,10 +207,11 @@ struct CartoucheStorageView: View {
                     }
                     Button(CartoucheText.storageReadAgain, systemImage: "arrow.clockwise") { stored.refresh(evenIfOffline: true) }
                         .disabled(stored.isScanning)
+                    namingLink
                 } else if offline {
                     // As the games folder's lines: what waits, and a way to
                     // try the server again, or to sign in to the Drive again.
-                    let away = CartoucheStorageOffline(server)
+                    let away = CartoucheStorageOffline(server, tailscale: reach.tailscaleConnected)
                     Label(away.localizedDescription, systemImage: away.symbol)
                         .font(.footnote)
                         .foregroundStyle(Color.orange)
@@ -173,6 +240,8 @@ struct CartoucheStorageView: View {
                         .foregroundStyle(Color.orange)
                     CartoucheReportButton(report: problem)
                 }
+                #if os(iOS)
+                // On the Mac, the iPhone's: chosen there.
                 Menu {
                     serverChoices(role)
                 } label: {
@@ -184,21 +253,42 @@ struct CartoucheStorageView: View {
                 } label: {
                     Label(CartoucheText.storageStopUsing, systemImage: "xmark.circle")
                 }
+                #endif
             } else if settings.servers.isEmpty {
                 Text(CartoucheText.storageAddFirst)
                     .foregroundStyle(.secondary)
+                if role == .games { namingLink }
             } else {
                 Menu {
                     serverChoices(role)
                 } label: {
                     Label(CartoucheText.storageChooseFolder, systemImage: "folder.badge.plus")
                 }
+                if role == .games { namingLink }
             }
         } header: {
             Text(Self.title(role))
         } footer: {
+            #if os(macOS)
+            Text(role == .games ? CartoucheText.storageGamesFooter : CartoucheText.macStorageIPhoneSavesFooter(CartoucheSaveBackups.kept))
+            #else
             Text(role == .games ? CartoucheText.storageGamesFooter : CartoucheText.storageSavesFooter(CartoucheSaveBackups.kept))
+            #endif
         }
+    }
+
+    /// How the games here are named, their saves too, and the dumps
+    /// Cartouche Builder reads on a Mac: under the games folder's reading,
+    /// before the folder is changed, or under what to do first. On the Mac,
+    /// under This Mac's folders (ConsoleStorage.swift), which open it
+    /// beside the console.
+    private var namingLink: some View {
+        NavigationLink {
+            CartoucheNamingView()
+        } label: {
+            Label(CartoucheText.namingOpen, systemImage: "text.badge.checkmark")
+        }
+        .accessibilityIdentifier(Self.namingRow)
     }
 
     /// The servers to look for ROLE's folder on. A shared folder that lets
@@ -219,9 +309,19 @@ struct CartoucheStorageView: View {
 
     // MARK: Servers and folders
 
+    /// The servers the page lists: on the Mac, the player's connections,
+    /// not the saves folder the Builder keeps the games' saves in.
+    private var listed: [CartoucheStorageServer] {
+        #if os(macOS)
+        return settings.servers.filter(\.travels)
+        #else
+        return settings.servers
+        #endif
+    }
+
     private var serversSection: some View {
-        Section {
-            ForEach(settings.servers) { server in
+        CartoucheSection {
+            ForEach(listed) { server in
                 Button {
                     if server.kind != .folder { editing = server }
                 } label: {
@@ -248,11 +348,14 @@ struct CartoucheStorageView: View {
                     }
                 }
             }
+            #if os(iOS)
+            // The Mac pairs from its own side: its Builder's iPhone page.
             Button {
                 editing = CartoucheStorageServer(kind: .mac, name: "")
             } label: {
                 Label(CartoucheText.storageAddMac, systemImage: "laptopcomputer")
             }
+            #endif
             if CartoucheStorage.hasSMB {
                 Button {
                     editing = CartoucheStorageServer(kind: .smb, name: "")
@@ -282,15 +385,53 @@ struct CartoucheStorageView: View {
                     Label(CartoucheText.storageAddSFTP, systemImage: "lock.shield")
                 }
             }
+            #if os(iOS)
+            // A folder of Files, which only this device opens.
             Button {
                 choosingFolder = true
             } label: {
                 Label(CartoucheText.storageAddFolder, systemImage: "folder.badge.plus")
             }
+            #endif
         } header: {
             Text(CartoucheText.storageServers)
         } footer: {
+            #if os(macOS)
+            Text(CartoucheText.storageConnectionsFooter)
+            #else
             Text(CartoucheText.storageServersFooter)
+            #endif
+        }
+    }
+
+    // MARK: Away from home
+
+    /// Tailscale, which the player installs apart: whether it is connected
+    /// here, and what it does for their storage (CartoucheTailscale.swift).
+    private var tailscaleSection: some View {
+        CartoucheSection {
+            LabeledContent {
+                Text(reach.tailscaleConnected ? CartoucheText.storageTailscaleConnected : CartoucheText.storageTailscaleOff)
+                    .foregroundStyle(reach.tailscaleConnected ? Color.green : Color.secondary)
+            } label: {
+                Label {
+                    Text(verbatim: "Tailscale")
+                } icon: {
+                    Image(systemName: "network")
+                }
+            }
+            .id(Self.tailscaleRow)
+            if !reach.tailscaleConnected {
+                // Its page shows Open once Tailscale is on this iPhone: it
+                // has no link of its own that Cartouche could open.
+                Link(destination: CartoucheTailscale.appStore) {
+                    Label(CartoucheText.storageTailscaleAppStore, systemImage: "arrow.up.forward.app")
+                }
+            }
+        } header: {
+            Text(CartoucheText.storageTailscaleTitle)
+        } footer: {
+            Text(CartoucheText.storageTailscaleFooter)
         }
     }
 
@@ -420,14 +561,18 @@ struct CartoucheStorageServerForm: View {
                     }
                 }
             }
-            Section {
+            CartoucheSection {
                 TextField(CartoucheText.storageHost, text: $server.host)
+                    #if os(iOS)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 TextField(CartoucheText.storageUser, text: $server.username)
                     .textContentType(.username)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 SecureField(isNew ? CartoucheText.storagePassword : CartoucheText.storagePasswordKept, text: $password)
                     .textContentType(.password)
@@ -436,7 +581,7 @@ struct CartoucheStorageServerForm: View {
             } footer: {
                 Text(CartoucheText.storageAccountFooter)
             }
-            Section {
+            CartoucheSection {
                 Button {
                     Task { await listShares() }
                 } label: {
@@ -480,9 +625,14 @@ struct CartoucheStorageServerForm: View {
                 Text(CartoucheText.storageNameTitle)
             }
         }
+        // In boxes, as on the iPhone: a form on the Mac lines its titles up
+        // in a column of their own otherwise.
+        .formStyle(.grouped)
         .cartoucheStageBackground()
         .navigationTitle(isNew ? CartoucheText.storageAddSMB : server.name)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(CartoucheText.cancel) { dismiss() }
@@ -564,25 +714,33 @@ struct CartoucheStorageS3Form: View {
 
     var body: some View {
         Form {
-            Section {
+            CartoucheSection {
                 TextField(CartoucheText.storageS3Address, text: $server.host)
+                    #if os(iOS)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 TextField(CartoucheText.storageS3Bucket, text: $server.share)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 TextField(CartoucheText.storageS3Region, text: $region)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
             } header: {
                 Text(CartoucheText.storageS3Server)
             } footer: {
                 Text(CartoucheText.storageS3ServerFooter)
             }
-            Section {
+            CartoucheSection {
                 TextField(CartoucheText.storageS3AccessKey, text: $server.username)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 SecureField(isNew ? CartoucheText.storageS3SecretKey : CartoucheText.storageS3SecretKeyKept, text: $secretKey)
                 if checking {
@@ -610,9 +768,14 @@ struct CartoucheStorageS3Form: View {
                 Text(CartoucheText.storageNameTitle)
             }
         }
+        // In boxes, as on the iPhone: a form on the Mac lines its titles up
+        // in a column of their own otherwise.
+        .formStyle(.grouped)
         .cartoucheStageBackground()
         .navigationTitle(isNew ? CartoucheText.storageAddS3 : server.name)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(CartoucheText.cancel) { dismiss() }
@@ -699,16 +862,22 @@ struct CartoucheStorageFTPForm: View {
 
     var body: some View {
         Form {
-            Section {
+            CartoucheSection {
                 TextField(CartoucheText.storageHost, text: $server.host)
+                    #if os(iOS)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 TextField(CartoucheText.storagePort(defaultPort), text: $port)
+                    #if os(iOS)
                     .keyboardType(.numberPad)
+                    #endif
                 TextField(CartoucheText.storageUser, text: $server.username)
                     .textContentType(.username)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
+                    #endif
                     .autocorrectionDisabled()
                 SecureField(isNew ? CartoucheText.storagePassword : CartoucheText.storagePasswordKept, text: $password)
                     .textContentType(.password)
@@ -745,9 +914,14 @@ struct CartoucheStorageFTPForm: View {
                 Text(CartoucheText.storageNameTitle)
             }
         }
+        // In boxes, as on the iPhone: a form on the Mac lines its titles up
+        // in a column of their own otherwise.
+        .formStyle(.grouped)
         .cartoucheStageBackground()
         .navigationTitle(isNew ? (isSFTP ? CartoucheText.storageAddSFTP : CartoucheText.storageAddFTP) : server.name)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(CartoucheText.cancel) { dismiss() }
@@ -919,7 +1093,7 @@ struct CartoucheStorageFolderBrowser: View {
 
     var body: some View {
         List {
-            Section {
+            CartoucheSection {
                 Button {
                     onChoose(path)
                 } label: {
@@ -968,7 +1142,9 @@ struct CartoucheStorageFolderBrowser: View {
         }
         .cartoucheStageBackground()
         .navigationTitle(path.isEmpty ? server.name : CartoucheStoragePath.name(path))
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(CartoucheText.storageNewFolder, systemImage: "folder.badge.plus") {
@@ -1034,336 +1210,5 @@ struct CartoucheStorageFolderBrowser: View {
                                             error: error, step: "Creating a folder on " + CartoucheReports.kindName(server.kind),
                                             stage: "newFolder")
         }
-    }
-}
-
-// MARK: A game's saves, on its sheet
-
-@available(iOS 17.0, *)
-struct CartoucheSavesSection: View {
-    /// The game's saves; nil for a game that never started, which has no
-    /// data folder yet: a save can come from the Switch then.
-    let target: CartoucheSaveTarget?
-    /// Whether the game runs behind the console, writing its saves: they
-    /// are neither synced nor put back meanwhile.
-    let isRunning: Bool
-    /// The game, for its saves between the player's Switch and this
-    /// iPhone (CartoucheSwitchSaveView).
-    let switchGame: CartoucheSwitchSaveGame?
-    @ObservedObject var backups = CartoucheSaveBackups.shared
-    @ObservedObject private var settings = CartoucheStorageSettings.shared
-    @ObservedObject private var reach = CartoucheStorageReach.shared
-    @State private var syncing = false
-
-    init(target: CartoucheSaveTarget?, isRunning: Bool = false, switchGame: CartoucheSwitchSaveGame? = nil) {
-        self.target = target
-        self.isRunning = isRunning
-        self.switchGame = switchGame
-    }
-
-    /// The row of the saves between the Switch and this iPhone, which a
-    /// list can scroll to.
-    static let switchRow = "switchSaves"
-
-    #if CARTOUCHE_GALLERY
-    /// Where the row of the Switch saves is in the window, once the list has
-    /// laid it out, for the gallery's screenshot of the sheet at its saves.
-    static var galleryRowFrame: CGRect?
-    #endif
-
-    var body: some View {
-        Section {
-            if let target {
-                rows(of: target)
-            }
-            if let switchGame {
-                NavigationLink {
-                    CartoucheSwitchSaveView(game: switchGame, isRunning: isRunning)
-                } label: {
-                    Label(CartoucheText.switchSaveTitle, systemImage: "arrow.left.arrow.right")
-                }
-                .id(Self.switchRow)
-                #if CARTOUCHE_GALLERY
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { Self.galleryRowFrame = $0 }
-                #endif
-            }
-        } header: {
-            Text(CartoucheText.savesTitle)
-        } footer: {
-            if target != nil {
-                Text(CartoucheText.savesFooter(CartoucheSaveBackups.kept))
-            }
-        }
-    }
-
-    /// The rows of TARGET's saves, kept in step with the saves folder.
-    @ViewBuilder
-    private func rows(of target: CartoucheSaveTarget) -> some View {
-        if let location = settings.location(.saves) {
-            if let news = backups.news[target.key], let line = Self.line(of: news) {
-                Label(line, systemImage: news.kept == nil ? "arrow.down.circle.fill" : "arrow.triangle.branch")
-                    .font(.footnote)
-            }
-            LabeledContent(CartoucheText.savesLastSync) {
-                if let date = backups.lastSync[target.key] {
-                    Text(date, format: .relative(presentation: .named))
-                } else {
-                    Text(CartoucheText.savesNoCopy)
-                }
-            }
-            if settings.isReadOnly(.saves) {
-                Text(CartoucheText.savesReadOnly)
-                    .font(.footnote)
-                    .foregroundStyle(Color.orange)
-            } else {
-                Button {
-                    syncing = true
-                    Task {
-                        _ = await backups.syncNow(target)
-                        syncing = false
-                    }
-                } label: {
-                    HStack {
-                        Label(CartoucheText.savesSyncNow(location.server.name), systemImage: "arrow.triangle.2.circlepath")
-                        if syncing || backups.isSyncing {
-                            Spacer()
-                            ProgressView()
-                        }
-                    }
-                }
-                .disabled(syncing || backups.isSyncing || isRunning)
-            }
-            NavigationLink {
-                CartoucheSaveCopiesView(target: target)
-            } label: {
-                Label(CartoucheText.savesPutBack, systemImage: "clock.arrow.circlepath")
-            }
-            .disabled(isRunning)
-            if isRunning {
-                Text(CartoucheText.savesRunning)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            if reach.isOffline(location.server.id) {
-                let away = CartoucheStorageOffline(location.server)
-                Label(away.localizedDescription, systemImage: away.symbol)
-                    .font(.footnote)
-                    .foregroundStyle(Color.orange)
-                if backups.waiting.contains(target.key) {
-                    Text(CartoucheText.savesWaitingHere)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            } else if let problem = backups.problemReport {
-                Text(problem.message)
-                    .font(.footnote)
-                    .foregroundStyle(Color.orange)
-                CartoucheReportButton(report: problem)
-            }
-        } else {
-            Text(CartoucheText.savesNoFolder)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    /// What the last sync did that the player should know: the saves that
-    /// came, and those of this iPhone kept as a copy, by their dates.
-    private static func line(of news: CartoucheSaveNews) -> String? {
-        let fetched = news.fetched.map { $0.formatted(date: .abbreviated, time: .shortened) }
-        let kept = news.kept.map { $0.formatted(date: .abbreviated, time: .shortened) }
-        if let fetched, let kept {
-            return CartoucheText.savesFetchedOver(fetched, kept)
-        }
-        if let fetched {
-            return CartoucheText.savesFetched(fetched)
-        }
-        return kept.map(CartoucheText.savesKeptHere)
-    }
-}
-
-/// A game's copies of saves, the newest first: one is put back after a
-/// question.
-@available(iOS 17.0, *)
-struct CartoucheSaveCopiesView: View {
-    let target: CartoucheSaveTarget
-    @State private var copies: [CartoucheSaveBackup]?
-    @State private var problem: CartoucheReport?
-    @State private var asking: CartoucheSaveBackup?
-    @State private var restoring = false
-    @State private var restored: Date?
-    /// Why the last copy was not put back, and the report on it.
-    @State private var failure: CartoucheReport?
-    /// Why the server did not answer, when it is offline from here: for
-    /// the list, and for the last copy put back.
-    @State private var offline: String?
-    @State private var restoreOffline: String?
-
-    init(target: CartoucheSaveTarget) {
-        self.target = target
-    }
-
-    var body: some View {
-        List {
-            if let restored {
-                Section {
-                    Label(CartoucheText.savesPutBackDone(restored.formatted(date: .abbreviated, time: .shortened)),
-                          systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(Color.green)
-                }
-            }
-            if let failure {
-                Section {
-                    Label(failure.message, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Color.orange)
-                    CartoucheReportButton(report: failure)
-                }
-            } else if let restoreOffline {
-                Section {
-                    Label(restoreOffline, systemImage: "wifi.slash")
-                        .foregroundStyle(Color.orange)
-                }
-            }
-            Section {
-                if let copies {
-                    ForEach(copies) { copy in
-                        Button {
-                            asking = copy
-                        } label: {
-                            LabeledContent {
-                                Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: copy.size), countStyle: .file))
-                            } label: {
-                                Label(copy.date.formatted(date: .abbreviated, time: .shortened), systemImage: "doc.zipper")
-                            }
-                        }
-                        .tint(.primary)
-                        .disabled(restoring)
-                    }
-                    if copies.isEmpty {
-                        Text(CartoucheText.savesNoCopy)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if let offline {
-                    CartoucheOfflineRows(message: offline) {
-                        self.offline = nil
-                        Task { await load() }
-                    }
-                } else if let problem {
-                    Text(problem.message)
-                        .foregroundStyle(Color.orange)
-                    CartoucheReportButton(report: problem)
-                } else {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                }
-            } footer: {
-                Text(CartoucheText.savesPutBackFooter)
-            }
-        }
-        .cartoucheStageBackground()
-        .navigationTitle(CartoucheText.savesPutBack)
-        .navigationBarTitleDisplayMode(.inline)
-        .overlay {
-            if restoring {
-                ProgressView()
-                    .controlSize(.large)
-                    .padding(28)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            }
-        }
-        .confirmationDialog(CartoucheText.savesPutBackQuestion, isPresented: askingShown, titleVisibility: .visible,
-                            presenting: asking) { copy in
-            Button(CartoucheText.savesPutBackAction(copy.date.formatted(date: .abbreviated, time: .shortened)),
-                   role: .destructive) {
-                Task { await restore(copy) }
-            }
-            Button(CartoucheText.cancel, role: .cancel) {}
-        } message: { _ in
-            Text(CartoucheText.savesPutBackMessage)
-        }
-        .task { await load() }
-        // The server answers again: the list it could not give comes.
-        .onReceive(CartoucheStorageReach.shared.cameBack) { _ in
-            guard offline != nil else { return }
-            offline = nil
-            Task { await load() }
-        }
-    }
-
-    private var askingShown: Binding<Bool> {
-        Binding(get: { asking != nil }, set: { shown in if !shown { asking = nil } })
-    }
-
-    private func load() async {
-        do {
-            copies = try await CartoucheSaveBackups.shared.copies(of: target)
-            problem = nil
-            offline = nil
-        } catch let away as CartoucheStorageOffline {
-            // No problem to report: the player is away from the server.
-            copies = nil
-            offline = away.localizedDescription
-        } catch {
-            problem = CartoucheReports.make(.saves, CartoucheText.savesListFailed, message: error.localizedDescription,
-                                            error: error, step: "Listing the copies of " + target.name + "'s saves, in "
-                                                + CartoucheReports.place(.saves), stage: "savesList")
-        }
-    }
-
-    private func restore(_ copy: CartoucheSaveBackup) async {
-        restoring = true
-        restored = nil
-        failure = nil
-        restoreOffline = nil
-        do {
-            try await CartoucheSaveBackups.shared.restore(copy, of: target)
-            restored = copy.date
-            CartoucheReports.note("Saves of " + target.name + " put back from " + CartoucheReport.timestamp(copy.date))
-        } catch let away as CartoucheStorageOffline {
-            restoreOffline = away.localizedDescription
-        } catch {
-            failure = CartoucheReports.make(.saves, CartoucheText.savesPutBackFailed, message: error.localizedDescription,
-                                            error: error, step: "Putting back a copy of " + target.name + "'s saves", stage: "savesPutBack",
-                                            facts: [.init("Copy", CartoucheReport.timestamp(copy.date) + ", "
-                                                + CartoucheReport.bytes(Int64(clamping: copy.size)))])
-        }
-        restoring = false
-        // Putting a copy back first copies the saves it replaces.
-        await load()
-    }
-}
-
-/// A server that does not answer from here, where what it holds would
-/// show, with a button that tries it again.
-@available(iOS 17.0, *)
-struct CartoucheOfflineRows: View {
-    let message: String
-    var isTrying = false
-    let tryAgain: () -> Void
-
-    var body: some View {
-        Label(message, systemImage: "wifi.slash")
-            .foregroundStyle(Color.orange)
-        CartoucheTryAgainButton(isTrying: isTrying, action: tryAgain)
-    }
-}
-
-/// Try again, for a server that does not answer from here: busy while it
-/// is being tried.
-@available(iOS 17.0, *)
-struct CartoucheTryAgainButton: View {
-    var isTrying = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Label(CartoucheText.storageTryAgain, systemImage: "arrow.clockwise")
-                if isTrying {
-                    Spacer()
-                    ProgressView()
-                }
-            }
-        }
-        .disabled(isTrying)
     }
 }

@@ -14,9 +14,12 @@ The pictures of the repository's [README](../../README.md), made from the app's 
 | `dev-app-settings.png` | An app's settings page, Needs JIT on (branch `dev`) | The gallery's `iphone-app-settings`, in English, as it is |
 | `dev-apps-on-iphone.png` | Apps on this iPhone, two apps with their App ID (branch `dev`) | The gallery's `iphone-apps-on-iphone`, in English, as it is |
 | `dev-app-ids.png` | The App IDs Apple keeps for the Apple ID (branch `dev`) | The gallery's `iphone-app-ids`, in English, as it is |
+| `org-banner.png` | The organization's banner: the repository's social preview at twice its size (2560 × 1280), with rounded corners | The social preview's layout, from `devices.png`'s iPad screen, the gallery's `iphone-home-landscape` and `builder.png`'s window |
 
 The screenshots are the ones CI takes of every screen: the Launcher screens workflow, with `"language": "en"` in [`launcher/Gallery/scenarios.json`](../../launcher/Gallery/scenarios.json), for the app, and the Builder workflow for Cartouche Builder. Each iPhone or iPad is drawn around its screenshot on Cartouche's colours, and the Mac around its window, on a desktop with its menu bar; the iPad and the iPhone of `devices.png` at the same size for their points.
 
 The `dev-*.png` pictures of the fork's `dev` branch are the gallery's screenshots as they come out, not framed: `launcher/Gallery/capture.sh` on the iPad Pro 13-inch simulator, with `"language": "en"` and the scenario list cut to those five.
 
-The games show their official covers, as in the app, which loads them from IGDB ([decision 83](../decisions.md)). Never an image from inside a game: no capture of a game running, and no game's screenshot. The download buttons link to the [download page](https://cartouche-app.github.io/Cartouche/download/), which gives the newest file, and say no version.
+The games show their official covers, as in the app, which loads them from IGDB ([decision 83](../decisions.md)). Never an image from inside a game: no capture of a game running, and no game's screenshot. The download buttons link to the [download page](https://cartouche.cloud/download/), which gives the newest file, and say no version.
+
+The [organization's profile](https://github.com/cartouche-app), `profile/README.md` of [cartouche-app/.github](https://github.com/cartouche-app/.github), shows `org-banner.png`, `download-mac.png` and `download-windows.png` from `main`, by their address: keep their names, or change that README in the same go.

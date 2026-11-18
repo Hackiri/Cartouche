@@ -17,7 +17,9 @@ least three Macs tried and none built, which the app warns of before one is
 built (builder/mac/Sources/BuilderKit/Unbuilt.swift). Set apart, so that they do not read as nxnative's: the sessions on
 iPhones whose GPU reads no BC texture, which nxnative refuses; those whose
 game process ran without Increased Memory Limit, which is Cartouche's doing;
-and those of builds with changes of their own.
+and those of builds with changes of their own. Set apart too, as the page
+sums up the iPhones': the sessions played on a Mac, in nxnative's app for
+the Mac, which Cartouche Builder reports (telemetry/README.md#cartouche-builder).
 
 It reads the D1 database through Cloudflare's API, with the secrets
 CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, and does nothing without
@@ -54,6 +56,8 @@ BRANCH = "nxnative-measurements"
 # iPhones whose GPU reads no BC texture: the A16 and older ones, iPhone15,x
 # and before. nxnative's iOS check refuses them for every game.
 IPHONE = re.compile(r"^iPhone([0-9]+),[0-9]+$")
+# A Mac's model identifier, as Cartouche Builder sends it.
+MAC = re.compile(r"^Mac[0-9]+,[0-9]+$")
 LAST_WITHOUT_BC = 15
 
 # A game process with this limit or less, while Cartouche had more, ran
@@ -71,6 +75,14 @@ SIGNALS = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGEMT", 8: "SIGFPE", 9:
 # before it, such a session was a crash like any other abort.
 CAUSES = {"gpuLost": "GPU access revoked"}
 GPU_LOST_READER = 4
+
+# A line no session drew a frame of, though its sessions lasted this long in
+# all, may be a game that runs while nxnative writes none of the summary
+# lines Cartouche counts frames from, as much as one stuck on a black
+# screen: Super Mario Galaxy, 15 sessions and 11 hours on 7 installs, none
+# with a summary line (17 November). Its sessions are not said to have drawn
+# no frame. The dashboard's rule (UNCOUNTED_MINUTES, telemetry/dashboard).
+UNCOUNTED_MINUTES = 30
 
 # The sessions one day received, a page at a time, with D1's parameters as
 # text. A session sent again because its log grew is the same session with
@@ -157,6 +169,8 @@ def reads_bc(device: str | None) -> bool:
 
 def set_apart(session: dict) -> str | None:
     """Why the session does not count for nxnative, if it does not."""
+    if MAC.match(session.get("device") or ""):
+        return "mac"
     if not reads_bc(session.get("device")):
         return "gpu"
     process, limit = number(session.get("processLimit")), number(session.get("limitMiB"))
@@ -237,6 +251,12 @@ class Group:
         return Counter(e for e in (ending(s) for s in self.sessions) if e)
 
     @property
+    def uncounted(self) -> bool:
+        """No session drew a frame, though they lasted UNCOUNTED_MINUTES or
+        more in all: nxnative's log may have no summary line for the game."""
+        return not any(drew_frames(s) for s in self.sessions) and self.hours * 60 >= UNCOUNTED_MINUTES
+
+    @property
     def gpu_lost(self) -> int | None:
         """The crashes nxnative ended when the system took the GPU away from
         the game; none when Cartouche read no session of the group so as to
@@ -260,6 +280,10 @@ def listed(items) -> str:
 
 def installs_text(n: int) -> str:
     return f"{n} installs" if n >= MIN_INSTALLS or n == 0 else f"fewer than {MIN_INSTALLS} installs"
+
+
+def macs_text(n: int) -> str:
+    return f"{n} Macs" if n >= MIN_INSTALLS or n == 0 else f"fewer than {MIN_INSTALLS} Macs"
 
 
 def shared(pairs) -> tuple[list[tuple[str, int]], int]:
@@ -324,7 +348,7 @@ def figures(group: Group) -> str:
         fmt(group.figure("stutters")), "–" if share is None else f"{share:.0%}", fmt(group.figure("stall")),
         fmt(group.figure("prepare"), 1), fmt(group.peak), f"{group.hot} of {len(group.sessions)}",
         str(endings["crash"]), fmt(group.gpu_lost), str(endings["boot-failed"]), str(endings["memory-likely"]),
-        str(endings["no-frame"]),
+        "no summary line" if group.uncounted else str(endings["no-frame"]),
     ])
 
 
@@ -389,13 +413,14 @@ def page(catalog: Catalog, sessions: list[dict], events: list[dict], first: dt.d
         "",
     ]
     if apart:
-        said = {"gpu": "on iPhones whose GPU reads no BC texture (A16 and older), which nxnative refuses",
+        said = {"mac": "played on a Mac, in nxnative's app for the Mac, which this page does not sum up",
+                "gpu": "on iPhones whose GPU reads no BC texture (A16 and older), which nxnative refuses",
                 "memory": "whose game process ran without Increased Memory Limit, which is Cartouche's doing",
                 "changed": "of builds with changes of their own"}
         lines += ["Set apart: " + "; ".join(
             f"{apart[reason]} sessions {said[reason]}, from {installs_text(len(apart_installs[reason]))}"
             if len(apart_installs[reason]) >= MIN_INSTALLS else f"sessions {said[reason]}, from {installs_text(1)}"
-            for reason in ("gpu", "memory", "changed") if apart[reason]) + ".", ""]
+            for reason in ("mac", "gpu", "memory", "changed") if apart[reason]) + ".", ""]
 
     lines += table("By game", ["Game", "nxnative"], by_game,
                    lambda key, group: [catalog.name(key[0]), commits_text(group)],
@@ -431,7 +456,10 @@ def page(catalog: Catalog, sessions: list[dict], events: list[dict], first: dt.d
         "A session's commit is the first 12 digits of `DMCommit` in the game's `Info.plist`; Cartouche 0.11.2 and "
         "before did not send it. Target fps is the rate most of the line's sessions asked for.",
         "- Reached serious heat: the sessions iOS put in its serious thermal state. Drew no frame: the session ended "
-        "before nxnative's first summary line, whatever its end.",
+        "before nxnative's first summary line, whatever its end. A line none of whose sessions wrote one, though they "
+        f"lasted {UNCOUNTED_MINUTES} minutes or more in all, says no summary line instead: the game may run while "
+        "nxnative writes no `[nvn]` timing, on-screen or power line for it, as much as stay on a black screen, and "
+        "its frame figures show –.",
         "- GPU lost: the crashes nxnative ended once the system took the GPU away from the game for the GPU errors it "
         "caused (`[RED] GPU access revoked`), as the crashes' cause says too. Cartouche tells them from its reading "
         f"{GPU_LOST_READER} of the log on: before it, such a session is a crash like any other abort, and a line "
@@ -441,15 +469,22 @@ def page(catalog: Catalog, sessions: list[dict], events: list[dict], first: dt.d
         "many others; else only how many. A Mac counts as an install does: a step of a build shows when at least 3 "
         "Macs failed at it.",
         "- Builds: the Macs whose Cartouche Builder follows a fork of nxnative are left out, and so are the builds "
-        "the player stopped and the errors of Cartouche Builder's own code. Where they failed is nxnative's stage.",
+        "the player stopped and the errors of Cartouche Builder's own code. A game of a Mac counts once for a commit, "
+        "as its last try with it ended, however often its player tried it again. A regression is such a game that "
+        "failed and had built on that Mac on an earlier try, from any commit of the 28 days. Where they failed is "
+        "nxnative's stage of each failed game's last try.",
         "",
     ]
+    uncounted = sorted(catalog.name(key[0]) for key, group in by_game.items()
+                       if len(group.installs) >= MIN_INSTALLS and group.uncounted)
     summary = [f"## nxnative's page, {first} to {last}", "",
                f"{len(sessions)} game sessions from {len(installs)} installs; "
                f"{sum(1 for g in by_game.values() if len(g.installs) >= MIN_INSTALLS)} games, "
                f"{sum(1 for g in by_model.values() if len(g.installs) >= MIN_INSTALLS)} lines by model and "
                f"{sum(1 for g in by_commit.values() if len(g.installs) >= MIN_INSTALLS)} by commit "
                f"on {MIN_INSTALLS} installs or more; {named} sessions name their nxnative commit.", ""]
+    if uncounted:
+        summary += ["Played long without a summary line in their logs: " + ", ".join(uncounted) + ".", ""]
     return "\n".join(lines), summary
 
 
@@ -526,38 +561,61 @@ NOT_NXNATIVES = ("stopped", "builder")
 
 def builds(events: list[dict]) -> list[str]:
     """Cartouche Builder's builds on players' Macs, by nxnative commit, but
-    those of a fork of nxnative and the failures that are not nxnative's."""
+    those of a fork of nxnative and the failures that are not nxnative's.
+    A game of a Mac counts once for a commit, as its last try with it ended,
+    however often its player tried it again; its regressions are the games
+    that failed so and had built on that Mac on an earlier try, which is what
+    a commit that broke a build does, where a game a Mac never built may
+    fail for its own files."""
     forks = {e["install"] for e in once([e for e in events if e.get("name") == "builder.opened"], lambda e: e["install"])
              if e.get("fork") in (1, True)}
-    by: dict[str, dict] = defaultdict(lambda: {"macs": set(), "built": 0, "failed": []})
-    for e in events:
-        if e.get("name") not in ("builder.built", "builder.failed") or e["install"] in forks or not e.get("nxnative"):
-            continue
-        if e["name"] == "builder.failed" and e.get("cause") in NOT_NXNATIVES:
-            continue
-        commit = by[e["nxnative"]]
-        commit["macs"].add(e["install"])
+    tries = [e for e in events
+             if e.get("name") in ("builder.built", "builder.failed") and e["install"] not in forks and e.get("nxnative")
+             and not (e["name"] == "builder.failed" and e.get("cause") in NOT_NXNATIVES)]
+
+    def game_of_mac(e: dict) -> tuple:
+        return e["install"], e.get("game")
+
+    # When each game of each Mac first built, as the Mac counts its reports.
+    first_built: dict[tuple, int] = {}
+    for e in tries:
         if e["name"] == "builder.built":
-            commit["built"] += 1
-        else:
-            commit["failed"].append((e.get("stage") or "a step not said", e["install"]))
-    rows = sorted(((c, b) for c, b in by.items() if len(b["macs"]) >= MIN_INSTALLS),
-                  key=lambda kv: (-len(kv[1]["macs"]), kv[0]))
+            key, seq = game_of_mac(e), e.get("seq") or 0
+            first_built[key] = min(first_built.get(key, seq), seq)
+    by: dict[str, list] = defaultdict(list)
+    for e in tries:
+        by[e["nxnative"]].append(e)
+    rows = []
+    for commit, its in by.items():
+        macs = {e["install"] for e in its}
+        if len(macs) < MIN_INSTALLS:
+            continue
+        last = once(its, game_of_mac)
+        failed = [e for e in last if e["name"] == "builder.failed"]
+        back = [e for e in failed if first_built.get(game_of_mac(e), e.get("seq") or 0) < (e.get("seq") or 0)]
+        rows.append((commit, len(macs), len(last) - len(failed), failed, back))
+    rows.sort(key=lambda row: (-row[1], row[0]))
     lines = ["## Builds on players' Macs, by nxnative commit", "",
-             "Cartouche Builder builds players' games with nxnative's build script, on their Macs.", ""]
+             "Cartouche Builder builds players' games with nxnative's build script, on their Macs. A game of a Mac "
+             "counts once for a commit, as its last try with it ended, however often its player tried it again. "
+             "Regressions are the games that fail with the commit and had built on their Mac before, and on how many "
+             "Macs: a commit that broke a build makes them on several.", ""]
     if not rows:
         return lines + [f"No nxnative commit was built on {MIN_INSTALLS} Macs or more.", ""]
-    lines += ["| nxnative | Macs | Built | Failed | Where they failed |", "| --- | --- | --- | --- | --- |"]
-    for commit, b in rows:
+    lines += ["| nxnative | Macs | Built | Failed | Regressions | Where they failed |",
+              "| --- | --- | --- | --- | --- | --- |"]
+    for commit, macs, built, failed, back in rows:
         # The steps at least MIN_INSTALLS Macs failed at, with how many
-        # failures each; the others together.
-        stages, _ = shared(b["failed"])
-        counts = Counter(stage for stage, _ in b["failed"])
+        # games failed at each; the others together.
+        pairs = [(e.get("stage") or "a step not said", e["install"]) for e in failed]
+        stages, _ = shared(pairs)
+        counts = Counter(stage for stage, _ in pairs)
         where = [f"{stage} {counts[stage]}" for stage, _ in stages]
-        rest = len(b["failed"]) - sum(counts[stage] for stage, _ in stages)
+        rest = len(pairs) - sum(counts[stage] for stage, _ in stages)
         if rest:
             where.append(f"other steps {rest}")
-        lines.append(f"| `{commit}` | {len(b['macs'])} | {b['built']} | {len(b['failed'])} | {', '.join(where) or '–'} |")
+        regressions = f"{len(back)} on {macs_text(len({e['install'] for e in back}))}" if back else "0"
+        lines.append(f"| `{commit}` | {macs} | {built} | {len(failed)} | {regressions} | {', '.join(where) or '–'} |")
     return lines + [""]
 
 
@@ -565,7 +623,8 @@ def builds(events: list[dict]) -> list[str]:
 # (builder/cartouche_builder/causes.py), and those of a builder older than
 # 0.5.0, which named none: not the player's files (damaged, zip, keys), nor
 # the Mac's (no_space, no_room, metal), nor a commit of nxnative that breaks
-# every game's app build (app_build), nor a stop or the builder's own code.
+# every game's app build (app_build) or splits a game's shaders otherwise than
+# its profile says (tables), nor a stop or the builder's own code.
 GAMES_OWN = (None, "", "nxnative", "crashed", "signal", "no_ipa")
 
 

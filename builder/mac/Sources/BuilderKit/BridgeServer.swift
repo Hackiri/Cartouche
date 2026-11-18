@@ -22,6 +22,21 @@
 //  queue, stops them all, follows a game or not, builds every night or not;
 //  its info says so as well (hasBuildsControl).
 //
+//  A paired iPhone gives the player's connections to their storage, a NAS,
+//  a bucket, a server or a Google Drive, with their passwords, and takes
+//  those of the Storage page of Cartouche's console on the Mac, which the
+//  app keeps the same as the iPhone's from then on
+//  (BridgeConnectionsSource, CartoucheConnections.swift), with the folders
+//  the player chose on the iPhone for the games and the saves, which the
+//  Mac follows when they are on one of them; its info says so
+//  (hasConnections).
+//
+//  With Tailscale on this Mac, which the player installs apart, its info
+//  tells the paired iPhone the Mac's addresses in their tailnet
+//  (tailscale), where Cartouche reaches it away from home, where Bonjour
+//  does not go (CartoucheTailscale.swift). The listener takes connections
+//  on every network of the Mac, Tailscale's among them.
+//
 
 import CartoucheCore
 import Foundation
@@ -52,9 +67,11 @@ public protocol BridgeBuildsSource: AnyObject {
     /// The builds now (BridgeBuilds.shared).
     func bridgeBuilds() -> CartoucheBridgeBuilds
     /// Builds the game TITLE_ID, as its Build button does, at once or after
-    /// the games of the batch running. Throws what the iPhone shows when the
-    /// Mac cannot.
-    func bridgeBuild(_ titleID: String) throws
+    /// the games of the batch running: what is due of it (DUE: its app for
+    /// this Mac alone, when that alone is due), else all of it again, as
+    /// an iPhone that does not say asks. Throws what the iPhone shows when
+    /// the Mac cannot.
+    func bridgeBuild(_ titleID: String, due: Bool) throws
     /// Builds what is due, as Build what is due does: at once, or after the
     /// games of the batch running.
     func bridgeBuildDue() throws
@@ -65,6 +82,19 @@ public protocol BridgeBuildsSource: AnyObject {
     func bridgeFollow(_ titleID: String, _ followed: Bool) async throws
     /// Builds what is due every night at its time, or not.
     func bridgeNightly(_ nightly: CartoucheBridgeBuilds.Nightly) throws
+}
+
+/// The Mac's connections to the player's storage, those of the Storage
+/// page of Cartouche's console, for the paired iPhones.
+@MainActor
+public protocol BridgeConnectionsSource: AnyObject {
+    /// Takes THEIRS, a paired iPhone's connections with those it removed,
+    /// as the ones changed last, and PLACES, the folders the player chose
+    /// on it, none from a Cartouche older than that, and gives the Mac's
+    /// connections once it took them, with those removed on either side;
+    /// throws when it could not take them, which leaves the iPhone's as
+    /// they are.
+    func bridgeConnections(_ theirs: [CartoucheConnection], places: CartoucheChosenFolders?) throws -> [CartoucheConnection]
 }
 
 public final class BridgeServer: @unchecked Sendable {
@@ -82,6 +112,10 @@ public final class BridgeServer: @unchecked Sendable {
 
     public let devices: BridgeDevices
     public weak var delegate: BridgeServerDelegate?
+    /// The Mac's addresses in the player's tailnet now, which info tells the
+    /// paired iPhones: Tailscale's, read from the Mac's interfaces; none
+    /// without it. The tests give their own.
+    let tailnetAddresses: @Sendable () -> [String]
 
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "io.github.clabeuhtegrite.cartouche-builder.bridge")
@@ -95,10 +129,13 @@ public final class BridgeServer: @unchecked Sendable {
     private var activity: NSObjectProtocol?
     private var generation = 0
     private weak var _builds: BridgeBuildsSource?
+    private weak var _connections: BridgeConnectionsSource?
 
-    public init(devices: BridgeDevices, name: String) {
+    public init(devices: BridgeDevices, name: String,
+                tailnetAddresses: @escaping @Sendable () -> [String] = { CartoucheTailscale.ownAddresses() }) {
         self.devices = devices
         _name = name
+        self.tailnetAddresses = tailnetAddresses
     }
 
     // MARK: State
@@ -139,6 +176,21 @@ public final class BridgeServer: @unchecked Sendable {
         set {
             lock.lock()
             _builds = newValue
+            lock.unlock()
+        }
+    }
+
+    /// What takes the iPhones' connections and gives the Mac's: none, and
+    /// the Mac's info says it takes none.
+    public var connections: BridgeConnectionsSource? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _connections
+        }
+        set {
+            lock.lock()
+            _connections = newValue
             lock.unlock()
         }
     }
@@ -366,6 +418,9 @@ public final class BridgeServer: @unchecked Sendable {
             if request.op.isBuilds {
                 response = await answerBuilds(request)
                 data = Data()
+            } else if request.op == .connections {
+                response = await answerConnections(request)
+                data = Data()
             } else {
                 (response, data) = session.handle(request, body: body)
             }
@@ -393,12 +448,27 @@ public final class BridgeServer: @unchecked Sendable {
         }
     }
 
+    /// The Mac's connections, once it took the iPhone's REQUEST gives: the
+    /// app answers on the main actor.
+    func answerConnections(_ request: CartoucheBridgeRequest) async -> CartoucheBridgeResponse {
+        guard let source = connections else { return .failure(.notFound, "connections") }
+        guard let theirs = request.connections else { return .failure(.protocolError, "connections") }
+        do {
+            var response = CartoucheBridgeResponse()
+            let places = request.places
+            response.connections = try await MainActor.run { try source.bridgeConnections(theirs, places: places) }
+            return response
+        } catch {
+            return .failure(.failed, "connections")
+        }
+    }
+
     /// Asks SOURCE what REQUEST asks of its builds, if anything.
     @MainActor
     static func ask(_ source: BridgeBuildsSource, _ request: CartoucheBridgeRequest) async throws {
         switch request.op {
         case .build:
-            try source.bridgeBuild(try game(of: request))
+            try source.bridgeBuild(try game(of: request), due: request.due == true)
         case .buildDue:
             try source.bridgeBuildDue()
         case .stop:
@@ -524,6 +594,11 @@ final class Session {
             response.readOnly = false
             response.hasBuilds = server?.builds != nil
             response.hasBuildsControl = server?.builds != nil
+            response.hasConnections = server?.connections != nil
+            // None without Tailscale: the iPhone keeps those it knew, the
+            // ones Tailscale gives this Mac for good.
+            let tailnet = server?.tailnetAddresses() ?? []
+            response.tailscale = tailnet.isEmpty ? nil : tailnet
         case .list:
             let place = try resolve(request.path)
             guard let place else {
@@ -617,6 +692,9 @@ final class Session {
         case .builds, .build, .buildDue, .stop, .stopAll, .follow, .nightly:
             // The server asks the app (BridgeServer.answerBuilds).
             throw CartoucheBridgeError(.notFound, "builds")
+        case .connections:
+            // The server asks the app (BridgeServer.answerConnections).
+            throw CartoucheBridgeError(.notFound, "connections")
         }
         return (response, Data())
     }
@@ -694,15 +772,13 @@ final class Session {
         name.lowercased().hasSuffix(".app")
     }
 
-    /// The free space of URL's disk, as the Finder counts it.
+    /// The free space of URL's disk, as the Finder counts it, read again
+    /// for each question: the games folder's URL, kept since the settings
+    /// named it, keeps what it read (CartoucheFreeSpace).
     static func free(_ url: URL) -> UInt64? {
-        if let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
-           let capacity = values.volumeAvailableCapacityForImportantUsage, capacity > 0 {
+        if let capacity = CartoucheFreeSpace.forImportantUsage(at: url), capacity > 0 {
             return UInt64(capacity)
         }
-        if let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]), let capacity = values.volumeAvailableCapacity {
-            return UInt64(max(0, capacity))
-        }
-        return nil
+        return CartoucheFreeSpace.available(at: url).map { UInt64(max(0, $0)) }
     }
 }

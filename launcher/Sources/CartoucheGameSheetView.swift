@@ -186,18 +186,12 @@ struct CartoucheGameSheetView: View {
                 CartoucheMacBuildsSection(titleIds: macTitleIds, isOwned: entry.isOwned, watch: macBuilds)
                 #endif
 
-                // The game's saves, with, on the iPhone, its saves between the
-                // player's Switch and this iPhone; the Mac's come with its
-                // saves page (builder/mac/console/unshared.json).
-                #if os(iOS)
+                // The game's saves, with its saves between the player's
+                // Switch and this iPhone; on the Mac, those the Builder keeps
+                // in step there (Mac/ConsoleSaves.swift).
                 if let app = entry.app, let game = switchGame(of: app) {
                     CartoucheSavesSection(target: game.target, isRunning: actions.isRunning(app), switchGame: game)
                 }
-                #else
-                if let app = entry.app, let saves = actions.saves(of: app) {
-                    CartoucheSavesSection(target: saves, isRunning: actions.isRunning(app))
-                }
-                #endif
 
                 if entry.isOwned {
                     infoSection
@@ -293,7 +287,6 @@ struct CartoucheGameSheetView: View {
         #endif
     }
 
-    #if os(iOS)
     /// The game's saves, and the game, for its saves between the player's
     /// Switch and this iPhone; nil for an app that is not an nxnative game.
     private func switchGame(of app: LCAppModel) -> CartoucheSwitchSaveGame? {
@@ -305,7 +298,6 @@ struct CartoucheGameSheetView: View {
                                        makeTarget: { actions.savesToImport(of: app) },
                                        isRunningNow: { actions.isRunning(app) })
     }
-    #endif
 
     // MARK: Header
 
@@ -331,6 +323,12 @@ struct CartoucheGameSheetView: View {
                         CartoucheFitBadge(fit: fit, owned: entry.app != nil)
                     }
                 }
+                // As tall as the title and its lines need, whatever the list
+                // offers: a list row first offers each part of the header a
+                // share of its height, less than the cartridge then gives it,
+                // and under the badge of a game with a sheet, a long title
+                // shrank to one line cut short, as Ocarina of Time's did.
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if let app = entry.app, actions.isRunning(app) {
@@ -517,7 +515,7 @@ struct CartoucheGameSheetView: View {
     /// What the player says of their game; for a game Cartouche does not
     /// know, what IGDB has of it by its name, or that it has nothing yet.
     private var infoSection: some View {
-        Section {
+        CartoucheSection {
             Button(action: onEditInfo) {
                 Label(CartoucheText.gameInfoEdit, systemImage: "square.and.pencil")
             }
@@ -580,9 +578,8 @@ struct CartoucheGameSheetView: View {
                 }
             }
             // What the game wrote of its last sessions, for whoever helps
-            // the player: shared as it is, or sent to Cartouche cleaned. On
-            // the Mac, with the console's reports (decision 101).
-            #if os(iOS)
+            // the player: shared as it is, or sent to Cartouche cleaned; on
+            // the Mac, the logs nxnative's app for the Mac writes.
             if let logs = actions.logs(of: app), !logs.files.isEmpty {
                 NavigationLink {
                     CartoucheGameLogView(folder: logs, tileKey: entry.tileKey)
@@ -590,7 +587,6 @@ struct CartoucheGameSheetView: View {
                     Label(CartoucheText.gameLogRow, systemImage: "doc.text")
                 }
             }
-            #endif
             // Quit the game first.
             if !actions.isRunning(app) {
                 Button(role: .destructive) {

@@ -62,6 +62,28 @@ final class BridgeSessionTests: XCTestCase {
         XCTAssertEqual(list.items?.first?.folder, false)
     }
 
+    func testInfoTellsTheMacsAddressesInTheTailnet() {
+        // An iPhone away from home reaches the Mac there, with Tailscale on
+        // both (CartoucheStorageMac.swift).
+        let withTailscale = BridgeServer(devices: BridgeDevices(url: folder.appendingPathComponent("tailnet.json")), name: "Mac de test",
+                                         tailnetAddresses: { ["100.101.102.103", "fd7a:115c:a1e0::1"] })
+        withTailscale.roots = BridgeRoots(games: games, saves: saves)
+        withExtendedLifetime(withTailscale) {
+            let (info, _) = Session(server: withTailscale, peer: "iphone").handle(CartoucheBridgeRequest(.info), body: Data())
+            XCTAssertNil(info.error)
+            XCTAssertEqual(info.tailscale, ["100.101.102.103", "fd7a:115c:a1e0::1"])
+        }
+
+        let without = BridgeServer(devices: BridgeDevices(url: folder.appendingPathComponent("none.json")), name: "Mac de test",
+                                   tailnetAddresses: { [] })
+        without.roots = BridgeRoots(games: games, saves: saves)
+        withExtendedLifetime(without) {
+            let (info, _) = Session(server: without, peer: "iphone").handle(CartoucheBridgeRequest(.info), body: Data())
+            XCTAssertNil(info.error)
+            XCTAssertNil(info.tailscale, "without Tailscale, none: the iPhone keeps those it knew")
+        }
+    }
+
     func testAFileIsReadAPieceAtATime() {
         let path = "Games/Mario Kart World [0400C3F00006E000].ipa"
         let (stat, _) = ask(CartoucheBridgeRequest(.stat, path: path))
@@ -154,5 +176,26 @@ final class BridgeSessionTests: XCTestCase {
         server.roots = BridgeRoots(games: games, saves: nil)
         XCTAssertEqual(ask(CartoucheBridgeRequest(.list, path: "")).0.items?.map(\.name), ["Games"])
         XCTAssertEqual(ask(CartoucheBridgeRequest(.list, path: "Saves")).0.error, .notFound)
+    }
+
+    /// The room the Mac tells an iPhone is read again at each question: the
+    /// games folder's URL, kept since the settings named it, holds what it
+    /// read before, as an iPhone's LCPath.docPath held the room of an
+    /// install refused 49 seconds earlier (cartouche-reports #10).
+    func testTheRoomIsReadAgainAtEachQuestion() throws {
+        let kept: Int64 = 9_262_491_986
+        var held = URL(fileURLWithPath: games.path, isDirectory: true)
+        held.setTemporaryResourceValue(kept, forKey: .volumeAvailableCapacityForImportantUsageKey)
+        held.setTemporaryResourceValue(Int(kept), forKey: .volumeAvailableCapacityKey)
+        server.roots = BridgeRoots(games: held, saves: saves)
+        // What reading the folder's URL itself gives: the value it holds.
+        let values = try XCTUnwrap(server.roots.games).resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        guard values.volumeAvailableCapacityForImportantUsage == kept else {
+            throw XCTSkip("this macOS's own value comes before the one the URL holds")
+        }
+        let free = ask(CartoucheBridgeRequest(.free, path: "Games")).0.free
+        XCTAssertNotNil(free)
+        XCTAssertNotEqual(free, UInt64(kept))
+        XCTAssertNotEqual(ask(CartoucheBridgeRequest(.info)).0.free, UInt64(kept))
     }
 }

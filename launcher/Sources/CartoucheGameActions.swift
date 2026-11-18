@@ -365,7 +365,7 @@ final class CartoucheGameActions: ObservableObject {
         guard work == nil, let location = CartoucheStorageSettings.shared.location(.games),
               startsNow(CartoucheInstallQuestion(source: .stored(game)), answered: asked) else { return }
         facts = [.init("IPA", game.fileName), .init("IPA size", CartoucheReport.bytes(Int64(clamping: game.size))),
-                 .init("From", CartoucheReports.place(.games))] + Self.buildFacts(game.build)
+                 CartoucheReports.place(.games, as: "From")] + Self.buildFacts(game.build)
         let model = DataManager.shared.model
         guard model.multiLCStatus != 2 else {
             fail(.install, CartoucheText.installFailed, message: "lc.appList.manageInPrimaryTip".loc, cause: .notPrimary)
@@ -905,10 +905,12 @@ final class CartoucheGameActions: ObservableObject {
     }
 
     /// The room this iPhone has for a game, off the main thread: iOS counts
-    /// what it could free for it, which takes it a moment.
+    /// what it could free for it, which takes it a moment. Read again for
+    /// each install: LCPath.docPath itself keeps what it read, and said the
+    /// room of the install before, when the player had freed some since
+    /// (CartoucheFreeSpace).
     nonisolated private static func freeSpace() async -> Int64? {
-        let values = try? LCPath.docPath.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-        return values?.volumeAvailableCapacityForImportantUsage
+        CartoucheFreeSpace.forImportantUsage(at: LCPath.docPath)
     }
 
     /// The size of the IPA at URL, if Cartouche can read it, off the main
@@ -946,7 +948,7 @@ final class CartoucheGameActions: ObservableObject {
         // says when the game was built (CartoucheGameBuild).
         let build = CartoucheInstalledBuilds.shared.build(of: app)
         let builtAt = build.builtAt
-        facts = [.init("To", CartoucheReports.place(.games))] + Self.buildFacts(build)
+        facts = [CartoucheReports.place(.games, as: "To")] + Self.buildFacts(build)
         work = CartoucheGameWork(kind: .exporting, name: app.displayName,
                                  step: CartoucheText.exportStep(location.server.name), fraction: 0, stage: "exporting",
                                  place: location.server.name)
@@ -1494,16 +1496,18 @@ final class CartoucheGameActions: ObservableObject {
     // MARK: Saves
 
     /// Where the game keeps its saves: the Documents of the data folder it
-    /// starts with. Nil for an app that is not an nxnative game, or a game
-    /// that has no data folder yet: one installed while no saves folder was
-    /// chosen, which never started.
+    /// starts with, and the game's version, which each copy of them names.
+    /// Nil for an app that is not an nxnative game, or a game that has no
+    /// data folder yet: one installed while no saves folder was chosen,
+    /// which never started.
     func saves(of app: LCAppModel) -> CartoucheSaveTarget? {
         let catalog = CartoucheCatalog.shared
         guard let found = catalog.gameTitle(of: app), let bundleId = app.appInfo.bundleIdentifier(),
               let container = app.uiSelectedContainer ?? app.uiContainers.first else { return nil }
         let titleId = found.isEmpty ? catalog.titleId(matchingName: app.displayName) : found
         return CartoucheSaveTarget(key: bundleId + "|" + container.folderName, name: app.displayName, titleId: titleId,
-                                   documents: container.containerURL.appendingPathComponent("Documents", isDirectory: true))
+                                   documents: container.containerURL.appendingPathComponent("Documents", isDirectory: true),
+                                   gameVersion: CartoucheInstalledBuilds.installedBuild(of: app).version)
     }
 
     /// Where the game keeps its saves, its data folder made now if it never

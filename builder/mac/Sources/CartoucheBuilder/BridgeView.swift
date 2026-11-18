@@ -7,7 +7,16 @@
 //  folder. An iPhone pairs once, with a code shown on both screens. The
 //  games played on this Mac keep their saves in step with the iPhone's in
 //  that saves folder, or in Cartouche's saves folder on a share, which the
-//  page finds on the shares mounted here.
+//  page finds on the shares mounted here; or in the saves folder the player
+//  chose on the iPhone, when it is on one of their connections, which the
+//  page then shows in its place. The games folder chosen on the iPhone,
+//  when it is on one of their connections, the page shows too: the
+//  Builder sends its games there (IPhoneGames.swift), how many went, the
+//  one going, or why none goes. With Tailscale, which the player
+//  installs apart on this Mac and on the iPhone, the paired iPhones reach
+//  this Mac away from home too: the page says whether it is on, and this
+//  Mac's address there, by which an iPhone pairs when Bonjour cannot see
+//  the Mac (CartoucheTailscale.swift).
 //
 
 import BuilderKit
@@ -27,10 +36,12 @@ struct BridgeView: View {
                 switchCard
                 if bridge.enabled {
                     howTo
+                    tailscale
                     folders
                     devices
                 }
                 macSaves
+                IPhoneGamesSection(games: model.iPhoneGames)
             }
             .padding(28)
         }
@@ -65,16 +76,29 @@ struct BridgeView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     Divider().padding(.leading, 12)
-                    FolderRow(symbol: "externaldrive.badge.icloud", title: tr("Saves folder", "Dossier des sauvegardes"), path: bridge.saves.path,
-                              note: bridge.savesIsDefault ? tr("In Cartouche Builder’s folder", "Dans le dossier de Cartouche Builder") : nil) {
-                        Button(tr("Change…", "Changer…")) {
-                            if let url = FolderPicker.choose(title: tr("Where the saves go", "Où vont les sauvegardes"), directory: bridge.saves) {
-                                bridge.setSaves(url)
-                            }
+                    if let place = model.macGames.folder, let connection = place.connection {
+                        // The iPhone's, on one of the player's connections:
+                        // chosen there.
+                        let name = ConsoleLink.connectionName(connection) ?? tr("its connection", "sa connexion")
+                        FolderRow(symbol: "externaldrive.connected.to.line.below", title: tr("Saves folder", "Dossier des sauvegardes"),
+                                  path: place.path.isEmpty ? name : name + " › " + place.path.split(separator: "/").joined(separator: " › "),
+                                  note: tr("The iPhone’s, chosen on it: this Mac reaches it through the same connection, “\(name)”.",
+                                           "Celui de l’iPhone, choisi sur lui : ce Mac l’atteint par la même connexion, « \(name) ».")) {
+                            EmptyView()
                         }
-                        .controlSize(.small)
+                    } else {
+                        FolderRow(symbol: "externaldrive.badge.icloud", title: tr("Saves folder", "Dossier des sauvegardes"), path: bridge.saves.path,
+                                  note: bridge.savesIsDefault ? tr("In Cartouche Builder’s folder", "Dans le dossier de Cartouche Builder") : nil) {
+                            Button(tr("Change…", "Changer…")) {
+                                if let url = FolderPicker.choose(title: tr("Where the saves go", "Où vont les sauvegardes"), directory: bridge.saves) {
+                                    bridge.setSaves(url)
+                                }
+                            }
+                            .controlSize(.small)
+                        }
                     }
-                    if let share = found.first(where: { $0.standardizedFileURL != bridge.saves.standardizedFileURL }) {
+                    if model.macGames.folder?.connection == nil,
+                       let share = found.first(where: { $0.standardizedFileURL != bridge.saves.standardizedFileURL }) {
                         Divider().padding(.leading, 48)
                         let volume = share.pathComponents.count > 2 ? share.pathComponents[2] : share.lastPathComponent
                         FolderRow(symbol: "server.rack", title: tr("Cartouche’s saves found on “\(volume)”", "Sauvegardes de Cartouche trouvées sur « \(volume) »"),
@@ -142,6 +166,43 @@ struct BridgeView: View {
                 Step(number: 2, text: tr("Choose “\(bridge.name)” under Macs nearby.", "Choisissez « \(bridge.name) » sous Macs à proximité."))
                 Step(number: 3, text: tr("A code shows on both screens: allow the iPhone here if they are the same.",
                                          "Un code s’affiche sur les deux écrans : autorisez l’iPhone ici s’ils sont identiques."))
+            }
+        }
+    }
+
+    /// Tailscale on this Mac: on, its address in the player's tailnet,
+    /// which the paired iPhones learn and try away from home, and by which
+    /// one pairs from afar; off, where to get it.
+    private var tailscale: some View {
+        Card {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: "network")
+                    .font(.title3)
+                    .frame(width: 24)
+                    .foregroundStyle(bridge.tailnet.isEmpty ? Theme.indigo : Color.green)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(tr("Away from home, with Tailscale", "Hors de chez vous, avec Tailscale"))
+                        .font(.headline)
+                    if let address = bridge.tailnet.first {
+                        Text(tr("Tailscale is on here: the paired iPhones learn this Mac’s Tailscale address, and reach it there away from home when Tailscale is on. An iPhone away from home pairs by this address, under Add your Mac.",
+                                "Tailscale est allumé ici : les iPhone associés apprennent l’adresse Tailscale de ce Mac et l’y joignent hors de chez vous quand Tailscale est allumé. Un iPhone hors de chez vous s’associe par cette adresse, sous Ajouter votre Mac."))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(address)
+                            .font(.callout.monospaced().weight(.medium))
+                            .textSelection(.enabled)
+                    } else {
+                        Text(tr("Install Tailscale on this Mac and on the iPhone, signed in to the same account: the iPhone then reaches this Mac away from home too.",
+                                "Installez Tailscale sur ce Mac et sur l’iPhone, connectés au même compte : l’iPhone joint alors ce Mac même hors de chez vous."))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Link(tr("Download Tailscale for Mac", "Télécharger Tailscale pour Mac"), destination: CartoucheTailscale.macDownload)
+                            .font(.callout)
+                    }
+                }
+                Spacer(minLength: 0)
             }
         }
     }
@@ -229,6 +290,112 @@ struct Step: View {
             Text(text)
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// The iPhone's games folder, on one of the player's connections: the
+/// Builder sends its games there, the file going, how many went, or why
+/// none goes; nothing when the iPhone chose none there.
+private struct IPhoneGamesSection: View {
+    @ObservedObject var games: IPhoneGames
+
+    var body: some View {
+        if let folder = games.folder {
+            let name = ConsoleLink.connectionName(folder.connection) ?? tr("its connection", "sa connexion")
+            VStack(alignment: .leading, spacing: 10) {
+                Text(tr("The iPhone’s games folder", "Dossier des jeux de l’iPhone").uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Card(padding: 6) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        FolderRow(symbol: "externaldrive.connected.to.line.below", title: tr("Games folder", "Dossier des jeux"),
+                                  path: folder.path.isEmpty ? name : name + " › " + folder.path.split(separator: "/").joined(separator: " › "),
+                                  note: tr("The iPhone’s, chosen on it: this Mac sends its IPAs and its Mac apps there too, through the same connection, “\(name)”, the newest first, and never removes anything there.",
+                                           "Celui de l’iPhone, choisi sur lui : ce Mac y envoie aussi ses IPA et ses apps Mac, par la même connexion, « \(name) », les plus récentes d’abord, et n’y supprime jamais rien.")) {
+                            Button(tr("Send now", "Envoyer maintenant")) { games.round() }
+                                .controlSize(.small)
+                                .disabled(games.progress != nil)
+                        }
+                        Divider().padding(.leading, 48)
+                        status(name: name)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                        if !games.offers.isEmpty {
+                            Divider().padding(.leading, 48)
+                            line(symbol: "arrow.down.circle",
+                                 games.offers.count == 1
+                                     ? tr("1 Mac app another Mac sent there: install it from the console’s library.",
+                                          "1 app Mac envoyée par un autre Mac : installez-la depuis la bibliothèque de la console.")
+                                     : tr("\(games.offers.count) Mac apps another Mac sent there: install them from the console’s library.",
+                                          "\(games.offers.count) apps Mac envoyées par un autre Mac : installez-les depuis la bibliothèque de la console."))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The file going, why none goes, or how many went.
+    @ViewBuilder
+    private func status(name: String) -> some View {
+        if let going = games.progress {
+            VStack(alignment: .leading, spacing: 6) {
+                line(symbol: "arrow.up.circle",
+                     going.packing
+                         ? tr("Packing the Mac app of “\(going.game)” in one file, as a NAS keeps it (\(going.index) of \(going.count))…",
+                              "Mise en un seul fichier de l’app Mac de « \(going.game) », comme la garde un NAS (\(going.index) sur \(going.count))…")
+                         : tr("Sending “\(going.game)” (\(going.index) of \(going.count)): \(Format.size(going.done)) of \(Format.size(going.total))",
+                              "Envoi de « \(going.game) » (\(going.index) sur \(going.count)) : \(Format.size(going.done)) sur \(Format.size(going.total))"))
+                if going.packing {
+                    ProgressView()
+                        .progressViewStyle(.linear)
+                        .padding(.leading, 38)
+                } else {
+                    ProgressView(value: Double(min(going.done, going.total)), total: Double(max(going.total, 1)))
+                        .padding(.leading, 38)
+                }
+            }
+        } else if let stopped = games.stopped {
+            switch stopped {
+            case .offline:
+                line(symbol: "wifi.slash", tr("“\(name)” does not answer from this Mac: its games go there once it does.",
+                                              "« \(name) » ne répond pas depuis ce Mac : ses jeux y partiront dès qu’il répondra."), warning: true)
+            case .readOnly:
+                line(symbol: "lock", tr("Your account may only read this folder: this Mac’s games cannot go there.",
+                                        "Votre compte ne peut que lire ce dossier : les jeux de ce Mac ne peuvent pas y aller."), warning: true)
+            case let .noRoom(needed, free):
+                line(symbol: "externaldrive.badge.exclamationmark",
+                     tr("Not enough room there for the next game: \(Format.size(needed)) needed, \(Format.size(free)) left.",
+                        "Pas assez de place pour le jeu suivant : \(Format.size(needed)) nécessaires, \(Format.size(free)) libres."), warning: true)
+            }
+        } else if let failure = games.failure {
+            line(symbol: "exclamationmark.triangle", tr("The last sending stopped, and starts again at the next look: \(failure)",
+                                                        "Le dernier envoi s’est arrêté, et reprendra au prochain passage : \(failure)"), warning: true)
+        } else if let checked = games.lastRound {
+            line(symbol: games.sentCount == games.total ? "checkmark.circle" : "arrow.up.circle",
+                 games.total == 0
+                     ? tr("No game of this Mac to send yet · looked \(Format.relative(checked))",
+                          "Aucun jeu de ce Mac à envoyer pour l’instant · vérifié \(Format.relative(checked))")
+                     : tr("\(games.sentCount) of this Mac’s \(games.total) files are there · looked \(Format.relative(checked))",
+                          "\(games.sentCount) des \(games.total) fichiers de ce Mac y sont · vérifié \(Format.relative(checked))"))
+        } else {
+            line(symbol: "clock", tr("Looking at the folder…", "Vérification du dossier…"))
+        }
+    }
+
+    private func line(symbol: String, _ text: String, warning: Bool = false) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            Image(systemName: symbol)
+                .foregroundStyle(warning ? Color.orange : Theme.indigo)
+                .frame(width: 24)
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(warning ? Color.orange : Color.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
     }
 }

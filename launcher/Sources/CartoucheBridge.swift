@@ -31,6 +31,13 @@
 //  Mac a little older does not know these requests, and ends the session on
 //  one: Cartouche asks its info first.
 //
+//  A Mac whose info says hasConnections also takes the player's connections
+//  to their storage, a NAS, a bucket, a server or a Google Drive with their
+//  passwords, and gives its own, so that both keep the same
+//  (CartoucheConnections.swift). The iPhone tells it too the folders the
+//  player chose there for the games and the saves (places), which a Mac
+//  older than that leaves aside.
+//
 //  This file is shared: Cartouche compiles it with the launcher, Cartouche
 //  Builder through the CartoucheCore package (launcher/Package.swift). It
 //  needs only Foundation, CryptoKit and Network.
@@ -151,11 +158,17 @@ public final class CartoucheBridgeConnection: CartoucheBridgeTransport, @uncheck
         return parameters
     }
 
-    /// Connects to ENDPOINT, or fails after TIMEOUT.
+    /// Connects to ENDPOINT, or fails after TIMEOUT. Cancelling the task
+    /// closes the connection, which fails at once.
     public static func open(_ endpoint: NWEndpoint, timeout: TimeInterval = 8) async throws -> CartoucheBridgeConnection {
+        try Task.checkCancellation()
         let connection = NWConnection(to: endpoint, using: parameters())
         let opened = CartoucheBridgeConnection(connection)
-        try await opened.start(timeout: timeout)
+        try await withTaskCancellationHandler {
+            try await opened.start(timeout: timeout)
+        } onCancel: {
+            opened.close()
+        }
         return opened
     }
 
@@ -302,6 +315,10 @@ public struct CartoucheBridgeRequest: Codable, Equatable {
         /// batch, follow a game or not, build every night or not. Only of a
         /// Mac whose info says it takes them (hasBuildsControl).
         case buildDue, stop, stopAll, follow, nightly
+        /// The iPhone's connections to the player's storage, for the Mac's,
+        /// which it keeps the same from then on: only of a Mac whose info
+        /// says it takes them (hasConnections).
+        case connections
 
         /// Whether the Mac's app answers it, with its builds.
         public var isBuilds: Bool {
@@ -324,9 +341,20 @@ public struct CartoucheBridgeRequest: Codable, Equatable {
     public var followed: Bool?
     /// nightly: the Mac's nightly build from now on.
     public var nightly: CartoucheBridgeBuilds.Nightly?
+    /// build: true to build what is due of the game, as the Build button of
+    /// its sheet on the Mac does: its app for the Mac alone, when that alone
+    /// is due. A Mac that does not know it builds the game again whole, as
+    /// it does when it is left out.
+    public var due: Bool?
+    /// connections: the iPhone's, with those it removed.
+    public var connections: [CartoucheConnection]?
+    /// connections: the folders the player chose on the iPhone for the
+    /// games and the saves, with when.
+    public var places: CartoucheChosenFolders?
 
     public init(_ op: Operation, path: String? = nil, offset: UInt64? = nil, count: Int? = nil, size: UInt64? = nil, upload: String? = nil,
-                game: String? = nil, followed: Bool? = nil, nightly: CartoucheBridgeBuilds.Nightly? = nil) {
+                game: String? = nil, followed: Bool? = nil, nightly: CartoucheBridgeBuilds.Nightly? = nil, due: Bool? = nil,
+                connections: [CartoucheConnection]? = nil, places: CartoucheChosenFolders? = nil) {
         self.op = op
         self.path = path
         self.offset = offset
@@ -336,6 +364,9 @@ public struct CartoucheBridgeRequest: Codable, Equatable {
         self.game = game
         self.followed = followed
         self.nightly = nightly
+        self.due = due
+        self.connections = connections
+        self.places = places
     }
 }
 
@@ -374,8 +405,18 @@ public struct CartoucheBridgeResponse: Codable, Equatable {
     /// (buildDue, stop, stopAll, follow, nightly).
     public var hasBuilds: Bool?
     public var hasBuildsControl: Bool?
+    /// info: whether the Mac takes the player's connections, and gives its
+    /// own (connections).
+    public var hasConnections: Bool?
+    /// info: the Mac's addresses in the player's tailnet while Tailscale is
+    /// on there (CartoucheTailscale.swift), IPv4 first; none without it. A
+    /// Cartouche Builder older than this one says nothing.
+    public var tailscale: [String]?
     /// builds, build and the rest: the Mac's builds, after what was asked.
     public var builds: CartoucheBridgeBuilds?
+    /// connections: the Mac's, once it took the iPhone's, with those
+    /// removed on either side.
+    public var connections: [CartoucheConnection]?
 
     public init() {}
 
@@ -741,16 +782,87 @@ public final class CartoucheBridgeClient {
     public var macID: String { channel.peer }
     public var macName: String { channel.peerName }
 
-    /// Connects to the Mac at ENDPOINT with the paired KEY.
+    /// Connects to the Mac at ENDPOINT with the paired KEY. Cancelling the
+    /// task closes the connection, which fails at once.
     public static func connect(_ endpoint: NWEndpoint, device: String, key: Data, mac: String?, timeout: TimeInterval = 8) async throws -> CartoucheBridgeClient {
         let connection = try await CartoucheBridgeConnection.open(endpoint, timeout: timeout)
         do {
-            let channel = try await CartoucheBridgeHandshake.client(connection, device: device, key: key, mac: mac)
+            let channel = try await withTaskCancellationHandler {
+                try await CartoucheBridgeHandshake.client(connection, device: device, key: key, mac: mac)
+            } onCancel: {
+                connection.close()
+            }
+            try Task.checkCancellation()
             return CartoucheBridgeClient(channel: channel, address: connection.remoteAddress, port: connection.remotePort)
         } catch {
             connection.close()
             throw error
         }
+    }
+
+    /// Connects to the Mac at the first of ENDPOINTS where it answers, as
+    /// connect does: each is tried HEAD_START seconds after the one before
+    /// it, the others go on meanwhile, and the first session opened closes
+    /// the rest. The Mac's own refusal, as it forgot this iPhone
+    /// (notPaired) or speaks another version of the bridge (protocolError),
+    /// ends them all: its other addresses would say the same. Another Mac
+    /// at one of them (notMac) only leaves that one out. Throws the last
+    /// error when none answers.
+    public static func connect(firstOf endpoints: [NWEndpoint], device: String, key: Data, mac: String?,
+                               headStart: TimeInterval = 0.3, timeout: TimeInterval = 8) async throws -> CartoucheBridgeClient {
+        guard endpoints.count > 1 else {
+            guard let endpoint = endpoints.first else { throw CartoucheBridgeError(.closed) }
+            return try await connect(endpoint, device: device, key: key, mac: mac, timeout: timeout)
+        }
+        // Each client goes from its attempt to this task alone.
+        enum Attempt: @unchecked Sendable {
+            case opened(CartoucheBridgeClient)
+            case failed(Error)
+        }
+        let (client, error) = await withTaskGroup(of: Attempt.self) { group -> (CartoucheBridgeClient?, Error) in
+            for (index, endpoint) in endpoints.enumerated() {
+                group.addTask {
+                    if index > 0 {
+                        do {
+                            try await Task.sleep(nanoseconds: UInt64(Double(index) * headStart * 1_000_000_000))
+                        } catch {
+                            return .failed(error)
+                        }
+                    }
+                    do {
+                        return .opened(try await connect(endpoint, device: device, key: key, mac: mac, timeout: timeout))
+                    } catch {
+                        return .failed(error)
+                    }
+                }
+            }
+            var first: CartoucheBridgeClient?
+            var refusal: Error?
+            var last: Error = CartoucheBridgeError(.closed)
+            for await attempt in group {
+                switch attempt {
+                case let .opened(client):
+                    if first == nil && refusal == nil {
+                        first = client
+                        group.cancelAll()
+                    } else {
+                        client.close()
+                    }
+                case let .failed(error):
+                    guard first == nil, refusal == nil, !(error is CancellationError) else { continue }
+                    if let bridge = error as? CartoucheBridgeError, [.notPaired, .protocolError].contains(bridge.kind) {
+                        refusal = bridge
+                        group.cancelAll()
+                    } else {
+                        last = error
+                    }
+                }
+            }
+            return (first, refusal ?? last)
+        }
+        if let client { return client }
+        try Task.checkCancellation()
+        throw error
     }
 
     /// Sends REQUEST with BODY and waits for the answer and its body. The
@@ -845,10 +957,11 @@ public final class CartoucheBridgeClient {
     }
 
     /// Asks the Mac to build the game TITLE_ID, as the Build button of its
-    /// sheet there does: at once, or after the games of the batch running.
-    /// The Mac's builds once it is asked.
-    public func build(_ titleId: String) async throws -> CartoucheBridgeBuilds {
-        try await builds(CartoucheBridgeRequest(.build, game: titleId))
+    /// sheet there does: at once, or after the games of the batch running;
+    /// what is due of it (DUE: its app for the Mac alone, when that alone is
+    /// due), or all of it again. The Mac's builds once it is asked.
+    public func build(_ titleId: String, due: Bool = false) async throws -> CartoucheBridgeBuilds {
+        try await builds(CartoucheBridgeRequest(.build, game: titleId, due: due ? true : nil))
     }
 
     // What follows, only of a Mac whose info says hasBuildsControl; each
@@ -888,6 +1001,17 @@ public final class CartoucheBridgeClient {
             throw CartoucheBridgeError(.protocolError, "no builds")
         }
         return builds
+    }
+
+    /// Gives the Mac MINE, the iPhone's connections with those it removed,
+    /// and PLACES, the folders chosen on the iPhone, and gets the Mac's
+    /// connections once it took them; ask only a Mac whose info says it
+    /// takes them (hasConnections).
+    public func connections(_ mine: [CartoucheConnection], places: CartoucheChosenFolders? = nil) async throws -> [CartoucheConnection] {
+        guard let theirs = try await call(CartoucheBridgeRequest(.connections, connections: mine, places: places)).0.connections else {
+            throw CartoucheBridgeError(.protocolError, "no connections")
+        }
+        return theirs
     }
 
     public func close() {

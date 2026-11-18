@@ -143,6 +143,143 @@ final class CartoucheSaveSyncTests: XCTestCase {
         XCTAssertEqual(step(here("1|10|1", "a", minutes: 1), copy("c", minutes: 9), base: known), .fetch)
     }
 
+    // MARK: Saves kept in step with another folder
+
+    /// What step() gave as STEP, with no base, becomes for saves a Mac kept
+    /// in step with another saves folder, its base there being LEFT.
+    private func afterLeaving(_ step: CartoucheSaveStep, _ here: CartoucheLocalSaves?, _ newest: CartoucheSaveCopy?,
+                              left: CartoucheSaveBase, leftThere: Bool = true, fetching: Bool = true) -> CartoucheSaveStep {
+        CartoucheSaveSync.afterLeaving(step, left: left, here: here, newest: newest, fetching: fetching) { leftThere }
+    }
+
+    /// The base a Mac kept in its own saves folder, before the player chose
+    /// the iPhone's.
+    private let left = CartoucheSaveBase(place: "mac|/Saves", copy: "2026-11-10_06-41-00.zip", content: "a", look: "1|10|1")
+
+    func testSavesUnchangedSinceTheFolderLeftAreNoNewsWhateverTheirDate() {
+        let mine = here("1|10|1", "a", minutes: 30)
+        let theirs = copy("b", minutes: 9)
+        // Written after the folder's newest copy, they would go over it, for
+        // the iPhone to take in place of its own.
+        XCTAssertEqual(step(mine, theirs), .send)
+        XCTAssertEqual(afterLeaving(.send, mine, theirs, left: left), .fetch)
+        // Written before it, they would be kept there under it.
+        let older = here("1|10|1", "a", minutes: 1)
+        XCTAssertEqual(step(older, theirs), .keepAndFetch)
+        XCTAssertEqual(afterLeaving(.keepAndFetch, older, theirs, left: left), .fetch)
+        // The same content written again is unchanged too.
+        XCTAssertEqual(afterLeaving(.send, here("1|10|7", "a", minutes: 40), theirs, left: left), .fetch)
+        // A base an older Cartouche left knows the saves by their look only.
+        let looked = CartoucheSaveBase(place: left.place, copy: left.copy, content: nil, look: "1|10|1")
+        XCTAssertEqual(afterLeaving(.send, mine, theirs, left: looked), .fetch)
+    }
+
+    func testSavesNoLongerInTheFolderLeftAreKeptHereFirst() {
+        let mine = here("1|10|1", "a", minutes: 30)
+        XCTAssertEqual(afterLeaving(.send, mine, copy("b", minutes: 9), left: left, leftThere: false), .keepAndFetch)
+    }
+
+    func testAfterAGameSavesUnchangedSinceTheFolderLeftWaitForTheNextStart() {
+        let mine = here("1|10|1", "a", minutes: 30)
+        XCTAssertEqual(step(mine, copy("b", minutes: 9), fetching: false), .send)
+        XCTAssertEqual(afterLeaving(.send, mine, copy("b", minutes: 9), left: left, fetching: false), .none)
+        XCTAssertEqual(afterLeaving(.keep, here("1|10|1", "a", minutes: 1), copy("b", minutes: 9), left: left,
+                                    fetching: false), .none)
+    }
+
+    func testSavesChangedSinceTheFolderLeftAreNewsTheSavesWrittenLastWinning() {
+        let theirs = copy("b", minutes: 9)
+        XCTAssertEqual(afterLeaving(.send, here("1|12|30", "c", minutes: 30), theirs, left: left), .send)
+        XCTAssertEqual(afterLeaving(.keepAndFetch, here("1|12|5", "c", minutes: 5), theirs, left: left), .keepAndFetch)
+        XCTAssertEqual(afterLeaving(.keep, here("1|12|5", "c", minutes: 5), theirs, left: left, fetching: false), .keep)
+    }
+
+    func testSavesLeftGoWhereThereIsNoCopyAndNothingElseChanges() {
+        let mine = here("1|10|1", "a", minutes: 30)
+        // No copy there, or a copy of no save: the saves go, as the newest.
+        XCTAssertEqual(afterLeaving(.send, mine, nil, left: left), .send)
+        XCTAssertEqual(afterLeaving(.send, mine, copy("", minutes: 9), left: left), .send)
+        // No save here: the newest copy comes, as on any device.
+        XCTAssertEqual(afterLeaving(.fetch, nil, copy("b", minutes: 9), left: left), .fetch)
+        // What is not known yet is read first, then decided again.
+        XCTAssertEqual(afterLeaving(.compare, here("1|10|1", nil, minutes: 30), copy(nil, minutes: 9), left: left), .compare)
+        // The same saves on both sides.
+        XCTAssertEqual(afterLeaving(.same, mine, copy("a", minutes: 9), left: left), .same)
+    }
+
+    // MARK: The game's version
+
+    func testAVersionIsNewerByItsNumbers() {
+        XCTAssertTrue(CartoucheSaveSync.isNewer("1.2.0", than: "1.1.0"))
+        XCTAssertTrue(CartoucheSaveSync.isNewer("1.10.0", than: "1.9.3"))
+        XCTAssertTrue(CartoucheSaveSync.isNewer("2", than: "1.9"))
+        XCTAssertTrue(CartoucheSaveSync.isNewer("1.0.1", than: "1.0"))
+        XCTAssertTrue(CartoucheSaveSync.isNewer(" 1.3 ", than: "1.2.9"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1.0.0", than: "1.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1.1.0", than: "1.2.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1.2.0", than: "1.2.0"))
+        // Unknown, or not numbers alone: never newer, so that nothing is
+        // held back on a guess.
+        XCTAssertFalse(CartoucheSaveSync.isNewer(nil, than: "1.0.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1.2.0", than: nil))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("", than: "1.0.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1.2.0b", than: "1.0.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("1..2", than: "1.0.0"))
+        XCTAssertFalse(CartoucheSaveSync.isNewer("v2", than: "1.0.0"))
+    }
+
+    func testACopyOfANewerGameNeverComesNorIsPlayedOver() {
+        // The steps that would bring the copy, or put saves over it, ask
+        // for its version; the others move nothing of it.
+        XCTAssertEqual([CartoucheSaveStep.none, .same, .compare, .send, .keep, .fetch, .keepAndFetch]
+                        .filter(CartoucheSaveSync.needsCopyVersion), [.send, .fetch, .keepAndFetch])
+        // It waits, and the saves played here go under it, as a copy of
+        // their own.
+        XCTAssertEqual(CartoucheSaveSync.heldBack(.fetch, copy: "1.2.0", game: "1.1.0"), .none)
+        XCTAssertEqual(CartoucheSaveSync.heldBack(.keepAndFetch, copy: "1.2.0", game: "1.1.0"), .keep)
+        XCTAssertEqual(CartoucheSaveSync.heldBack(.send, copy: "1.2.0", game: "1.1.0"), .keep)
+        for step in [CartoucheSaveStep.none, .same, .compare, .keep] {
+            XCTAssertEqual(CartoucheSaveSync.heldBack(step, copy: "1.2.0", game: "1.1.0"), step)
+        }
+        // A copy of this version, of an older one, or one that does not
+        // say, as an older Cartouche wrote it: as before.
+        let versions: [(String?, String?)] = [("1.1.0", "1.1.0"), ("1.0.0", "1.1.0"), (nil, "1.1.0"), ("1.2.0", nil)]
+        for (copy, game) in versions {
+            for step in [CartoucheSaveStep.fetch, .keepAndFetch, .send] {
+                XCTAssertEqual(CartoucheSaveSync.heldBack(step, copy: copy, game: game), step, "\(copy ?? "none") over \(game ?? "none")")
+            }
+        }
+    }
+
+    func testACopyNamesTheVersionOfTheGameInItsComment() async throws {
+        let documents = try documents()
+        let named = MemorySink()
+        try await CartoucheSaveSync.writeZip(ofSavesIn: documents, to: named, gameVersion: "1.2.0")
+        let archive = try await CartoucheZip.archive(of: MemorySource(named.data))
+        XCTAssertEqual(String(decoding: archive.comment, as: UTF8.self), #"{"gameVersion":"1.2.0"}"#)
+        XCTAssertEqual(CartoucheSaveSync.gameVersion(inComment: archive.comment), "1.2.0")
+        // The same saves with it or without: what a copy holds is its
+        // saves alone, and the copy reads as one.
+        let plain = MemorySink()
+        try await CartoucheSaveSync.writeZip(ofSavesIn: documents, to: plain)
+        let without = try await CartoucheZip.archive(of: MemorySource(plain.data))
+        XCTAssertEqual(without.comment, Data())
+        XCTAssertNil(CartoucheSaveSync.gameVersion(inComment: without.comment))
+        XCTAssertEqual(CartoucheSaveSync.content(of: archive.entries), try CartoucheSaveSync.content(ofSavesIn: documents))
+        XCTAssertEqual(CartoucheSaveSync.content(of: archive.entries), CartoucheSaveSync.content(of: without.entries))
+        XCTAssertTrue(CartoucheSaveSync.holdsSavesOnly(archive.entries))
+        XCTAssertEqual(named.data.count, plain.data.count + archive.comment.count)
+        // No version, none written; another tool's comment, none read.
+        XCTAssertEqual(CartoucheSaveSync.comment(gameVersion: nil), Data())
+        XCTAssertEqual(CartoucheSaveSync.comment(gameVersion: " "), Data())
+        XCTAssertNil(CartoucheSaveSync.gameVersion(inComment: Data("Archive Utility".utf8)))
+        XCTAssertNil(CartoucheSaveSync.gameVersion(inComment: Data(#"{"gameVersion":12}"#.utf8)))
+        XCTAssertNil(CartoucheSaveSync.gameVersion(inComment: Data(#"{"gameVersion":" "}"#.utf8)))
+        // A version longer than any game's is cut.
+        let long = CartoucheSaveSync.comment(gameVersion: String(repeating: "9", count: 200))
+        XCTAssertEqual(CartoucheSaveSync.gameVersion(inComment: long)?.count, 64)
+    }
+
     // MARK: The copies' names
 
     func testTheNamesSortByDate() {

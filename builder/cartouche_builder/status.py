@@ -10,10 +10,14 @@ turn while nxnative moves and the plan is made. A game not built says why
 skipped for the room kept free, the room free and needed); a game
 says the nxnative commit it was built from, and whether that is an older one
 than the branch's newest, which does not build (fallback.py), as the batch
-does. A game also built for this Mac says how its Mac app went (mac:
+does, or the one before nxnative's splitter changed, for its shaders alone
+(split, fallback.py). A game also built for this Mac says how its Mac app went (mac:
 waiting, building, built, failed, stopped, skipped), after its IPA or alone
 (mac_only): it builds until both are done, the stage and progress being
-those of its platform now (platform). The file is written whole
+those of its platform now (platform). Once planned, a game says what its
+build makes (makes: "ios", its IPA for the iPhone, then "mac", its app for
+this Mac, or one of the two), which a game asked for does not say until
+the plan is made. The file is written whole
 each time (a temporary file renamed over it), at most a few times a second,
 so the app can read it whenever it likes: what came meanwhile is written
 once the interval is over, even when nothing comes after it (Xcode compiles
@@ -63,10 +67,15 @@ class Game:
     duration: float = 0.0
     commit: str = ""  # the nxnative commit it was built (or tried) from, 12 digits
     fallback: bool = False  # from an older commit, the newest not building
+    split: bool = False  # from the commit before nxnative's splitter changed, for this game alone (fallback.py)
     cause: str = ""  # why it was not built (causes.py)
     exit: int | None = None  # nxnative's exit code, when it ran
     failure: dict = field(default_factory=dict)  # the exception, where and errno (failure.py)
     room: dict = field(default_factory=dict)  # no room: the GB free and needed (batch.py)
+    # What its build makes, once planned: "ios" (its IPA, for the iPhone),
+    # then "mac" (its app for this Mac), or one of the two; empty for a game
+    # asked for, until the plan says.
+    makes: list[str] = field(default_factory=list)
     # Its Mac app (macapps.py): "" when the batch does not build it.
     platform: str = "ios"  # what its stage and progress are of now: "ios" (the IPA) or "mac"
     mac: str = ""  # waiting, building, built, failed, stopped, skipped
@@ -201,6 +210,7 @@ class Status:
                 self.write(force=True)
             elif kind == "commit":
                 game.commit, game.fallback = str(value.get("commit") or ""), bool(value.get("fallback"))
+                game.split = bool(value.get("split"))
                 self.write()
             elif kind == "cause":
                 game.cause = str(value.get("cause") or "")
@@ -308,9 +318,11 @@ class Status:
 def _planned(entry) -> Game:
     """A game of the batch, waiting its turn: its IPA, and its Mac app after it or alone."""
     game = Game(entry.title_id, entry.game.display_name, list(entry.reasons), entry.detail)
-    if getattr(entry, "mac", False):
-        game.mac, game.mac_only = "waiting", bool(entry.mac_only)
-        game.platform = "mac" if entry.mac_only else "ios"
+    mac, alone = bool(getattr(entry, "mac", False)), bool(getattr(entry, "mac_only", False))
+    game.makes = ([] if alone else ["ios"]) + (["mac"] if mac else [])
+    if mac:
+        game.mac, game.mac_only = "waiting", alone
+        game.platform = "mac" if alone else "ios"
     return game
 
 
@@ -338,10 +350,12 @@ def _game_json(game: Game) -> dict:
         "duration": round(game.duration, 1),
         "commit": game.commit,
         "fallback": game.fallback,
+        "split": game.split,
         "cause": game.cause,
         "exit": game.exit,
         "failure": game.failure,
         "room": game.room,
+        "makes": game.makes,
         "platform": game.platform,
         "mac": game.mac,
         "mac_only": game.mac_only,

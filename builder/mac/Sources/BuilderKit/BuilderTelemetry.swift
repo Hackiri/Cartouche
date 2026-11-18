@@ -290,6 +290,8 @@ public final class BuilderTelemetry: ObservableObject {
         var sent = 0
         var lastSent: Date?
         var lastVersion: String?
+        /// The last report made, as it is sent.
+        var lastReport: String?
 
         init() {
             install = BuilderTelemetry.newNumber()
@@ -306,6 +308,7 @@ public final class BuilderTelemetry: ObservableObject {
             sent = try values.decodeIfPresent(Int.self, forKey: .sent) ?? 0
             lastSent = try values.decodeIfPresent(Date.self, forKey: .lastSent)
             lastVersion = try values.decodeIfPresent(String.self, forKey: .lastVersion)
+            lastReport = try values.decodeIfPresent(String.self, forKey: .lastReport)
         }
     }
 
@@ -314,6 +317,9 @@ public final class BuilderTelemetry: ObservableObject {
     @Published public private(set) var waiting: Int
     @Published public private(set) var lastSent: Date?
     @Published public private(set) var isErasing = false
+    /// The last report made, as it is sent: Cartouche's console shows it
+    /// (System › Game measurements).
+    @Published public private(set) var lastReport: String?
 
     /// The language the app shows, sent with each report.
     public var language: String?
@@ -352,7 +358,12 @@ public final class BuilderTelemetry: ObservableObject {
         sent = state.sent
         waiting = state.queue.entries.count
         lastSent = state.lastSent
+        lastReport = state.lastReport
     }
+
+    /// Whether the app has a server to send to: a build without one keeps
+    /// and sends nothing.
+    public var hasServer: Bool { endpoint != nil }
 
     // MARK: Start
 
@@ -400,6 +411,7 @@ public final class BuilderTelemetry: ObservableObject {
         state.queue.removeAll()
         state.sent = 0
         state.lastSent = nil
+        state.lastReport = nil
         save()
         return true
     }
@@ -414,6 +426,21 @@ public final class BuilderTelemetry: ObservableObject {
         guard let report = TelemetryEvent(id: Self.newNumber(), seq: state.seq, context: context, name: name, game: game, fields: fields),
               let body = try? TelemetryFormat.json(report) else { return }
         state.queue.add(TelemetryQueue.Entry(id: report.id, created: Date(), body: body))
+        state.lastReport = body
+        save()
+        send()
+    }
+
+    /// Queues a report Cartouche's console made, a session of a game played
+    /// on this Mac (telemetry/README.md#cartouche-builder), if the player
+    /// has telemetry on and the app a server, and sends. MAKE is given this
+    /// copy's context and the report's number, and gives the report's random
+    /// number and body, or nil for none.
+    public func report(_ make: (TelemetryContext, Int) -> (id: String, body: String)?) {
+        guard state.isOn, endpoint != nil, let made = make(context, state.seq + 1) else { return }
+        state.seq += 1
+        state.queue.add(TelemetryQueue.Entry(id: made.id, created: Date(), body: made.body))
+        state.lastReport = made.body
         save()
         send()
     }
@@ -472,8 +499,9 @@ public final class BuilderTelemetry: ObservableObject {
     }
 
     /// A game's saves kept in step with the iPhone's copies (builder.saves):
-    /// the STEP (CartoucheSaveStep: send, keep, fetch, keepAndFetch; or
-    /// offline, failed), WHEN (before, after, round), and whether the
+    /// the STEP (CartoucheSaveStep: send, keep, fetch, keepAndFetch;
+    /// heldBack, MacSaveEvent's, for a newest copy that waits for the
+    /// game's update; or offline, failed), WHEN (before, after, round), and whether the
     /// saves folder is ON_SHARE. Never a name, a copy's or a folder's.
     public nonisolated static func savesFields(step: String, when: String, onShare: Bool) -> [String: TelemetryValue] {
         ["step": .text(FailureDetails.name(step) ?? "other"),
@@ -484,11 +512,39 @@ public final class BuilderTelemetry: ObservableObject {
     /// A game's app the games folder keeps in one file (a NAS's) installed
     /// on this Mac to be played (builder.macInstalled): its size once
     /// installed (BYTES), how long it took, and whether it took the place
-    /// of this Mac's copy of an older build (AGAIN). Never a name or a path.
-    public nonisolated static func installedFields(bytes: Int64?, seconds: TimeInterval, again: Bool) -> [String: TelemetryValue] {
+    /// of this Mac's copy of an older build (AGAIN); or, from the iPhone's
+    /// games folder, the app another Mac sent there, on a connection of
+    /// the kind SERVER. Never a name, a path or an address.
+    public nonisolated static func installedFields(bytes: Int64?, seconds: TimeInterval, again: Bool,
+                                                   server: String? = nil) -> [String: TelemetryValue] {
         var fields: [String: TelemetryValue] = ["seconds": .number(max(0, seconds).rounded()), "again": .flag(again)]
         if let bytes, bytes > 0 { fields["appMB"] = .number((Double(bytes) / 1_000_000).rounded()) }
+        if let server {
+            fields["from"] = .text("connection")
+            fields["server"] = .text(serverKind(server))
+        }
         return fields
+    }
+
+    /// A game's file sent to the iPhone's games folder, on one of the
+    /// player's connections (builder.sent): KIND, its IPA or its Mac app
+    /// (ipa, mac), its size (BYTES), how long it took, whether the Mac app
+    /// was PACKED in one file first, and the connection's kind, SERVER.
+    /// Never a name, a path or an address.
+    public nonisolated static func sentFields(kind: String, bytes: UInt64, seconds: TimeInterval, packed: Bool,
+                                              server: String?) -> [String: TelemetryValue] {
+        ["kind": .text(kind == "ipa" ? "ipa" : "mac"),
+         "fileMB": .number((Double(bytes) / 1_000_000).rounded()),
+         "seconds": .number(max(0, seconds).rounded()),
+         "packed": .flag(packed),
+         "server": .text(serverKind(server))]
+    }
+
+    /// A connection's kind, as Cartouche's storage names it: smb, s3, ftp,
+    /// sftp, drive, or other.
+    nonisolated static func serverKind(_ kind: String?) -> String {
+        guard let kind, ["smb", "s3", "ftp", "sftp", "drive"].contains(kind) else { return "other" }
+        return kind
     }
 
     /// An nxnative commit's 12 digits, when TEXT is one.
@@ -520,6 +576,7 @@ public final class BuilderTelemetry: ObservableObject {
             if let kind = library?.game(game.titleID)?.kind { fields["source"] = .text(kind) }
             if let built = game.commit.flatMap(BuilderTelemetry.commit) ?? head { fields["nxnative"] = .text(built) }
             if game.fallback == true { fields["fallback"] = .flag(true) }
+            if game.split == true { fields["split"] = .flag(true) }
             if game.state == "built" {
                 if let size = library?.game(game.titleID)?.ipa?.size, size > 0 {
                     fields["ipaMB"] = .number((Double(size) / 1_000_000).rounded())
@@ -545,6 +602,7 @@ public final class BuilderTelemetry: ObservableObject {
             if let kind = library?.game(game.titleID)?.kind { fields["source"] = .text(kind) }
             if let built = game.commit.flatMap(BuilderTelemetry.commit) ?? head { fields["nxnative"] = .text(built) }
             if game.fallback == true { fields["fallback"] = .flag(true) }
+            if game.split == true { fields["split"] = .flag(true) }
             if game.mac == "built" {
                 // As the games folder keeps it: the app, or its file on a NAS.
                 let mac = library?.game(game.titleID)?.mac
@@ -654,6 +712,7 @@ public final class BuilderTelemetry: ObservableObject {
         sent = state.sent
         waiting = state.queue.entries.count
         lastSent = state.lastSent
+        lastReport = state.lastReport
         guard let file, let data = try? JSONEncoder().encode(state) else { return }
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: file, options: .atomic)

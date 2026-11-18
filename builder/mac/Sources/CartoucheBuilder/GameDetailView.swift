@@ -13,6 +13,7 @@
 //
 
 import BuilderKit
+import CartoucheCore
 import SwiftUI
 
 struct GameDetailView: View {
@@ -691,6 +692,7 @@ struct MacPlayCard: View {
         let event = games.last[game.titleID]
         if games.cloud[game.titleID] != nil { return "icloud" }
         if event?.failed == true || event?.offline == true, games.keepsSaves(game.titleID) { return "exclamationmark.triangle" }
+        if event?.step == MacSaveEvent.heldBack, games.keepsSaves(game.titleID) { return "arrow.up.circle" }
         return "arrow.triangle.2.circlepath"
     }
 
@@ -726,6 +728,13 @@ struct MacPlayCard: View {
         case "keepAndFetch":
             return tr("Newer saves came from the saves folder \(when); this Mac’s were kept as a copy.",
                       "Des sauvegardes plus récentes sont arrivées du dossier des sauvegardes \(when) ; celles de ce Mac ont été gardées en copie.")
+        case MacSaveEvent.heldBack:
+            let copy = event.newer ?? "?", app = event.game ?? "?"
+            return tr("The newest copy in the saves folder comes from version \(copy) of the game, newer than this Mac’s (\(app)): it comes once the game is updated here. Meanwhile, this Mac’s saves go there as a copy of their own.",
+                      "La copie la plus récente du dossier des sauvegardes vient de la version \(copy) du jeu, plus récente que celle de ce Mac (\(app)) : elle viendra une fois le jeu mis à jour ici. D’ici là, les sauvegardes de ce Mac y partent comme une copie à part.")
+        case MacSaveEvent.putBack:
+            return tr("A copy was put back \(when), from Cartouche’s console: it is the newest one in the saves folder now.",
+                      "Une copie a été remise \(when), depuis la console de Cartouche : c’est maintenant la plus récente du dossier des sauvegardes.")
         case "offline":
             return tr("The saves folder could not be reached \(when): this Mac’s saves stay as they are until it can be.",
                       "Le dossier des sauvegardes était injoignable \(when) : celles de ce Mac restent telles quelles en attendant.")
@@ -796,16 +805,18 @@ struct UnbuiltCard: View {
     }
 }
 
-/// A game building now, or waiting its turn: its IPA, then its app for
-/// this Mac, or the Mac app alone.
+/// A game building now, or waiting its turn: what its build makes, its
+/// IPA, for the iPhone, then its app for this Mac, or one of the two, and
+/// the part it makes now (decision 127).
 struct ProgressCard: View {
+    @EnvironmentObject private var model: AppModel
     let progress: GameProgress
 
     var body: some View {
         Card(padding: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                if progress.buildsMac {
-                    Text(platformLine)
+                if let targets = model.targets(progress) {
+                    TargetLabel(targets: targets)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -830,10 +841,5 @@ struct ProgressCard: View {
                 }
             }
         }
-    }
-
-    private var platformLine: String {
-        if progress.macOnly == true { return tr("For this Mac", "Pour ce Mac") }
-        return progress.onMacNow ? tr("iPhone done, now this Mac", "iPhone fait, maintenant ce Mac") : tr("For the iPhone, then this Mac", "Pour l’iPhone, puis ce Mac")
     }
 }

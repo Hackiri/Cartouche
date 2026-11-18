@@ -40,21 +40,6 @@
       "kind": "iphone",
       "why": "A game running behind the console in LiveContainer's LiveProcess: a Mac game runs in its own window."
     },
-    "CartoucheGameLogShare.swift": {
-      "kind": "later",
-      "why": "A game's log, read, summed up and cleaned for Send to Cartouche, which is a problem report: with the console's reports on the Mac, and the log nxnative's app for the Mac writes.",
-      "step": 8
-    },
-    "CartoucheGameLogView.swift": {
-      "kind": "later",
-      "why": "A game's log, from its sheet: shared as the game wrote it, or sent to Cartouche cleaned, as a problem report; with the console's reports on the Mac. The sheet's row stays the iPhone's meanwhile (#if os(iOS)).",
-      "step": 8
-    },
-    "CartoucheGameLogZip.swift": {
-      "kind": "later",
-      "why": "The zip of a game's logs that the share sheet shares: with the game's log page on the Mac (CartoucheGameLogView.swift).",
-      "step": 8
-    },
     "CartoucheGameNames.swift": {
       "kind": "iphone",
       "why": "The names Siri and Shortcuts know a game of the player's by, its shorter ones among them (CartoucheShortcuts.swift): on the Mac, each game is an app of its own, which Siri, Spotlight and Shortcuts know by its name."
@@ -78,12 +63,13 @@
     },
     "CartoucheGuide.swift": {
       "kind": "mac",
-      "why": "The way to a first game on a new iPhone (LocalDevVPN, Apple ID, a Mac): the Mac's is the Builder's setup assistant; the console's stand-in shows no guide.",
-      "mac": "CartoucheConsole/Mac/ConsoleStandIns.swift"
+      "why": "The way to a first game on a new iPhone (LocalDevVPN, Apple ID, a Mac): the Mac's own guide has its own steps, the Builder's setup assistant, a game built for the Mac, a game played there.",
+      "mac": "CartoucheConsole/Mac/ConsoleGuide.swift"
     },
     "CartoucheGuideView.swift": {
-      "kind": "iphone",
-      "why": "The first game's guide over the iPhone's console (CartoucheGuide)."
+      "kind": "mac",
+      "why": "The first game's guide over the iPhone's console, its steps the iPhone's: the Mac's is a page of the console, of its own steps; the card on the home is the iPhone's (CartoucheGuideCard).",
+      "mac": "CartoucheConsole/Mac/ConsoleGuide.swift"
     },
     "CartoucheIPhoneAppList.swift": {
       "kind": "iphone",
@@ -132,11 +118,6 @@
       "kind": "iphone",
       "why": "What Cartouche can measure of iOS's Files picker."
     },
-    "CartoucheProblemReport.swift": {
-      "kind": "later",
-      "why": "System › Report a problem: with the console's reports and measurements on the Mac.",
-      "step": 8
-    },
     "CartoucheRelease.swift": {
       "kind": "mac",
       "why": "Cartouche's versions as the built-in SideStore's source lists them: the Mac's app updates itself from its own releases.",
@@ -154,16 +135,6 @@
     "CartoucheRenewalRules.swift": {
       "kind": "iphone",
       "why": "When Cartouche renews itself in its last days, by the built-in SideStore with LocalDevVPN on: a Mac app does not expire."
-    },
-    "CartoucheReportView.swift": {
-      "kind": "later",
-      "why": "System › Report a problem, its screen: with the console's reports and measurements on the Mac.",
-      "step": 8
-    },
-    "CartoucheReporting.swift": {
-      "kind": "later",
-      "why": "The report under each error and its Copy the report button: with the console's measurements on the Mac; the console's stand-in keeps the Builder's own reports meanwhile.",
-      "step": 8
     },
     "CartoucheReset.swift": {
       "kind": "iphone",
@@ -189,8 +160,8 @@
     },
     "CartoucheSaveBackups.swift": {
       "kind": "mac",
-      "why": "The games' saves kept in step with the saves folder: on the Mac, with the same CartoucheSaveSync, by MacSaves.",
-      "mac": "BuilderKit/MacSaves.swift"
+      "why": "The iPhone keeps its games' saves in step itself, in rounds, with UIKit's time in the background; on the Mac, the Builder keeps those of the games played there in step (BuilderKit/MacSaves.swift, MacGames.swift), and the console's stand-in shows what it did and asks it for the rest (Mac/ConsoleSaves.swift).",
+      "mac": "CartoucheConsole/Mac/ConsoleSaves.swift"
     },
     "CartoucheSetup.swift": {
       "kind": "iphone",
@@ -212,6 +183,10 @@
       "kind": "iphone",
       "why": "The Apple ID sign-in for the built-in SideStore."
     },
+    "CartoucheSigningCheck.swift": {
+      "kind": "iphone",
+      "why": "Why a certificate imported for the iPhone's games does not go in: the file, its password and its key, then the profile of a Cartouche signed with the player's own certificate. A Mac game is signed by nxnative's build."
+    },
     "CartoucheSigningMaterial.swift": {
       "kind": "iphone",
       "why": "The certificate and profile an iPhone's games are signed with."
@@ -220,64 +195,19 @@
       "kind": "iphone",
       "why": "Choosing how the iPhone's games are signed."
     },
-    "CartoucheStorageDriveView.swift": {
-      "kind": "later",
-      "why": "The player's Google Drive on the Storage page: with the console's storage and the library the iPhone and the Mac share.",
-      "step": 7
-    },
     "CartoucheStorageMacView.swift": {
       "kind": "mac",
       "why": "Pairing the iPhone with a Mac, from the iPhone's side: the Builder's iPhone page is the Mac's side.",
       "mac": "CartoucheBuilder/BridgeView.swift"
-    },
-    "CartoucheStorageSFTP.swift": {
-      "kind": "later",
-      "why": "An SFTP server of the player's: with the console's storage and the library the iPhone and the Mac share.",
-      "step": 7
-    },
-    "CartoucheStorageSMB.swift": {
-      "kind": "later",
-      "why": "A shared folder over SMB: with the console's storage and the library the iPhone and the Mac share.",
-      "step": 7
-    },
-    "CartoucheStorageView.swift": {
-      "kind": "later",
-      "why": "The Storage page: with the console's storage and the library the iPhone and the Mac share.",
-      "step": 7
-    },
-    "CartoucheSwitchSave.swift": {
-      "kind": "later",
-      "why": "A save exported on the player's Switch with JKSV or Checkpoint, checked and put in place of a game's save, and the save it replaced kept and put back: on the Mac, with the console's storage and saves, where a game's saves are those of nxnative's app for the Mac (MacSaves).",
-      "step": 7
-    },
-    "CartoucheSwitchSaveArchive.swift": {
-      "kind": "later",
-      "why": "The folder or ZIP archive of a save exported on the Switch, read, and a game's save made into a ZIP archive for JKSV: on the Mac, with the console's storage and saves.",
-      "step": 7
-    },
-    "CartoucheSwitchSaveView.swift": {
-      "kind": "later",
-      "why": "A game's saves between the player's Switch and this iPhone, which the sheet's saves section opens (CartoucheStorageView.swift): on the Mac, with the console's storage and saves.",
-      "step": 7
-    },
-    "CartoucheSystemView.swift": {
-      "kind": "later",
-      "why": "The System page: with the console's measurements, its reports and the Mac's guide, which most of its rows are; System opens the Builder meanwhile, and a game's sheet says how the game fits this Mac.",
-      "step": 8
     },
     "CartoucheTV.swift": {
       "kind": "iphone",
       "why": "The game alone on a TV while the iPhone keeps its controls: a Mac shows the game on any of its displays itself."
     },
     "CartoucheTelemetry.swift": {
-      "kind": "later",
-      "why": "Cartouche's measurements of the games: the console's own on the Mac, told apart from the iPhone's on the dashboard; the Builder measures the Mac's builds and games meanwhile (builder.*).",
-      "step": 8
-    },
-    "CartoucheTelemetryView.swift": {
-      "kind": "later",
-      "why": "System › Game measurements: with the console's measurements on the Mac.",
-      "step": 8
+      "kind": "mac",
+      "why": "Cartouche's measurements on the iPhone: its switch, its queue and its number, the games' log.txt in LiveContainer's containers, and its own events, by UIKit's notifications. On the Mac, the console reads the sessions of the log nxnative's app for the Mac writes, with the same reader and the same report, and the Builder's telemetry keeps the switch, the queue and the number for both, and sends (BuilderKit/BuilderTelemetry.swift).",
+      "mac": "CartoucheConsole/Mac/ConsoleTelemetry.swift"
     },
     "CartoucheTextReset.swift": {
       "kind": "iphone",
@@ -286,11 +216,6 @@
     "CartoucheTextShortcuts.swift": {
       "kind": "iphone",
       "why": "The words of Siri and Home Screen (CartoucheShortcuts.swift, CartoucheGameShortcutsView.swift), the iPhone's alone."
-    },
-    "CartoucheTextSwitchSave.swift": {
-      "kind": "later",
-      "why": "The words of a game's saves between the player's Switch and this iPhone (CartoucheSwitchSaveView.swift): on the Mac, with the console's storage and saves.",
-      "step": 7
     },
     "CartoucheUpdateView.swift": {
       "kind": "mac",

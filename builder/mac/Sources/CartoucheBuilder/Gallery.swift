@@ -26,22 +26,85 @@ enum Gallery {
         // What stops a build before it starts: too little room on the Mac,
         // an Xcode older than nxnative's, a game no Mac built yet.
         case libraryRoom = "library-room", gameXcode = "game-xcode", gameUnbuilt = "game-unbuilt", setupXcode = "setup-xcode"
+        // A game's sheet whose newest copy of its saves waits for the
+        // game's update, a newer version of the game having written it.
+        case gameNewer = "game-newer"
         case assistantWelcome = "assistant-welcome", assistantTools = "assistant-tools", assistantSources = "assistant-sources"
         case assistantGames = "assistant-games", assistantKeys = "assistant-keys", assistantBuilds = "assistant-builds"
         case assistantIPhone = "assistant-iphone", assistantDone = "assistant-done"
+        // The settings' Folders tab, where the dumps folder and the games
+        // folder are chosen; and the help on naming what they hold, as the
+        // sheet it opens shows it, at its top and on the dumps folder, as
+        // the library opens it.
+        case settingsFolders = "settings-folders", names, namesDumps = "names-dumps"
         // Cartouche's console on this Mac (ConsoleGallery.swift): its home,
         // every game, a game's settings page beside them, a game's info over
         // them, and the whole sheet of a game played on this Mac, in a
-        // window as tall as it.
+        // window as tall as it, again with the newest copy of its saves
+        // waiting for the game's update, a newer version having written it,
+        // with the copies of its saves and its Switch saves, the pages its
+        // saves open, and its log; its System page, and the Storage page
+        // that one opens, with the player's connections, its Game
+        // measurements page and its Report a problem page; the guide to a
+        // first game on this Mac, and its card on the home, for a player
+        // who has built games and played none yet.
         case console, consoleLibrary = "console-library", consoleSettings = "console-settings", consoleInfo = "console-info"
-        case consoleSheet = "console-sheet"
+        case consoleSheet = "console-sheet", consoleSheetNewer = "console-sheet-newer"
+        case consoleSaves = "console-saves", consoleSwitchSave = "console-switch-save", consoleGameLog = "console-game-log"
+        case consoleSystem = "console-system", consoleStorage = "console-storage", consoleMeasures = "console-measures"
+        case consoleReport = "console-report", consoleGuide = "console-guide", consoleFirstGame = "console-first-game"
         // What the window's height leaves out: the settings' Builds tab, and
         // the storage page down to the games on this Mac, in a window as
         // tall as it.
         case settingsBuilds = "settings-builds", storageMac = "storage-mac"
+        // The iPhone page with Tailscale on this Mac, and its address there
+        // (BridgeView.swift); the iPhone page above has it off.
+        case iphoneTailscale = "iphone-tailscale"
+        // The whole iPhone page, in a window as tall as it, down to the
+        // iPhone's games folder on one of the player's connections, a NAS:
+        // a game going there, and a Mac app another Mac sent
+        // (IPhoneGames.swift).
+        case iphoneGames = "iphone-games"
+        // The game page of the builder in the window that showed the
+        // console just before, the player back from it with the switch at
+        // the top of the window: as the game page, whatever the Mac's
+        // appearance.
+        case gameAfterConsole = "game-after-console"
+        // A game whose shaders nxnative's newest commit splits otherwise
+        // than its profile says (decision 133), as Mario Kart World's since
+        // nxnative's 8d62601f of 16 November 2026: built in a batch from
+        // the commit before nxnative's splitter changed, alone, the other
+        // games from the newest, with what the batch said open, in a window
+        // as tall as the page; and its sheet once built, held there, down to
+        // its build.
+        case activitySplit = "activity-split", gameSplit = "game-split"
 
         /// Whether the page is the console's, which is always dark.
-        var isConsole: Bool { [.console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet].contains(self) }
+        var isConsole: Bool {
+            [.console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet, .consoleSheetNewer, .consoleSaves,
+             .consoleSwitchSave, .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport,
+             .consoleGuide, .consoleFirstGame].contains(self)
+        }
+
+        /// Whether the page is a game's whole sheet, in a window as tall.
+        var isWholeSheet: Bool { self == .consoleSheet || self == .consoleSheetNewer }
+
+        /// Whether the page is in a window taller than the screen, as tall
+        /// as the page, which AppKit would fit to the screen.
+        var isTall: Bool {
+            isWholeSheet || [.storageMac, .iphoneGames, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport,
+                             .activitySplit, .gameSplit].contains(self)
+        }
+
+        /// The page of the sheet's saves it opens over the sheet.
+        var savesPage: ConsoleSavesPage? {
+            switch self {
+            case .consoleSaves: return .copies
+            case .consoleSwitchSave: return .switchSaves
+            case .consoleGameLog: return .log
+            default: return nil
+            }
+        }
 
         /// The setup assistant's step the page shows.
         var step: SetupStep? {
@@ -61,9 +124,26 @@ enum Gallery {
         var size: CGSize {
             if step != nil { return SetupAssistant.size }
             switch self {
-            case .settings, .settingsBuilds: return SettingsTab.size
+            case .names, .namesDumps: return NamingHelp.size
+            case .settings, .settingsBuilds, .settingsFolders: return SettingsTab.size
             case .storageMac: return CGSize(width: 1024, height: 1440)
-            case .consoleSheet: return CGSize(width: 1024, height: 1300)
+            case .iphoneGames: return CGSize(width: 1024, height: 1500)
+            case .consoleSheet, .consoleSheetNewer: return CGSize(width: 1024, height: 1640)
+            // This Mac, the iPhone's games folder on a NAS, and every
+            // connection, down to the footer.
+            case .consoleStorage: return CGSize(width: 1024, height: 1560)
+            // What is sent, down to the way to erase it.
+            case .consoleMeasures: return CGSize(width: 1024, height: 1180)
+            // What the player writes, the ways to send it, and the report
+            // down to its last steps.
+            case .consoleReport: return CGSize(width: 1024, height: 1500)
+            // The whole System page, down to Report a problem.
+            case .consoleSystem: return CGSize(width: 1024, height: 980)
+            // The game building, the games built, and what the batch said.
+            case .activitySplit: return CGSize(width: 1024, height: 1060)
+            // The sheet down to its build: why it is up to date, and the
+            // commit it was built from.
+            case .gameSplit: return CGSize(width: 1024, height: 1150)
             // The window at its smallest, with a game's sheet whose
             // nxnative commits are a paragraph each, as nxnative writes them.
             case .gameNarrow: return CGSize(width: Columns.window.width, height: 680)
@@ -72,20 +152,26 @@ enum Gallery {
             }
         }
 
-        var inEnglish: Bool { [.library, .game, .gameQueue, .setup, .menubar, .assistantWelcome, .assistantGames, .console].contains(self) }
+        var inEnglish: Bool {
+            [.library, .game, .gameQueue, .setup, .menubar, .assistantWelcome, .assistantGames, .console, .consoleStorage,
+             .activitySplit, .gameSplit].contains(self)
+        }
 
         /// The window as the app opens it: the settings as the Settings
         /// scene does, the menu bar's panel without a frame, the setup
         /// assistant as the sheet it is, without a title bar, which would
         /// add its height above it.
         var styleMask: NSWindow.StyleMask {
-            if step != nil { return [.borderless] }
+            if step != nil || isNaming { return [.borderless] }
             switch self {
-            case .settings, .settingsBuilds: return [.titled, .closable]
+            case .settings, .settingsBuilds, .settingsFolders: return [.titled, .closable]
             case .menubar, .menubarBuilding: return [.borderless]
             default: return [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
             }
         }
+
+        /// Whether the page is the help on naming, the sheet it is.
+        var isNaming: Bool { self == .names || self == .namesDumps }
     }
 
     /// Pictures AppKit drew itself, as ScreenCaptureKit could not take them.
@@ -113,10 +199,14 @@ enum Gallery {
             FileHandle.standardError.write(Data("gallery: the samples do not decode: \(error)\n".utf8))
             exit(1)
         }
-        loadCovers(samples.library.games.map(\.titleID) + [Gallery.unbuilt.titleID])
+        loadCovers(samples.library.games.map(\.titleID) + [Gallery.unbuilt.titleID, Gallery.splitTitleID])
         var saved = 0
         for language in ["fr", "en"] {
             L10n.use(language)
+            // The console speaks it too, as once the app read its settings
+            // (AppModel): its words show in the builder's, as the help on
+            // naming the games' title in the settings.
+            ConsoleLink.speak()
             for page in Page.allCases where language == "fr" || page.inEnglish {
                 for dark in page.isConsole ? [true] : language == "fr" ? [false, true] : [false] {
                     let file = folder.appendingPathComponent("\(page.rawValue)-\(language)-\(dark ? "dark" : "light").png")
@@ -151,18 +241,41 @@ enum Gallery {
     }
 
     private static func render(_ page: Page, samples: Samples, dark: Bool, to file: URL) -> Bool {
+        // The Mac in the page's mode, as the window: the builder's follows
+        // the Mac's (MainView).
+        NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         let model = samples.model(for: page)
         var size = page.size
         let controller: NSViewController
         switch page {
+        case .names, .namesDumps:
+            // The sheet it is, as the setup assistant's steps are shown.
+            controller = hosted(NamingHelp(onDumps: page == .namesDumps)
+                                    .background(Color(nsColor: .windowBackgroundColor))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)),
+                                model, bridged: false)
+        case .settingsFolders:
+            controller = settings(model, open: .folders)
         case .settings, .settingsBuilds:
             controller = settings(model, open: page == .settingsBuilds ? .builds : .general)
-        case .console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet:
-            ConsoleGallery.prepare(language: L10n.code)
+        case .console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet, .consoleSheetNewer, .consoleSaves, .consoleSwitchSave,
+             .consoleGameLog, .consoleSystem, .consoleStorage, .consoleMeasures, .consoleReport, .consoleGuide, .consoleFirstGame:
+            ConsoleGallery.prepare(language: L10n.code, newer: page == .consoleSheetNewer,
+                                   firstGame: page == .consoleGuide || page == .consoleFirstGame)
             model.show(.console)
+            let sheet = page.isWholeSheet || page.savesPage != nil
             controller = hosted(MainView(showingLibrary: page == .consoleLibrary, showingSettings: page == .consoleSettings,
                                          showingInfo: page == .consoleInfo,
-                                         showingSheetOf: page == .consoleSheet ? ConsoleGallery.sheetGame : nil), model)
+                                         showingSheetOf: sheet ? ConsoleGallery.sheetGame : nil,
+                                         showingSaves: page.savesPage,
+                                         showingSystem: page == .consoleSystem, showingStorage: page == .consoleStorage,
+                                         showingMeasures: page == .consoleMeasures, showingReport: page == .consoleReport,
+                                         showingGuide: page == .consoleGuide), model)
+        case .gameAfterConsole:
+            // The console first, in the window, as the player had it.
+            ConsoleGallery.prepare(language: L10n.code)
+            model.show(.console)
+            controller = hosted(MainView(), model)
         case .menubar, .menubarBuilding:
             let panel = hosted(MenuBarView().background(Color(nsColor: .windowBackgroundColor)), model)
             size.height = ceil(panel.sizeThatFits(in: CGSize(width: size.width, height: 2000)).height)
@@ -178,11 +291,11 @@ enum Gallery {
             } else {
                 // The window as the app shows it: the builder, below the
                 // switch to the console.
-                controller = hosted(MainView(), model)
+                controller = hosted(MainView(showingDetails: page == .activitySplit), model)
             }
         }
         let frame = CGRect(origin: CGPoint(x: 80, y: 80), size: size)
-        let window: NSWindow = page == .storageMac || page == .consoleSheet
+        let window: NSWindow = page.isTall
             ? TallWindow(contentRect: frame, styleMask: page.styleMask, backing: .buffered, defer: false)
             : KeyWindow(contentRect: frame, styleMask: page.styleMask, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
@@ -190,13 +303,14 @@ enum Gallery {
         switch page {
         case .settings: window.title = SettingsTab.general.title
         case .settingsBuilds: window.title = SettingsTab.builds.title
-        case .console, .consoleLibrary, .consoleSettings, .consoleInfo, .consoleSheet: window.title = "Cartouche"
+        case .settingsFolders: window.title = SettingsTab.folders.title
+        case _ where page.isConsole: window.title = "Cartouche"
         default: window.title = "Cartouche Builder"
         }
-        if page == .settings || page == .settingsBuilds {
+        if page == .settings || page == .settingsBuilds || page == .settingsFolders {
             window.toolbarStyle = .preference
         }
-        if page.step != nil {
+        if page.step != nil || page.isNaming {
             window.isOpaque = false
             window.backgroundColor = .clear
         }
@@ -212,6 +326,11 @@ enum Gallery {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         wait(until: Date().addingTimeInterval(2.5))
+        // Then the builder, the switch turned as the player turns it.
+        if page == .gameAfterConsole {
+            model.show(.builder)
+            wait(until: Date().addingTimeInterval(2.5))
+        }
         // A game's info opens over the console in a sheet, a window of its
         // own, which the window server shows with the console's window
         // under it, as one: the picture is as large as both.
@@ -387,31 +506,50 @@ enum Gallery {
             if page == .gameUnbuilt {
                 library.games.append(Gallery.unbuilt)
             }
+            // Mario Kart World, built from the commit before nxnative's
+            // splitter changed: in the batch, Kirby building after it from
+            // the newest.
+            let split = page == .activitySplit
+            if split || page == .gameSplit {
+                library.games.append(Gallery.splitGame)
+            }
+            if split, let index = library.games.firstIndex(where: { $0.titleID == "01004D300C5AE000" }) {
+                library.games[index].state = .building
+            }
             if building {
                 // The library as the engine gives it while the batch runs:
-                // Kirby built in it, Mario Kart 8 Deluxe building, Metroid
-                // Dread waiting its turn, Super Mario Odyssey asked for since.
+                // Kirby built in it, for the iPhone and this Mac, Mario Kart
+                // 8 Deluxe building, Metroid Dread waiting its turn, Super
+                // Mario Odyssey and Breath of the Wild, built for the iPhone
+                // alone, asked for since (decision 127).
                 let states: [String: GameState] = ["01004D300C5AE000": .upToDate, "0100152000022000": .building,
-                                                   "010093801237C000": .queued, "0100000000010000": .queued]
+                                                   "010093801237C000": .queued, "0100000000010000": .queued,
+                                                   "01007EF00011E000": .queued]
                 for index in library.games.indices {
                     if let state = states[library.games[index].titleID] { library.games[index].state = state }
                 }
             }
-            let model = AppModel.sampled(library: library, status: building ? self.building : nil, storage: storage, config: config, info: info,
+            let model = AppModel.sampled(library: library, status: building ? self.building : split ? Gallery.splitBatch : nil,
+                                         storage: storage, config: config, info: info,
                                          unbuilt: page == .gameUnbuilt ? [Gallery.unbuilt.titleID: Gallery.unbuiltFigures] : [:])
             if building {
-                model.preview(queue: BuildQueue(games: [.init(titleID: "0100000000010000", force: true, batch: 4242, added: "")]))
+                model.preview(queue: BuildQueue(games: [.init(titleID: "0100000000010000", force: true, batch: 4242, added: ""),
+                                                        .init(titleID: "01007EF00011E000", force: true, batch: 4242, added: "")]))
             }
             switch page {
             case .library, .activity, .storage, .iphone: model.section = AppSection(rawValue: page.rawValue) ?? .library
             case .storageMac: model.section = .storage
-            case .libraryRoom, .game, .gameNarrow, .gameQueue, .gameXcode, .gameUnbuilt: model.section = .library
+            case .activitySplit: model.section = .activity
+            case .iphoneTailscale, .iphoneGames: model.section = .iphone
+            case .libraryRoom, .game, .gameNarrow, .gameNewer, .gameQueue, .gameXcode, .gameUnbuilt, .gameAfterConsole, .gameSplit:
+                model.section = .library
             case .setup, .setupXcode: model.section = .setup
             default: break
             }
-            if page == .game || page == .gameNarrow { model.selection = "0100152000022000" }
+            if page == .game || page == .gameNarrow || page == .gameNewer || page == .gameAfterConsole { model.selection = "0100152000022000" }
             if page == .gameXcode { model.selection = "01004D300C5AE000" }
             if page == .gameUnbuilt { model.selection = Gallery.unbuilt.titleID }
+            if page == .gameSplit { model.selection = Gallery.splitTitleID }
             // A game up to date, while a batch runs: added to its queue.
             if page == .gameQueue { model.selection = "01006F8002326000" }
             if page == .setup || page == .assistantTools {
@@ -455,15 +593,37 @@ enum Gallery {
                              paired: now.addingTimeInterval(-2 * 86_400), seen: now.addingTimeInterval(-26 * 3600)),
             ]
             let saves = URL(fileURLWithPath: info.home).appendingPathComponent("Saves", isDirectory: true)
-            model.bridge.preview(devices: iphones, connected: [iphones[0].id], games: config.games, name: "MacBook Air", saves: saves)
+            // A made-up address in the tailnet, never one of the project's.
+            model.bridge.preview(devices: iphones, connected: [iphones[0].id], games: config.games, name: "MacBook Air", saves: saves,
+                                 tailnet: page == .iphoneTailscale ? ["100.101.102.103", "fd7a:115c:a1e0::1"] : [])
             // Mario Kart 8 Deluxe played on this Mac, the iPhone's saves come
-            // before its last game; Super Mario Odyssey playing now.
+            // before its last game, or, on game-newer, held back, version
+            // 3.0.4 of the game on the iPhone having written the newest copy
+            // and this Mac's being 3.0.3; Super Mario Odyssey playing now.
             let odyssey = MacGameApp(url: URL(fileURLWithPath: "/Users/player/Applications/Super Mario Odyssey.app"),
                                      titleID: "0100000000010000", name: "Super Mario Odyssey")
             model.macGames.preview(folder: saves,
                                    playing: page == .menubar ? [MacGameRun(app: odyssey, pid: 0, started: now.addingTimeInterval(-1500), fromBuilder: true)] : [],
-                                   last: ["0100152000022000": MacSaveEvent(at: now.addingTimeInterval(-26 * 60), when: .before, step: "fetch",
-                                                                           fetched: "2026-11-13T18-02-00Z.zip")])
+                                   last: ["0100152000022000": page == .gameNewer
+                                       ? MacSaveEvent(at: now.addingTimeInterval(-26 * 60), when: .before, step: MacSaveEvent.heldBack,
+                                                      newer: "3.0.4", game: "3.0.3")
+                                       : MacSaveEvent(at: now.addingTimeInterval(-26 * 60), when: .before, step: "fetch",
+                                                      fetched: "2026-11-13T18-02-00Z.zip")])
+            if page == .iphoneGames {
+                // The connections of the console's Storage page, made up and
+                // kept in memory only: the iPhone chose its games folder on
+                // the NAS; Mario Kart World's Mac app goes there, and
+                // Animal Crossing's, another Mac's, waits to be installed.
+                ConsoleGallery.showConnections(language: L10n.code)
+                let name = "Animal Crossing New Horizons [01006F8002326000].app.zip"
+                model.iPhoneGames.preview(folder: IPhoneGames.Folder(connection: ConsoleGallery.nas, path: "Cartouche/" + tr("Games", "Jeux")),
+                                          progress: ConnectionGamesProgress(game: "Mario Kart World", kind: .macFile, done: 1_288_490_188,
+                                                                            total: 2_915_000_000, index: 1, count: 2),
+                                          sent: 4, total: 6,
+                                          offers: [ConnectionMacApp(titleID: "01006F8002326000", game: "Animal Crossing New Horizons",
+                                                                    file: ConnectionFile(name: name, size: 7_340_032_000, modified: now.addingTimeInterval(-26 * 3_600)))],
+                                          checked: now.addingTimeInterval(-120))
+            }
             if page == .menubar {
                 let release = BuilderRelease(version: "0.3.0", tag: "builder-v0.3.0", notes: "",
                                              page: URL(string: "https://github.com/cartouche-app/Cartouche/releases/tag/builder-v0.3.0")!,
@@ -528,6 +688,83 @@ enum Gallery {
     }
 
     static let unbuiltFigures = UnbuiltGame(titleID: "0400A3A01EE4C000", macs: 4, failures: 8, hours: 4.7, stage: "iOS shaders")
+
+    /// Mario Kart World, whose shaders nxnative's newest commit splits
+    /// otherwise than its profile says, as its 8d62601f of 16 November 2026
+    /// did: built from 24e007be, the commit before nxnative's splitter
+    /// changed, its Mac app too, the others from the newest, and held
+    /// there until nxnative has a newer commit (decision 133), with what
+    /// the engine says of it (texts.py). Its folders and sizes are made up.
+    static let splitTitleID = "0400C3F00006E000"
+    static let beforeSplitter = "24e007bed7c2"
+
+    static var splitGame: Game {
+        let newest = String(head.prefix(12))
+        let held = tr("Up to date (built from nxnative \(beforeSplitter): nxnative \(newest), its newest commit, reads its shaders otherwise than its profile for now)",
+                      "À jour (construit avec nxnative \(beforeSplitter) : nxnative \(newest), son dernier commit, lit ses shaders autrement que son profil pour l'instant)")
+        let game: [String: Any] = [
+            "title_id": splitTitleID, "name": "Mario Kart World", "kind": "nup", "source": "/Volumes/Jeux/Switch/Mario Kart World",
+            "source_size": 21_474_836_480, "followed": true, "profile": true, "state": "up_to_date", "reasons": ["up_to_date"], "detail": held,
+            "ipa": ["name": "Mario Kart World.ipa", "path": "/Volumes/Jeux/iPhone/Mario Kart World.ipa", "size": 18_400_000_000,
+                    "present": true] as [String: Any],
+            "build": ["commit": beforeSplitter, "built_at": "@-1400", "version": "1.0.0", "duration": 3480, "origin": "app", "toolchain": "27.2",
+                      "size": 18_400_000_000] as [String: Any],
+            "platforms": ["ios": true, "mac": true],
+            "mac": ["folder": "/Volumes/Jeux/iPhone", "packed": true, "installs": "/Users/player/Applications", "reason": "up_to_date",
+                    "library": ["name": "Mario Kart World [0400C3F00006E000].app.zip",
+                                "path": "/Volumes/Jeux/iPhone/Mario Kart World [0400C3F00006E000].app.zip", "size": 18_600_000_000,
+                                "present": true] as [String: Any],
+                    "build": ["commit": beforeSplitter, "built_at": "@-700", "version": "1.0.0", "duration": 900,
+                              "size": 18_600_000_000] as [String: Any]] as [String: Any],
+        ]
+        return decoded(Game.self, game)
+    }
+
+    /// The batch that built it, as the engine says it (status.py, texts.py):
+    /// Mario Kart World built from the commit before nxnative's splitter
+    /// changed, the batch back to the newest, Kirby building from there.
+    static var splitBatch: BatchStatus {
+        let newest = String(head.prefix(12))
+        let name = "Mario Kart World"
+        let lines = [
+            "\(name): " + tr("nxnative \(newest) reads its shaders otherwise than its profile says (shader split): trying again from \(beforeSplitter), from before nxnative changed how it reads them…",
+                             "nxnative \(newest) lit ses shaders autrement que ne le dit son profil (« shader split ») : nouvel essai avec \(beforeSplitter), d'avant le changement de sa lecture des shaders…"),
+            tr("\(name): going to nxnative \(beforeSplitter), from before nxnative changed how it reads shaders…",
+               "\(name) : passage à nxnative \(beforeSplitter), d'avant le changement de sa lecture des shaders…"),
+            "\(name): " + tr("IPA copied to the games folder (18.4 GB)", "IPA copiée dans le dossier des jeux (18,4 Go)"),
+            tr("\(name) built from nxnative \(beforeSplitter): nxnative \(newest) reads its shaders otherwise than its profile for now. It is built from \(beforeSplitter) until nxnative has a newer commit; the other games are built from \(newest).",
+               "\(name) construit avec nxnative \(beforeSplitter) : nxnative \(newest) lit ses shaders autrement que son profil pour l'instant. Il se construit avec \(beforeSplitter) jusqu'à un commit plus récent de nxnative ; les autres jeux se construisent avec \(newest)."),
+            tr("Back to nxnative \(newest)…", "Retour à nxnative \(newest)…"),
+            "Kirby and the Forgotten Land: " + tr("extracted", "extrait"),
+            "Kirby and the Forgotten Land: shaders 1088/2410",
+        ]
+        let status: [String: Any] = [
+            "pid": 4242, "scheduled": false, "state": "building", "started": "@-4900", "updated": "@-1", "head": head, "latest": head, "running": true,
+            "games": [
+                ["title_id": splitTitleID, "name": name, "reasons": ["profile"], "state": "built", "started": "@-4900", "ended": "@-700",
+                 "duration": 4200, "ipa": "/Volumes/Jeux/iPhone/Mario Kart World.ipa", "commit": beforeSplitter, "fallback": true, "split": true,
+                 "makes": ["ios", "mac"], "platform": "mac", "mac": "built", "mac_only": false, "mac_duration": 900],
+                ["title_id": "01004D300C5AE000", "name": "Kirby and the Forgotten Land", "reasons": ["named"], "state": "building", "stage": "shaders",
+                 "step": tr("Pipelines 1,088 / 2,410", "Pipelines 1 088 / 2 410"), "k": 1088, "n": 2410, "frac": 0.45, "overall": 0.52, "eta": 520,
+                 "started": "@-640", "commit": newest, "fallback": false, "split": false, "makes": ["ios", "mac"], "platform": "ios", "mac": "waiting",
+                 "mac_only": false],
+            ] as [[String: Any]],
+            "lines": lines,
+        ]
+        return decoded(BatchStatus.self, status)
+    }
+
+    /// OBJECT, whose "@-SECONDS" are dates (dated), as the engine writes
+    /// it; a sample that does not decode ends the gallery, which says why.
+    static func decoded<Value: Decodable>(_ type: Value.Type, _ object: [String: Any]) -> Value {
+        do {
+            let json = try JSONSerialization.data(withJSONObject: object)
+            return try JSONDecoder().decode(type, from: dated(String(decoding: json, as: UTF8.self)))
+        } catch {
+            FileHandle.standardError.write(Data("gallery: a sample does not decode: \(error)\n".utf8))
+            exit(1)
+        }
+    }
 
     /// What the engine left aside in the sample sources folder, in the
     /// language of the page, as the engine says it (texts.py).
@@ -629,11 +866,13 @@ enum Gallery {
       "pid": 4242, "scheduled": false, "state": "building", "started": "@-1500", "updated": "@-1", "head": "\(head)", "running": true,
       "games": [
         {"title_id": "01004D300C5AE000", "name": "Kirby and the Forgotten Land", "reasons": ["named"], "state": "built",
-         "started": "@-1500", "ended": "@-610", "duration": 890, "ipa": "/Volumes/Jeux/iPhone/Kirby and the Forgotten Land.ipa"},
+         "started": "@-1500", "ended": "@-610", "duration": 890, "ipa": "/Volumes/Jeux/iPhone/Kirby and the Forgotten Land.ipa",
+         "makes": ["ios", "mac"], "platform": "mac", "mac": "built", "mac_only": false, "mac_duration": 420},
         {"title_id": "0100152000022000", "name": "Mario Kart 8 Deluxe", "reasons": ["profile", "shared"], "state": "building", "stage": "shaders",
          "step": "Pipelines 1 412 / 2 300", "k": 1412, "n": 2300, "frac": 0.61, "overall": 0.68, "eta": 380, "started": "@-600",
-         "platform": "ios", "mac": "waiting", "mac_only": false},
-        {"title_id": "010093801237C000", "name": "Metroid Dread", "reasons": ["shared"], "state": "queued"}
+         "makes": ["ios", "mac"], "platform": "ios", "mac": "waiting", "mac_only": false},
+        {"title_id": "010093801237C000", "name": "Metroid Dread", "reasons": ["shared"], "state": "queued",
+         "makes": ["ios", "mac"], "platform": "ios", "mac": "waiting", "mac_only": false}
       ],
       "lines": [
         "Kirby and the Forgotten Land: IPA copied to the games folder (5.5 GB)",
