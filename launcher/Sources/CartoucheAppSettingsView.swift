@@ -2,11 +2,11 @@
 //  CartoucheAppSettingsView.swift
 //  Cartouche
 //
-//  The settings of an app that is not a game (decision 135): the language it
+//  The settings of an app that is not a game (decision 140): the language it
 //  starts in and its orientation, LiveContainer's own settings of the app,
 //  which LiveContainer keeps in the app's LCAppInfo.plist and applies the
 //  next time the app starts; and whether it needs JIT, with the script
-//  StikDebug runs for it from iOS 26 (decision 136). One step further than
+//  StikDebug runs for it from iOS 26 (decision 141). One step further than
 //  the app's sheet (CartoucheAppSheetView).
 //
 
@@ -66,7 +66,7 @@ struct CartoucheAppSettingsView: View {
     }
 
     /// Whether the app needs JIT (LiveContainer's isJITNeeded), and its
-    /// JIT script when it does (decision 136).
+    /// JIT script when it does (decision 141).
     private var jitSection: some View {
         Section {
             Toggle(CartoucheText.appNeedsJIT, isOn: $app.uiIsJITNeeded)

@@ -4,7 +4,7 @@
 //
 //  Lets Cartouche install an IPA as an app of its own on this iPhone, renew
 //  the apps it installed that way, uninstall them and list the App IDs
-//  Apple keeps for the Apple ID, without showing SideStore (decision 137).
+//  Apple keeps for the Apple ID, without showing SideStore (decision 142).
 //  The built-in SideStore starts in LiveProcess, as it does to renew the
 //  app (CartoucheRefresh), and runs the action app/patches/sidestore/0027
 //  or 0028 adds; what the action works on, the IPA's path in the app group

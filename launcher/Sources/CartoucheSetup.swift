@@ -284,7 +284,7 @@ enum CartouchePairing {
     /// an older build, was a stale pairing, which SideStore then took for
     /// the iPhone's, with Handshake failed: RemotePairing(PairVerifyFailed)
     /// on every install, Cartouche's renewals included. Cartouche's setup
-    /// is where the pairing file is put and replaced (decision 134).
+    /// is where the pairing file is put and replaced (decision 139).
     /// Returns what it did, for the journal (CartoucheSetup.claimPairingFile).
     static func claim() -> [String] {
         let fileManager = FileManager.default

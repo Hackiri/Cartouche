@@ -69,7 +69,7 @@ enum CartoucheRenewal {
         }
         // A night's renewal left how it went in the keychain, which this
         // clears before it starts: what it said of the apps Cartouche
-        // installed on this iPhone is taken first (decision 137).
+        // installed on this iPhone is taken first (decision 142).
         CartoucheIPhoneApps.shared.takeNightlyOutcome()
         isRenewing = true
         defer { isRenewing = false }
@@ -87,7 +87,7 @@ enum CartoucheRenewal {
                 .flatMap { CartoucheSideStoreOutcome(data: $0, expecting: .refresh) }
             CartoucheStoreKeychain.remove(CartoucheSideStoreOutcome.account)
             // The apps Cartouche installed on this iPhone that the renewal
-            // left out: each one's row says so (decision 137).
+            // left out: each one's row says so (decision 142).
             CartoucheIPhoneApps.shared.noteRenewal(outcome: outcome, message: message)
             let seconds = Date().timeIntervalSince(started)
             let failure = message.map {
@@ -294,7 +294,7 @@ final class CartoucheRenewals: ObservableObject {
     /// Whether the built-in SideStore is at an action of Cartouche's: a
     /// renewal, an update, a sign-in or the registration of this iPhone,
     /// under way or waiting for LocalDevVPN, or an install, a renewal or a
-    /// removal of an app Cartouche installed on this iPhone (decision 137).
+    /// removal of an app Cartouche installed on this iPhone (decision 142).
     var sideStoreBusy: Bool {
         isRenewing || CartoucheUpdates.shared.phase != nil || CartoucheAccount.shared.phase != nil
             || CartoucheIPhoneApps.shared.work != nil

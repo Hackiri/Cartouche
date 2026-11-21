@@ -231,7 +231,7 @@ struct CartoucheGameCartridge: View {
 }
 
 /// An app that is not a game as a cartridge: its icon on a label of its
-/// colours, with its name under it (decision 135).
+/// colours, with its name under it (decision 140).
 @available(iOS 17.0, *)
 struct CartoucheAppCartridge: View {
     let entry: CartoucheEntry

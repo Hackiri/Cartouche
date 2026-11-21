@@ -95,7 +95,7 @@ struct CartoucheReport: Codable, Equatable, Sendable {
         /// A game's saves on the player's storage.
         case cloud
         /// The apps Cartouche installed on this iPhone: installing one,
-        /// renewing one, uninstalling one (decision 137).
+        /// renewing one, uninstalling one (decision 142).
         case apps
         /// Erasing Cartouche, from System › Reset Cartouche.
         case reset

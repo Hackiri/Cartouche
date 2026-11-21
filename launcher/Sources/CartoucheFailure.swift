@@ -479,7 +479,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
         case device
         case refresh
         case update
-        /// The apps Cartouche installs on this iPhone (decision 137,
+        /// The apps Cartouche installs on this iPhone (decision 142,
         /// app/patches/sidestore/0027): an install, a renewal of some of
         /// them, a removal.
         case install
@@ -526,7 +526,7 @@ struct CartoucheSideStoreOutcome: Equatable, Sendable {
     /// loaded ("pairingKind") and whether an IPsec interface was up.
     var facts: [String: CartoucheTelemetryValue]
     /// The apps Cartouche installed on this iPhone that a renewal failed
-    /// (decision 137), by their bundle identifiers: shown under each, never
+    /// (decision 142), by their bundle identifiers: shown under each, never
     /// sent.
     var failedApps: [String] = []
 

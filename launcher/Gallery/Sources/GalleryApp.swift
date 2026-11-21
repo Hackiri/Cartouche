@@ -18,7 +18,7 @@
 //                                        when none:
 //        app-settings                    the App settings of -GallerySheet's
 //                                        app, app:bundle.identifier (decision
-//                                        135)
+//                                        140)
 //        gameinfo                        what the player says of the sheet's
 //                                        game
 //        gamelog                         the log of the sheet's game, with
@@ -28,7 +28,7 @@
 //        games                           the home
 //        guide                           Your first game
 //        iphone-apps                     Apps on this iPhone, as the System
-//                                        page opens it (decision 137)
+//                                        page opens it (decision 142)
 //        library                         every game, open over the home
 //        mac-builds                      all the Mac's builds, as System
 //                                        opens them (work: mac-builds, or
@@ -389,7 +389,7 @@ struct GalleryScenario {
     /// The player's apps that are not games, "Name:bundle.identifier" each.
     var otherApps: [String] = []
     /// The apps Cartouche installed on this iPhone through the built-in
-    /// SideStore, as "Name:bundle.identifier:daysLeft" (decision 137).
+    /// SideStore, as "Name:bundle.identifier:daysLeft" (decision 142).
     var iphoneApps: [String] = []
     var work: String?
     var landscape = false
@@ -1068,7 +1068,7 @@ struct GalleryScenario {
                                  icon: GalleryIcon.make(name: name, key: identifier))
             let app = LCAppModel(appInfo: info)
             // The sheet's app needs JIT, with a script for StikDebug (work:
-            // needs-jit, decision 136).
+            // needs-jit, decision 141).
             if work == "needs-jit", sheet == "app:" + identifier {
                 app.uiIsJITNeeded = true
                 app.jitLaunchScriptJs = Data("// Runs in StikDebug once the debugger is attached.\nlog(\"JIT enabled\");\n".utf8).base64EncodedString()
@@ -1220,7 +1220,7 @@ struct CartoucheGalleryApp: App {
                 }
             }
         case "app-settings":
-            // The settings page of an app that is not a game (decision 135),
+            // The settings page of an app that is not a game (decision 140),
             // as its sheet opens it.
             if let sheet = scenario.sheet, sheet.hasPrefix("app:"),
                let app = entries.apps.first(where: { $0.app?.appInfo.bundleIdentifier() == String(sheet.dropFirst(4)) })?.app {
@@ -1234,7 +1234,7 @@ struct CartoucheGalleryApp: App {
                 }
             }
         case "iphone-apps":
-            // Apps on this iPhone, as the System page opens it (decision 137).
+            // Apps on this iPhone, as the System page opens it (decision 142).
             NavigationStack {
                 CartoucheIPhoneAppsView()
             }

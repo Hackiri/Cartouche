@@ -64,7 +64,7 @@ enum GalleryState {
 
     /// The built-in SideStore's records of the apps Cartouche installed on
     /// this iPhone, as JSON objects, which go after Cartouche's own in
-    /// widget_data.json (-GalleryIPhoneApps, decision 137).
+    /// widget_data.json (-GalleryIPhoneApps, decision 142).
     static var appRecords: [String] = []
 
     /// Records Cartouche's signature as expiring EXPIRY seconds from now,
@@ -151,7 +151,7 @@ final class LCAppModel: ObservableObject, Identifiable, Hashable {
     @Published var uiSelectedLanguage = ""
     @Published var uiOrientationLock: LCOrientationLock = .Disabled
     /// Whether the app needs JIT, and the script StikDebug runs for it,
-    /// base64 as LiveContainer keeps it (decision 136).
+    /// base64 as LiveContainer keeps it (decision 141).
     @Published var uiIsJITNeeded = false
     @Published var jitLaunchScriptJs: String?
 

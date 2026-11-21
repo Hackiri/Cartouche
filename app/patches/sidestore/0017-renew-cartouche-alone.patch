@@ -15,7 +15,7 @@ renewed.
 Refresh All Apps, which Cartouche's Renew now and its Shortcuts action
 run, and the background refresh now renew Cartouche, the app SideStore
 is built into, and the apps Cartouche itself installed on this iPhone
-through SideStore (decision 137), which Cartouche lists in the app
+through SideStore (decision 142), which Cartouche lists in the app
 group under CartoucheInstalledApps (CartoucheAppsRequest.swift, patch
 0027). Nothing of another store's: the SideStore that installed an
 app renews it, as before.

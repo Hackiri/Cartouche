@@ -75,7 +75,7 @@ struct CartoucheGameNotice: Equatable {
 
 /// An app that is not a game, waiting for StikDebug's JIT, once the player
 /// came back to Cartouche without it: whether to open the app without JIT
-/// (CartoucheGameActions.jitQuestion, decision 136).
+/// (CartoucheGameActions.jitQuestion, decision 141).
 struct CartoucheJITQuestion: Equatable {
     /// The app's name.
     let name: String
