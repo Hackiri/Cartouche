@@ -4,9 +4,11 @@
 //
 //  This iPhone's link to a Cartouche Cloud account (decision 136), which
 //  the page of Cartouche Cloud makes, follows and undoes
-//  (CartoucheCloudPage): the code of the account's page, typed there or in
-//  the link that page opens Cartouche with, links the iPhone at once, and
-//  the platform gives a token for it (CartoucheCloud.swift). Cartouche keeps
+//  (CartoucheCloudPage): the code of the account's page, typed there, links
+//  the iPhone, and the platform gives a token for it (CartoucheCloud.swift).
+//  The link that page opens Cartouche with only fills the code in: anyone
+//  can make such a link, so the page asks the player before it links
+//  (decision 144). Cartouche keeps
 //  the token in the iPhone's keychain, as the storage's passwords, for this
 //  iPhone alone, and never puts it in a report, the journal or a
 //  measurement; a code given while linked links the iPhone to its account
@@ -58,7 +60,7 @@ final class CartoucheCloudLink: ObservableObject {
     /// Why the last code did not link, or Unlink did not go through.
     @Published private(set) var refusal: CartoucheCloudError?
     /// The code of the link the account's page opened Cartouche with, which
-    /// the page's field shows while it links.
+    /// the page's field shows, and asks about before it links (decision 144).
     @Published var pendingCode: String?
     /// Whether System opens the page of Cartouche Cloud: that link came.
     @Published var opensPage = false
@@ -173,14 +175,17 @@ final class CartoucheCloudLink: ObservableObject {
 
     /// Takes the link the account's page opened Cartouche with
     /// (cartouche://cloud/link?code=…): System opens the page of Cartouche
-    /// Cloud, unless it shows already, and the iPhone links with its code
-    /// at once. False for any other link, which Cartouche leaves.
+    /// Cloud, unless it shows already, with the code filled in, and the page
+    /// asks the player before it links. Nothing links here: any web page,
+    /// message or QR code can make such a link, with the code of the
+    /// account of whoever made it (decision 144). False for any other link,
+    /// which Cartouche leaves.
     static func opened(_ url: URL) -> Bool {
         guard let code = CartoucheCloudCode.linked(url) else { return false }
         CartoucheReports.note("Cartouche Cloud: opened by the link of an account's page")
+        shared.refusal = nil
         shared.pendingCode = code
         if shared.viewers == 0 { shared.opensPage = true }
-        shared.link(code: code)
         return true
     }
 

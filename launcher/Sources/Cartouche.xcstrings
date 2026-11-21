@@ -1565,6 +1565,57 @@
         }
       }
     },
+    "cloud.pending.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A link opened Cartouche with the code %@. Link only if you opened that link yourself, from your account’s page on build.cartouche.cloud: the games of the account it belongs to will show here."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un lien a ouvert Cartouche avec le code %@. Ne liez que si vous avez ouvert ce lien vous-même, depuis la page de votre compte sur build.cartouche.cloud : les jeux du compte auquel il appartient s’afficheront ici."
+          }
+        }
+      }
+    },
+    "cloud.pending.message.linked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A link opened Cartouche with the code %@. This iPhone is linked to an account already: linking takes its place. Link only if you opened that link yourself, from your account’s page on build.cartouche.cloud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un lien a ouvert Cartouche avec le code %@. Cet iPhone est déjà lié à un compte : le lier remplace celui-ci. Ne liez que si vous avez ouvert ce lien vous-même, depuis la page de votre compte sur build.cartouche.cloud."
+          }
+        }
+      }
+    },
+    "cloud.pending.question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link this iPhone to a Cartouche Cloud account?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lier cet iPhone à un compte Cartouche Cloud ?"
+          }
+        }
+      }
+    },
     "cloud.price" : {
       "extractionState" : "manual",
       "localizations" : {

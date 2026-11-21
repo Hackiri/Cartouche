@@ -49,6 +49,12 @@ extension CartoucheText {
     static var cloudLinkHeader: String { s("cloud.link.header", "Link this iPhone") }
     static var cloudCodePlaceholder: String { s("cloud.code.placeholder", "Code from your account’s page") }
     static var cloudLink: String { s("cloud.link", "Link") }
+    static var cloudPendingQuestion: String { s("cloud.pending.question", "Link this iPhone to a Cartouche Cloud account?") }
+    static func cloudPendingMessage(_ code: String, linked: Bool) -> String {
+        linked
+            ? f("cloud.pending.message.linked", "A link opened Cartouche with the code %@. This iPhone is linked to an account already: linking takes its place. Link only if you opened that link yourself, from your account’s page on build.cartouche.cloud.", code)
+            : f("cloud.pending.message", "A link opened Cartouche with the code %@. Link only if you opened that link yourself, from your account’s page on build.cartouche.cloud: the games of the account it belongs to will show here.", code)
+    }
     static var cloudGetCode: String { s("cloud.getCode", "Get a code on the site") }
     static var cloudLinkFooter: String { s("cloud.link.footer", "On the site, Link Cartouche on your account’s page gives a code valid ten minutes: type it here. Opened on this iPhone, that page fills it in for you with Open in Cartouche.") }
 

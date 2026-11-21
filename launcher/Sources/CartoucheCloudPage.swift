@@ -6,8 +6,8 @@
 //  not linked: what Cartouche Cloud is, the price of a build as the service
 //  says it, and the way to its site, where an account is made or signed in
 //  to; then the code of the account's page, typed here, or filled in by the
-//  link that page opens Cartouche with, which links this iPhone at once
-//  (CartoucheCloudLink). Linked: the account's credits, and its games as the
+//  link that page opens Cartouche with, which the page asks about before it
+//  links this iPhone (CartoucheCloudLink, decision 144). Linked: the account's credits, and its games as the
 //  site's games page shows them, in the queue with their place, being built
 //  on the track of six steps with the time left, built with the day the
 //  service deletes them and Install, which brings the game here as a game
@@ -31,6 +31,9 @@ struct CartoucheCloudPage: View {
     /// The code as typed: its own letters, in capitals (CartoucheCloudCode).
     @State private var code = ""
     @State private var confirmingUnlink = false
+    /// Whether the page asks before it links with the code of a link that
+    /// opened Cartouche, which anyone can make (decision 144).
+    @State private var askingPending = false
     @FocusState private var typing: Bool
 
     var body: some View {
@@ -51,12 +54,28 @@ struct CartoucheCloudPage: View {
         .refreshable { await link.refresh() }
         .onAppear {
             link.start()
-            if let pending = link.pendingCode { code = pending }
+            if let pending = link.pendingCode, link.busy == nil, link.refusal == nil {
+                code = pending
+                askingPending = true
+            }
         }
         .onDisappear { link.stop() }
         // The link of the account's page, opened while the page shows.
         .onChange(of: link.pendingCode) { _, pending in
-            if let pending { code = pending }
+            if let pending, link.busy == nil, link.refusal == nil {
+                code = pending
+                askingPending = true
+            }
+        }
+        // A link links nothing by itself: the player says so, or not.
+        .alert(CartoucheText.cloudPendingQuestion, isPresented: $askingPending) {
+            Button(CartoucheText.cloudLink) { linkNow() }
+            Button(CartoucheText.cancel, role: .cancel) {
+                link.pendingCode = nil
+                code = ""
+            }
+        } message: {
+            Text(CartoucheText.cloudPendingMessage(CartoucheCloudCode.grouped(code), linked: link.isLinked))
         }
     }
 
