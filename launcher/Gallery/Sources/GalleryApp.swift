@@ -19,6 +19,10 @@
 //        app-settings                    the App settings of -GallerySheet's
 //                                        app, app:bundle.identifier (decision
 //                                        140)
+//        cloud                           Cartouche Cloud, as System opens
+//                                        it: for an iPhone not linked yet,
+//                                        or with a work cloud-* below
+//                                        (GalleryCloud)
 //        gameinfo                        what the player says of the sheet's
 //                                        game
 //        gamelog                         the log of the sheet's game, with
@@ -121,7 +125,27 @@
 //                                        iphone-apps)
 //        build-skipped                   No thanks said to the guide's Mac
 //                                        step
+//        cannot-complete                 a sign-in Apple refused without
+//                                        saying why, before any code,
+//                                        LocalDevVPN connected
+//                                        (GalleryAppleAnswer)
 //        certificate                     a certificate iOS no longer accepts
+//        cloud-games                     this iPhone linked to a Cartouche
+//                                        Cloud account, a game of it built,
+//                                        one being built, one waiting for it
+//                                        and one not built, as the page of
+//                                        Cartouche Cloud, System, the
+//                                        library and the built game's sheet
+//                                        show them (GalleryCloud)
+//        cloud-installing                the same, its game built being
+//                                        installed from Cartouche Cloud,
+//                                        over the console
+//        cloud-linking                   on Cartouche Cloud (screen cloud),
+//                                        the code of the account's page
+//                                        linking this iPhone, as the page's
+//                                        link opened Cartouche with it
+//        cloud-refused                   the same code, which the service
+//                                        refused
 //        code                            Apple asks for a verification code,
 //                                        on the sign-in
 //        confirm                         on Reset Cartouche's page, its
@@ -142,6 +166,14 @@
 //                                        with two games' saves waiting for it
 //        erasing                         on Reset Cartouche's page, the reset
 //                                        under way
+//        gpu-no-bc                       an iPhone whose GPU reads no
+//                                        BC-compressed texture, an A16's,
+//                                        the sheet's game built by nxnative,
+//                                        which refuses it
+//                                        (GalleryBCConversion)
+//        gpu-no-bc-converted             the same, the sheet's game built by
+//                                        a fork of nxnative that converts
+//                                        those textures for it
 //        iml-left-out                    signed by a signing app on the
 //                                        iPhone (-GallerySigning iphone),
 //                                        without Increased Memory Limit,
@@ -215,6 +247,10 @@
 //                                        the player's, paused behind the
 //                                        console; on the TV (screen tv), the
 //                                        game paused behind the console
+//        provisioning-refused            a sign-in for which Apple refused a
+//                                        new machine for now, LocalDevVPN
+//                                        connected, with the wait under way
+//                                        (GalleryAppleAnswer)
 //        renewal-failed                  Cartouche's renewal in its last 3
 //                                        days, which failed, the network gone
 //        renewal-no-liveprocess          Cartouche in its last 3 days,
@@ -239,6 +275,10 @@
 //                                        version 1.2.0 of the game having
 //                                        written it, and this iPhone's being
 //                                        1.0.0
+//        session-expired                 a sign-in whose session Apple says
+//                                        has expired, before any code,
+//                                        LocalDevVPN connected
+//                                        (GalleryAppleAnswer)
 //        sidestore-quit                  a sign-in whose built-in SideStore
 //                                        quit as it launched, LocalDevVPN
 //                                        connected
@@ -322,6 +362,8 @@
 //                                        such as Controls
 //        cartouche.saves                 on a game's settings, its cloud
 //                                        saves
+//        cloud                           on the System page, the page
+//                                        scrolled down to Cartouche Cloud
 //        dumps                           on how to name the games (screen
 //                                        storage-names), the page down to
 //                                        Cartouche Builder's dumps folder
@@ -330,6 +372,8 @@
 //        nightly                         on the Mac's builds (screen
 //                                        mac-builds), down to the nightly
 //                                        build
+//        requirements                    on a game's sheet, what the game
+//                                        needs, opened on each need
 //        reset                           on the System page, the page at its
 //                                        end, on Reset Cartouche
 //        results                         on a game's sheet, the testers'
@@ -529,10 +573,12 @@ struct GalleryScenario {
         GalleryState.certificateRefused = work == "certificate"
         GalleryState.appGroupMissing = work == "signed-elsewhere"
         GalleryState.liveProcessMissing = work?.hasSuffix("-no-liveprocess") == true
+        GalleryState.readsBCTextures = !GalleryBCConversion.isWithoutBC(work)
         GalleryState.signInUnfinished = work == "sign-in-unfinished"
         GalleryState.sheetSection = screen == "sheet" ? category : nil
         GalleryState.vpnConnected = work.map {
             Self.deviceChecks[$0] != nil || ["sidestore-quit", "no-app-group", "sign-in-no-liveprocess"].contains($0)
+                || GalleryAppleAnswer(rawValue: $0) != nil
         } ?? false
         let pairing = GalleryState.documents.appendingPathComponent("SideStore/Documents", isDirectory: true)
         try? FileManager.default.removeItem(at: pairing)
@@ -662,6 +708,8 @@ struct GalleryScenario {
                                                    fraction: 0.42, facts: [.init("IPA", name + " [" + (sheet ?? "") + "].ipa")])
                 CartoucheGameActions.shared.notice = CartoucheGameNotice(title: report.title, message: report.message, report: report)
             }
+            // Cartouche Cloud's answers, never asked of the platform.
+            GalleryCloud.show(screen: screen, work: work)
             if let notice = signingNotice() {
                 CartoucheGameActions.shared.notice = notice
             }
@@ -719,6 +767,9 @@ struct GalleryScenario {
             }
             if work == "sign-in-no-liveprocess" {
                 CartoucheAccount.shared.showNoLiveProcessForGallery()
+            }
+            if let answer = work.flatMap(GalleryAppleAnswer.init(rawValue:)) {
+                CartoucheAccount.shared.showAppleAnswerForGallery(answer.outcome, message: answer.message)
             }
             if work == "sign-in-unfinished" {
                 CartoucheAccount.shared.showUnfinishedForGallery()
@@ -1083,6 +1134,7 @@ struct GalleryScenario {
             guard let name = name(of: titleId) else { return nil }
             let info = LCAppInfo(name: name, identifier: "org.nxnative." + titleId.lowercased(),
                                  folder: titleId + ".app", icon: GalleryIcon.make(name: name, key: titleId))
+            if titleId == sheet { GalleryBCConversion.install(info, work: work) }
             if titleId == updatedTitle {
                 // Installed four days ago, from an older commit of nxnative.
                 info.infoPlist = NSMutableDictionary(dictionary: ["CFBundleShortVersionString": "1.0.0", "DMCommit": "52124866a1b2",
@@ -1154,7 +1206,8 @@ struct CartoucheGalleryApp: App {
 
     @ViewBuilder
     private var screen: some View {
-        let entries = CartoucheCatalog.shared.entries(for: model.apps, stored: CartoucheStoredGames.shared.games)
+        let entries = CartoucheCatalog.shared.entries(for: model.apps, stored: CartoucheStoredGames.shared.games,
+                                                      cloud: CartoucheCloudLink.shared.builtGames)
         switch scenario.screen {
         case "library":
             // Every game, open over the home as the player opens it, beside
@@ -1259,6 +1312,12 @@ struct CartoucheGalleryApp: App {
             }
         case "system", "mac-builds":
             CartoucheSystemView()
+        case "cloud":
+            // As System opens it.
+            NavigationStack {
+                CartoucheCloudPage()
+            }
+            .preferredColorScheme(.dark)
         case "nightly":
             NavigationStack {
                 CartoucheNightlyRenewalView()

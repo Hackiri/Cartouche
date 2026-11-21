@@ -89,6 +89,8 @@ struct CartoucheInstallQuestion: Equatable {
         case file(URL)
         /// A game in the player's games folder.
         case stored(CartoucheStoredGame)
+        /// A game Cartouche Cloud built for the player.
+        case cloud(CartoucheCloudBuilt)
     }
 
     let source: Source
@@ -98,6 +100,7 @@ struct CartoucheInstallQuestion: Equatable {
         switch source {
         case .file(let url): return url.deletingPathExtension().lastPathComponent
         case .stored(let game): return game.name
+        case .cloud(let game): return game.name
         }
     }
 }

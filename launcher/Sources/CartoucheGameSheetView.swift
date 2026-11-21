@@ -44,6 +44,8 @@ struct CartoucheGameSheetView: View {
     let onUninstall: (LCAppModel) -> Void
     /// Installs the game's IPA from the player's games folder.
     var onInstallStored: (CartoucheStoredGame) -> Void = { _ in }
+    /// Installs the game Cartouche Cloud built for the player.
+    var onInstallCloud: (CartoucheCloudBuilt) -> Void = { _ in }
     /// Copies the installed game to the player's games folder.
     var onExport: (LCAppModel) -> Void = { _ in }
     /// Opens what the player says of their game: its name, platform, genre
@@ -62,6 +64,16 @@ struct CartoucheGameSheetView: View {
     /// Mac, the console is the app that builds, and its window shows them.
     @StateObject private var macBuilds = CartoucheMacBuildsWatch()
     #endif
+    /// Whether the line that says this iPhone has what the game needs is
+    /// open on each need: as the player opens it, or, in the gallery, as
+    /// its scenario of those needs does (category: requirements).
+    @State private var requirementsOpen: Bool = {
+        #if CARTOUCHE_GALLERY
+        return GalleryState.sheetSection == "requirements"
+        #else
+        return false
+        #endif
+    }()
 
     // Written out: the private state above would make the synthesized
     // initializer private.
@@ -69,6 +81,7 @@ struct CartoucheGameSheetView: View {
          onSettings: @escaping (LCAppModel) -> Void, onImport: @escaping () -> Void,
          onUninstall: @escaping (LCAppModel) -> Void,
          onInstallStored: @escaping (CartoucheStoredGame) -> Void = { _ in },
+         onInstallCloud: @escaping (CartoucheCloudBuilt) -> Void = { _ in },
          onExport: @escaping (LCAppModel) -> Void = { _ in },
          onEditInfo: @escaping () -> Void = {},
          onShortcuts: @escaping (LCAppModel) -> Void = { _ in },
@@ -80,6 +93,7 @@ struct CartoucheGameSheetView: View {
         self.onImport = onImport
         self.onUninstall = onUninstall
         self.onInstallStored = onInstallStored
+        self.onInstallCloud = onInstallCloud
         self.onExport = onExport
         self.onEditInfo = onEditInfo
         self.onShortcuts = onShortcuts
@@ -93,7 +107,7 @@ struct CartoucheGameSheetView: View {
     }
 
     private var fit: CartoucheFit? {
-        entry.sheet.map { CartoucheFit.of($0, limitMiB: gameLimitMiB) }
+        entry.sheet.map { CartoucheFit.of($0, limitMiB: gameLimitMiB, convertsBCTextures: entry.convertsBCTextures) }
     }
 
     private var serverName: String {
@@ -165,8 +179,9 @@ struct CartoucheGameSheetView: View {
                     requirements(sheet)
                 } else {
                     // nxnative refuses this GPU for every game, with a sheet or
-                    // without.
-                    if let fit = CartoucheFit.withoutSheet() {
+                    // without, unless the player's build converts the
+                    // game's textures for it.
+                    if let fit = CartoucheFit.withoutSheet(convertsBCTextures: entry.convertsBCTextures) {
                         Section {
                             ForEach(fit.reasons, id: \.self) { reason in
                                 Label(reason, systemImage: "exclamationmark.triangle.fill")
@@ -318,7 +333,7 @@ struct CartoucheGameSheetView: View {
                     // behind the console, the line says it is paused.
                     let isRunning = actions.isRunning(entry.app)
                     CartoucheMetaLine(entry: entry, showsStatus: entry.app == nil || entry.sheet == nil || isRunning,
-                                      isPaused: isRunning)
+                                      isPaused: isRunning, wraps: true)
                     if entry.sheet != nil, !isRunning {
                         CartoucheFitBadge(fit: fit, owned: entry.app != nil)
                     }
@@ -370,6 +385,10 @@ struct CartoucheGameSheetView: View {
                         buildLine(CartoucheText.statusStoredOffline(serverName), systemImage: "wifi.slash")
                     }
                 }
+            } else if let cloud = entry.cloud {
+                primaryButton(CartoucheText.cloudInstall, systemImage: "icloud.and.arrow.down.fill") { onInstallCloud(cloud) }
+                secondaryButton(CartoucheText.importOtherCopy, systemImage: "square.and.arrow.down", action: onImport)
+                buildLine(CartoucheText.cloudKeptUntil(CartoucheText.dateAndTime(cloud.expiresAt)), systemImage: "clock")
             } else {
                 primaryButton(CartoucheText.importCopy, systemImage: "square.and.arrow.down", action: onImport)
             }
@@ -445,9 +464,14 @@ struct CartoucheGameSheetView: View {
                                 detail: CartoucheText.macCurrent(CartoucheDevice.chip, CartoucheDevice.iOSVersion))]
         #endif
         if sheet.requirements.bcTextureCompression || !CartoucheDevice.supportsBCTextureCompression {
-            list.append(Requirement(ok: CartoucheDevice.supportsBCTextureCompression,
+            // The player's build may convert the textures for a GPU that
+            // reads none (CartoucheBCConversion): then it needs none.
+            let reads = CartoucheDevice.supportsBCTextureCompression
+            let converts = !reads && entry.convertsBCTextures
+            list.append(Requirement(ok: reads || converts,
                                     title: CartoucheText.bcRequirement,
-                                    detail: CartoucheDevice.supportsBCTextureCompression ? CartoucheText.gpuSupported : CartoucheText.gpuUnsupported))
+                                    detail: reads ? CartoucheText.gpuSupported
+                                        : converts ? CartoucheText.gpuConverted : CartoucheText.gpuUnsupported))
         }
         // iOS's alone: a Mac gives a game its memory without it.
         #if os(iOS)
@@ -474,7 +498,7 @@ struct CartoucheGameSheetView: View {
         let list = requirementList(sheet)
         if list.allSatisfy(\.ok) {
             Section {
-                DisclosureGroup {
+                DisclosureGroup(isExpanded: $requirementsOpen) {
                     ForEach(list, id: \.self) { requirement in
                         row(requirement)
                     }
@@ -656,7 +680,7 @@ struct CartoucheGameSheetView: View {
         // The player's copy says nothing of where nxnative plays the game.
         let status: CartouchePlayStatus = {
             let status = CartouchePlayStatus.of(entry)
-            return status == .ready || status == .update || status == .stored ? .iphone : status
+            return status == .ready || status == .update || status == .stored || status == .cloud ? .iphone : status
         }()
         Label {
             Text(status.long)

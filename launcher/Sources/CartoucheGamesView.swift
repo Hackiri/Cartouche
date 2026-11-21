@@ -75,6 +75,9 @@ struct CartoucheGamesView: View {
     @ObservedObject private var setup = CartoucheSetup.shared
     @ObservedObject private var actions = CartoucheGameActions.shared
     @ObservedObject private var storedGames = CartoucheStoredGames.shared
+    /// The games Cartouche Cloud built for the account this iPhone is
+    /// linked to, which the library offers to install.
+    @ObservedObject private var cloud = CartoucheCloudLink.shared
     /// Made before CartoucheUpdates, which would otherwise make it.
     @ObservedObject private var whatsNew = CartoucheWhatsNew.shared
     @ObservedObject private var updates = CartoucheUpdates.shared
@@ -131,7 +134,7 @@ struct CartoucheGamesView: View {
     /// player has a game of their own to put there.
     private var splits: Bool {
         widthClass == .regular && CartoucheSplit.isAvailable
-            && catalog.hasOwnedGames(among: sharedModel.apps, stored: storedGames.games)
+            && catalog.hasOwnedGames(among: sharedModel.apps, stored: storedGames.games, cloud: cloud.builtGames)
     }
 
     private var onGames: Bool { sharedModel.selectedTab == .games }
@@ -160,7 +163,7 @@ struct CartoucheGamesView: View {
     }
 
     var body: some View {
-        let entries = catalog.entries(for: sharedModel.apps, stored: storedGames.games)
+        let entries = catalog.entries(for: sharedModel.apps, stored: storedGames.games, cloud: cloud.builtGames)
         CartoucheArrangement(splits: splits) {
             console(entries)
         } secondary: {
@@ -375,7 +378,7 @@ struct CartoucheGamesView: View {
         .onChange(of: actions.installed) { _, app in
             guard let app else { return }
             actions.installed = nil
-            let entries = catalog.entries(for: sharedModel.apps, stored: storedGames.games)
+            let entries = catalog.entries(for: sharedModel.apps, stored: storedGames.games, cloud: cloud.builtGames)
             // The player's first game: the guide has done its job.
             guide.note(guide.progress(entries))
             guard actions.notice == nil,
@@ -415,6 +418,7 @@ struct CartoucheGamesView: View {
             CartoucheRenewal.scheduleWarnings()
             CartoucheStorageReach.shared.start()
             storedGames.refresh()
+            cloud.cameForward()
             actions.copySaves(of: sharedModel.apps)
             CartoucheGameStats.shared.cameBack(sharedModel.apps)
             updates.checkIfDue()
@@ -430,6 +434,7 @@ struct CartoucheGamesView: View {
             CartoucheRenewal.scheduleWarnings()
             CartoucheStorageReach.shared.setInFront(true)
             storedGames.refresh()
+            cloud.cameForward()
             actions.copySaves(of: sharedModel.apps)
             CartoucheGameStats.shared.cameBack(sharedModel.apps)
             updates.checkIfDue()
@@ -458,6 +463,7 @@ struct CartoucheGamesView: View {
                 onPlay: { play($0) },
                 onImport: { chooseIPA(from: .home) },
                 onInstall: { installStored($0) },
+                onInstallCloud: { installCloud($0) },
                 onUninstall: { uninstalling = $0 },
                 onSheet: { showSheet($0) },
                 onLibrary: { path.append(.library) },
@@ -551,6 +557,7 @@ struct CartoucheGamesView: View {
                 onImport: { chooseIPA(from: .sheet) },
                 onUninstall: { uninstallingInSheet = $0 },
                 onInstallStored: { installStored($0) },
+                onInstallCloud: { installCloud($0) },
                 onExport: { exportCopy($0) },
                 onEditInfo: { editingInfo = entry },
                 onShortcuts: { app in
@@ -604,7 +611,7 @@ struct CartoucheGamesView: View {
     /// Asks Cartouche's server about the player's games it does not know,
     /// when it is due (CartoucheGameLookup).
     private func lookUpGames() {
-        catalog.lookUpGamesIfDue(among: catalog.entries(for: sharedModel.apps, stored: storedGames.games))
+        catalog.lookUpGamesIfDue(among: catalog.entries(for: sharedModel.apps, stored: storedGames.games, cloud: cloud.builtGames))
     }
 
     /// Done, with a symbol as well as its name: the iPhone Duo shows the
@@ -689,7 +696,7 @@ struct CartoucheGamesView: View {
     /// A new install: the guide opens by itself, once, over the console.
     /// A player who already has a game never sees it.
     private func openGuideIfNew() {
-        let progress = guide.progress(catalog.entries(for: sharedModel.apps, stored: storedGames.games))
+        let progress = guide.progress(catalog.entries(for: sharedModel.apps, stored: storedGames.games, cloud: cloud.builtGames))
         guide.note(progress)
         #if CARTOUCHE_GALLERY
         // The gallery's screenshots show the console without the guide over
@@ -808,6 +815,12 @@ struct CartoucheGamesView: View {
     private func installStored(_ game: CartoucheStoredGame) {
         sheetID = nil
         actions.install(stored: game)
+    }
+
+    /// Installs the game Cartouche Cloud built for the player, read there.
+    private func installCloud(_ game: CartoucheCloudBuilt) {
+        sheetID = nil
+        actions.install(cloud: game)
     }
 
     /// Copies the installed game to the player's games folder.

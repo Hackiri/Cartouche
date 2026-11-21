@@ -48,6 +48,9 @@ enum GalleryState {
     /// runs in, is missing from the app, as after an install that removed
     /// its extensions (CartoucheLiveProcess; works: …-no-liveprocess).
     static var liveProcessMissing = false
+    /// The GPU reads BC-compressed textures (CartoucheDevice), unless the
+    /// scenario is an A16's (GalleryBCConversion; works: gpu-no-bc…).
+    static var readsBCTextures = true
 
     static let documents: URL = {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -189,6 +192,7 @@ final class CartoucheGameActions: ObservableObject {
     func answerJIT(open: Bool) { jitQuestion = nil }
     func install(_ url: URL) { GalleryTest.install(url, with: self) }
     func install(stored game: CartoucheStoredGame) {}
+    func install(cloud game: CartoucheCloudBuilt) {}
     func installAnyway(_ question: CartoucheInstallQuestion) { installQuestion = nil }
     func dropInstall(_ question: CartoucheInstallQuestion) { installQuestion = nil }
     func closeInstallQuestion() { installQuestion = nil }

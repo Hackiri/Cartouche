@@ -45,6 +45,8 @@ struct CartoucheHomeView: View {
     let onImport: () -> Void
     /// Installs a game from the player's games folder.
     let onInstall: (CartoucheStoredGame) -> Void
+    /// Installs a game Cartouche Cloud built for the player.
+    let onInstallCloud: (CartoucheCloudBuilt) -> Void
     let onUninstall: (LCAppModel) -> Void
     let onSheet: (CartoucheEntry) -> Void
     let onLibrary: () -> Void
@@ -71,6 +73,7 @@ struct CartoucheHomeView: View {
     init(entries: CartoucheCatalog.Entries, gameCount: Int, isActive: Bool,
          onPlay: @escaping (LCAppModel) -> Void, onImport: @escaping () -> Void,
          onInstall: @escaping (CartoucheStoredGame) -> Void = { _ in },
+         onInstallCloud: @escaping (CartoucheCloudBuilt) -> Void = { _ in },
          onUninstall: @escaping (LCAppModel) -> Void, onSheet: @escaping (CartoucheEntry) -> Void,
          onLibrary: @escaping () -> Void, onSetup: @escaping () -> Void, onGuide: @escaping () -> Void = {},
          onTab: @escaping (LCTabIdentifier) -> Void, zoom: Namespace.ID? = nil,
@@ -81,6 +84,7 @@ struct CartoucheHomeView: View {
         self.onPlay = onPlay
         self.onImport = onImport
         self.onInstall = onInstall
+        self.onInstallCloud = onInstallCloud
         self.onUninstall = onUninstall
         self.onSheet = onSheet
         self.onLibrary = onLibrary
@@ -476,6 +480,8 @@ struct CartoucheHomeView: View {
             }
         } else if let stored = entry.stored {
             Button { onInstall(stored) } label: { Label(installTitle, systemImage: "arrow.down.circle.fill") }
+        } else if let cloud = entry.cloud {
+            Button { onInstallCloud(cloud) } label: { Label(CartoucheText.cloudInstall, systemImage: "icloud.and.arrow.down.fill") }
         } else {
             Button(action: onImport) { Label(CartoucheText.importCopy, systemImage: "square.and.arrow.down") }
         }
@@ -674,6 +680,9 @@ struct CartoucheHomeView: View {
                 }
             } else if let stored = entry.stored {
                 actionButton(installTitle, systemImage: "arrow.down.circle.fill", primary: true, input: .a) { onInstall(stored) }
+            } else if let cloud = entry.cloud {
+                actionButton(CartoucheText.cloudInstall, systemImage: "icloud.and.arrow.down.fill", primary: true,
+                             input: .a) { onInstallCloud(cloud) }
             } else {
                 actionButton(CartoucheText.importCopy, systemImage: "square.and.arrow.down", primary: true,
                              input: .a, action: onImport)
@@ -855,6 +864,8 @@ struct CartoucheHomeView: View {
                 onPlay(app)
             } else if let stored = entry.stored {
                 onInstall(stored)
+            } else if let cloud = entry.cloud {
+                onInstallCloud(cloud)
             } else {
                 onImport()
             }
@@ -1000,7 +1011,7 @@ struct CartoucheHomeView: View {
     }
 }
 
-/// The platform, the genre and where a game plays, on one line.
+/// The platform, the genre and where a game plays.
 @available(iOS 17.0, *)
 struct CartoucheMetaLine: View {
     let entry: CartoucheEntry
@@ -1008,28 +1019,62 @@ struct CartoucheMetaLine: View {
     var showsStatus = true
     /// The game runs behind the console, paused there.
     var isPaused = false
+    /// The game's sheet can give the genre a line of its own.
+    var wraps = false
 
     var body: some View {
+        if wraps {
+            ViewThatFits(in: .horizontal) {
+                line
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        platform
+                        status
+                    }
+                    genre
+                }
+            }
+        } else {
+            line
+        }
+    }
+
+    private var line: some View {
         HStack(spacing: 8) {
-            if let platform = entry.platform {
-                Text(CartoucheText.platform(platform).uppercased())
-                    .font(.caption2.weight(.heavy))
-                    .tracking(1)
-                    .foregroundStyle(Color.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color.white.opacity(0.16), in: Capsule())
-            }
-            if let genre = entry.genre, let name = CartoucheText.genre(genre) {
-                Label(name, systemImage: CartoucheTheme.symbol(genre: genre))
-                    .font(.caption.weight(.semibold))
-                    .labelStyle(CartoucheTightLabelStyle())
-                    .foregroundStyle(CartoucheTheme.secondaryText)
-                    .lineLimit(1)
-            }
-            if showsStatus {
-                CartoucheStatusLabel(status: isPaused ? .paused : CartouchePlayStatus.of(entry))
-            }
+            platform
+            genre
+            status
+        }
+    }
+
+    @ViewBuilder
+    private var platform: some View {
+        if let platform = entry.platform {
+            Text(CartoucheText.platform(platform).uppercased())
+                .font(.caption2.weight(.heavy))
+                .tracking(1)
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color.white.opacity(0.16), in: Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var genre: some View {
+        if let genre = entry.genre, let name = CartoucheText.genre(genre) {
+            Label(name, systemImage: CartoucheTheme.symbol(genre: genre))
+                .font(.caption.weight(.semibold))
+                .labelStyle(CartoucheTightLabelStyle())
+                .foregroundStyle(CartoucheTheme.secondaryText)
+                .lineLimit(wraps ? nil : 1)
+        }
+    }
+
+    @ViewBuilder
+    private var status: some View {
+        if showsStatus {
+            CartoucheStatusLabel(status: isPaused ? .paused : CartouchePlayStatus.of(entry))
         }
     }
 }

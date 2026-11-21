@@ -1,4 +1,4 @@
-From cbf9a12ff44eb66078b5adf77b1e0d75e025044a Mon Sep 17 00:00:00 2001
+From 66ff0ae829a3628f994bb905897a40482458e2a9 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 12 Nov 2026 20:31:18 -0500
 Subject: [PATCH] Start minimuxer again for an operation when its start at
@@ -105,10 +105,10 @@ index 9dfb2c5..af22b0a 100644
      var asOperationError: OperationError {
          switch self {
 diff --git a/SideStore/Intents/CartoucheOutcome.swift b/SideStore/Intents/CartoucheOutcome.swift
-index d2f1e8e..3f2ead2 100644
+index 4afbc17..fbd8ed5 100644
 --- a/SideStore/Intents/CartoucheOutcome.swift
 +++ b/SideStore/Intents/CartoucheOutcome.swift
-@@ -383,6 +383,9 @@ final class CartoucheOutcome: @unchecked Sendable
+@@ -398,6 +398,9 @@ final class CartoucheOutcome: @unchecked Sendable
      static let deviceReasons: [(sentence: String, reason: String)] = [
          // LocalDevVPN, and this iPhone through it.
          ("No utun interface detected", "noTunnel"),
