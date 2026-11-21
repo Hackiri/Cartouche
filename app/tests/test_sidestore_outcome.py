@@ -338,7 +338,7 @@ class SideStoreOutcomeTest(unittest.TestCase):
         self.sign_in = self.files["SideStore/Intents/CartoucheSignInIntent.swift"]
         self.device = patched("SideStore/Intents/CartoucheRegisterDeviceIntent.swift")
         # The apps Cartouche installs on this iPhone, and the App IDs Apple
-        # keeps (app/patches/sidestore/0026 and 0027).
+        # keeps (app/patches/sidestore/0027 and 0028).
         self.apps = {name: patched(f"SideStore/Intents/{name}.swift")
                      for name in ("CartoucheInstallAppIntent", "CartoucheRefreshAppsIntent", "CartoucheRemoveAppIntent",
                                   "CartoucheAppIDsIntent")}

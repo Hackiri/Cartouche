@@ -1,5 +1,5 @@
 """Checks that the apps Cartouche installs on this iPhone through the built-in
-SideStore (app/patches/sidestore/0026 and 0027, decision 137) line up across
+SideStore (app/patches/sidestore/0027 and 0028, decision 137) line up across
 the three sides that make them work:
 
 - the patches add the four actions, install, refresh, remove and the list
@@ -44,7 +44,7 @@ def apps_patches() -> list:
 
 
 def added_files() -> dict:
-    """The lines patches 0026 and 0027 add, by the file they go to."""
+    """The lines patches 0027 and 0028 add, by the file they go to."""
     files, current = {}, None
     for patch in apps_patches():
         for line in patch.read_text(encoding="utf-8").splitlines():

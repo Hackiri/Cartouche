@@ -545,7 +545,7 @@ struct GalleryScenario {
         // also lists in the app group's defaults (CartoucheIPhoneApps).
         GalleryState.appRecords = []
         var listed: [[String: String]] = []
-        // And the App IDs Apple keeps, as SideStore's patch 0027 leaves them:
+        // And the App IDs Apple keeps, as SideStore's patch 0028 leaves them:
         // Cartouche's own and one per app, dates in seconds since 1970.
         var appIDs = ["""
         {"name": "Cartouche", "identifier": "GALLERY000", "bundleIdentifier": "\(Bundle.main.bundleIdentifier ?? "").GALLERY1234",

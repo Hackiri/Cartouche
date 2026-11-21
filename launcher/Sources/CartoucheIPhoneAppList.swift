@@ -4,11 +4,11 @@
 //
 //  The apps Cartouche installed on this iPhone through the built-in
 //  SideStore, as apps of their own (decision 137): the list Cartouche keeps
-//  in the app group (CartoucheInstalledApps, which SideStore's patch 0026
+//  in the app group (CartoucheInstalledApps, which SideStore's patch 0027
 //  writes), joined with what SideStore records of every installed app for
 //  its widget (widget_data.json), as CartoucheSignature reads Cartouche's
 //  own expiry from it; and the App IDs Apple keeps for the Apple ID, as
-//  SideStore's patch 0027 leaves them in the app group. Pure:
+//  SideStore's patch 0028 leaves them in the app group. Pure:
 //  CartoucheIPhoneApps reads the files and runs the actions.
 //
 
@@ -33,7 +33,7 @@ struct CartoucheIPhoneApp: Identifiable, Equatable, Sendable {
 }
 
 /// An App ID Apple keeps for the Apple ID, as SideStore's App IDs page lists
-/// them and CartoucheAppIDsIntent writes them (app/patches/sidestore/0027).
+/// them and CartoucheAppIDsIntent writes them (app/patches/sidestore/0028).
 struct CartoucheAppID: Identifiable, Equatable, Sendable {
     let name: String
     /// Apple's own, ten characters.

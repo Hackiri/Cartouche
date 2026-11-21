@@ -7,7 +7,7 @@
 //  the app group joined with what SideStore records of every installed app
 //  for its widget, the days left before each expires, the link that opens
 //  one, the leftovers an install may leave, and the App IDs Apple keeps for
-//  the Apple ID as SideStore's patch 0027 leaves them.
+//  the Apple ID as SideStore's patch 0028 leaves them.
 //
 
 import Foundation

@@ -61,13 +61,13 @@ Expected: the two 0017 tests pass; the others as before.
 
 - [ ] **Step 6: Commit** `app/patches/sidestore/0017-renew-cartouche-alone.patch app/tests/test_renewal.py app/patches/README.md`.
 
-### Task 2: Patch 0026, SideStore's three intents and the outcome's new actions
+### Task 2: Patch 0027, SideStore's three intents and the outcome's new actions
 
 **Files:**
-- Create: `app/patches/sidestore/0026-install-renew-and-remove-apps-for-cartouche.patch`, adding `SideStore/Intents/CartoucheInstallAppIntent.swift`, `SideStore/Intents/CartoucheRefreshAppsIntent.swift`, `SideStore/Intents/CartoucheRemoveAppIntent.swift`, `SideStore/Intents/CartoucheAppsRequest.swift`; modifying `SideStore/Intents/CartoucheOutcome.swift` and `AltStore/Intents/App Intents/RefreshAllAppsIntent.swift`
+- Create: `app/patches/sidestore/0027-install-renew-and-remove-apps-for-cartouche.patch`, adding `SideStore/Intents/CartoucheInstallAppIntent.swift`, `SideStore/Intents/CartoucheRefreshAppsIntent.swift`, `SideStore/Intents/CartoucheRemoveAppIntent.swift`, `SideStore/Intents/CartoucheAppsRequest.swift`; modifying `SideStore/Intents/CartoucheOutcome.swift` and `AltStore/Intents/App Intents/RefreshAllAppsIntent.swift`
 - Create: `app/tests/test_iphone_apps.py`
 - Modify: `app/tests/test_sidestore_outcome.py:255-275`
-- Modify: `app/patches/README.md` (new row after 0025)
+- Modify: `app/patches/README.md` (new row after 0026)
 
 **Interfaces:**
 - Consumes: `CartoucheInstalledApps` (Task 1); `CartoucheOutcome(action:)`, `.note(_:_:)`, `.save(error:stage:progress:)` (patch 0014).
@@ -88,7 +88,7 @@ Expected: the two 0017 tests pass; the others as before.
 - [ ] **Step 2: Run it to see it fail**
 
 Run: `python3 -m unittest discover -s app/tests -p 'test_iphone_apps.py'`
-Expected: every test FAILS (no patch 0026, no bridge, no model).
+Expected: every test FAILS (no patch 0027, no bridge, no model).
 
 - [ ] **Step 3: Extend `test_sidestore_outcome.py`**: actions set becomes `{"signIn", "device", "refresh", "update", "install", "apps", "remove"}`; `left` gains the three intent files with their actions; `waited` gains `"CartoucheIPhoneApps.swift": ["install", "apps", "remove"]`; nothing else.
 
@@ -99,7 +99,7 @@ Expected: every test FAILS (no patch 0026, no bridge, no model).
   - `CartoucheRemoveAppIntent`: action `.remove`; the one `app`, must be on `installed` else `notListed`; `deleteApp`; in the catch, when the error is minimuxer's for an app not installed (read `UninstallAppOperation.swift` and `MinimuxerError` for the case), `removeApp` instead; either way take the identifier off `installed`.
   - `CartoucheOutcome.swift`: the three `Action` cases; `kind(of:)` maps `CartoucheAppsError`.
   - `RefreshAllAppsIntent.swift` (as 0014 left it): collect the identifiers whose result failed and `outcome.note("failed", ...)` before the first error is thrown.
-  - Commit in `ss-patched`, `git format-patch -1 --stdout > app/patches/sidestore/0026-install-renew-and-remove-apps-for-cartouche.patch`, subject "Install, renew and remove apps on the iPhone for Cartouche".
+  - Commit in `ss-patched`, `git format-patch -1 --stdout > app/patches/sidestore/0027-install-renew-and-remove-apps-for-cartouche.patch`, subject "Install, renew and remove apps on the iPhone for Cartouche".
 
 - [ ] **Step 5: Check the patch applies on the pristine chain**: in a fresh copy of `ss-src` apply 0001..0022 with `patch -s -N -t -p1`; expected no rejects.
 
@@ -108,7 +108,7 @@ Expected: every test FAILS (no patch 0026, no bridge, no model).
 Run, in the scratch clone after syncing: `python3 -m unittest discover -s app/tests -p 'test_sidestore_outcome.py'` and `-p 'test_iphone_apps.py'`
 Expected: `test_sidestore_outcome` passes; in `test_iphone_apps` only the bridge and launcher tests still fail.
 
-- [ ] **Step 7: Add the row to `app/patches/README.md`** after 0025, in the table's voice: what the three intents do, that Cartouche's screens run them headless, decision 137.
+- [ ] **Step 7: Add the row to `app/patches/README.md`** after 0026, in the table's voice: what the three intents do, that Cartouche's screens run them headless, decision 137.
 
 - [ ] **Step 8: Commit** the patch, the two test files and the README.
 
